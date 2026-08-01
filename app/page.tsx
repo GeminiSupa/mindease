@@ -1,30 +1,56 @@
+import Image from "next/image";
+
 const therapists = [
   {
-    name: "Dr. Ayesha Khan",
+    name: "Aneela Mushtaq",
+    role: "Clinical Psychologist & Senior Lecturer",
+    credentials: "M.Phil Clinical Psychology, PMDCP, PhD Fellow",
+    years: "9+ years",
+    focus: "Psychological assessment, psychotherapy, grief, family counselling",
+    languages: "Urdu, English",
+    next: "Flexible online slots",
+    fee: "Profile",
+  },
+  {
+    name: "Saeed Anwar",
+    role: "Clinical Psychologist & Relationship Counselor",
+    credentials: "Master Clinical Psychology, PhD Scholar",
+    years: "8+ years",
+    focus: "OCD, anxiety, depression, trauma, marital and relationship concerns",
+    languages: "Urdu, English, Chinese",
+    next: "Online appointments",
+    fee: "Profile",
+  },
+  {
+    name: "Ishrat Noureen",
     role: "Clinical Psychologist",
-    years: "11 years",
-    focus: "Anxiety, panic, trauma recovery",
+    credentials: "MS Clinical Psychology",
+    years: "9+ years",
+    focus: "Addiction counselling, couple therapy, child and family therapy",
     languages: "English, Urdu",
-    next: "Today, 7:30 PM",
-    fee: "$45",
+    next: "Flexible timings",
+    fee: "Profile",
+    photo: "/team/ishrat-noureen.jpeg",
   },
   {
-    name: "Sara Malik",
-    role: "CBT Therapist",
-    years: "8 years",
-    focus: "Stress, depression, self-esteem",
-    languages: "English, Urdu, Punjabi",
-    next: "Tomorrow, 5:00 PM",
-    fee: "$38",
+    name: "Mujahid Iqbal",
+    role: "Clinical Psychologist & Online Therapist",
+    credentials: "PhD Psychology, MS Clinical Psychology",
+    years: "10+ years",
+    focus: "Anxiety, depression, OCD, trauma, addiction, workplace distress",
+    languages: "Urdu, English, Chinese",
+    next: "Online counselling",
+    fee: "Profile",
   },
   {
-    name: "Hamza Rauf",
-    role: "Relationship Therapist",
-    years: "9 years",
-    focus: "Couples, grief, family conflict",
-    languages: "English, Urdu",
-    next: "Mon, 8:00 PM",
-    fee: "$50",
+    name: "Romana Younas",
+    role: "Clinical Psychologist & PhD Scholar",
+    credentials: "M.Phil Clinical Psychology, Hypnotherapist, NLP Practitioner",
+    years: "6+ years",
+    focus: "Crisis support, psychodiagnostics, OCD, stress, anxiety, depression",
+    languages: "Urdu, English",
+    next: "Remote counselling",
+    fee: "Profile",
   },
 ];
 
@@ -51,11 +77,22 @@ export default function Home() {
       <section className="hero-shell" id="top">
         <nav className="nav" aria-label="Primary navigation">
           <a className="brand" href="#top" aria-label="MindEase Online Clinic home">
-            <span className="brand-mark">ME</span>
-            <span>
-              <strong>MindEase</strong>
-              <small>Online Clinic</small>
-            </span>
+            <Image
+              src="/brand/mindease-app-icon.png"
+              alt=""
+              width={44}
+              height={44}
+              className="brand-icon"
+              priority
+            />
+            <Image
+              src="/brand/mindease-wordmark.png"
+              alt="MindEase Online Clinic"
+              width={210}
+              height={74}
+              className="brand-wordmark"
+              priority
+            />
           </a>
           <div className="nav-links">
             <a href="#services">Services</a>
@@ -68,19 +105,19 @@ export default function Home() {
 
         <div className="hero-grid">
           <div className="hero-copy">
-            <div className="eyebrow">Private online therapy platform</div>
-            <h1>Qualified clinical psychologists, one calm place to begin.</h1>
+            <div className="eyebrow">MindEase Online Clinic</div>
+            <h1>Online therapy with qualified clinical psychologists.</h1>
             <p>
-              MindEase Online Clinic connects clients with experienced therapists
-              for confidential video sessions, clear scheduling, secure payment,
-              and gentle support from first contact to follow-up.
+              A single platform for experienced therapists offering confidential
+              video sessions, guided registration, secure payment, and simple
+              scheduling for clients in Pakistan and abroad.
             </p>
             <div className="hero-actions">
               <a className="primary-btn" href="#booking">Book your first session</a>
               <a className="secondary-btn" href="#contact">Talk to coordinator</a>
             </div>
             <div className="trust-strip" aria-label="Clinic trust points">
-              <span>Licensed professionals</span>
+              <span>Qualified psychologists</span>
               <span>Secure intake</span>
               <span>Flexible timings</span>
             </div>
@@ -184,23 +221,34 @@ export default function Home() {
           <span>Therapist marketplace</span>
           <h2>Help clients choose with confidence.</h2>
           <p>
-            Profiles should show qualification, experience, specialties, language,
-            next available slot, and fee before registration.
+            These public cards use verified CV details only. Full documents,
+            phone numbers, and private records should stay in the admin system.
           </p>
         </div>
         <div className="therapist-grid">
           {therapists.map((therapist) => (
             <article className="therapist-card" key={therapist.name}>
-              <div className="avatar" aria-hidden="true">
-                {therapist.name
-                  .split(" ")
-                  .map((part) => part[0])
-                  .slice(0, 2)
-                  .join("")}
-              </div>
+              {therapist.photo ? (
+                <Image
+                  src={therapist.photo}
+                  alt={`${therapist.name}, ${therapist.role}`}
+                  width={160}
+                  height={160}
+                  className="therapist-photo"
+                />
+              ) : (
+                <div className="avatar" aria-hidden="true">
+                  {therapist.name
+                    .split(" ")
+                    .map((part) => part[0])
+                    .slice(0, 2)
+                    .join("")}
+                </div>
+              )}
               <div className="therapist-copy">
                 <h3>{therapist.name}</h3>
                 <p>{therapist.role}</p>
+                <small>{therapist.credentials}</small>
               </div>
               <dl>
                 <div>
@@ -221,7 +269,7 @@ export default function Home() {
                 </div>
               </dl>
               <div className="card-action">
-                <strong>{therapist.fee}<span>/session</span></strong>
+                <strong>{therapist.fee}</strong>
                 <a href="#booking">Book</a>
               </div>
             </article>

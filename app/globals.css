@@ -73,8 +73,23 @@ main {
 .brand {
   align-items: center;
   display: inline-flex;
-  gap: 10px;
-  min-width: 190px;
+  gap: 8px;
+  min-width: 230px;
+}
+
+.brand-icon {
+  border-radius: 8px;
+  box-shadow: 0 10px 22px rgba(16, 85, 101, 0.18);
+  height: 42px;
+  object-fit: cover;
+  width: 42px;
+}
+
+.brand-wordmark {
+  height: 44px;
+  object-fit: contain;
+  object-position: left center;
+  width: 152px;
 }
 
 .brand-mark {
@@ -471,9 +486,28 @@ footer {
   width: 62px;
 }
 
+.therapist-photo {
+  aspect-ratio: 1;
+  border: 3px solid #dbeadf;
+  border-radius: 8px;
+  height: 88px;
+  object-fit: cover;
+  object-position: center 22%;
+  width: 88px;
+}
+
 .therapist-copy p {
   color: var(--muted);
   margin-bottom: 0;
+}
+
+.therapist-copy small {
+  color: var(--teal-dark);
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 800;
+  line-height: 1.35;
+  margin-top: 8px;
 }
 
 dl {
@@ -667,7 +701,7 @@ footer p {
     min-width: 0;
   }
 
-  .brand small {
+  .brand-wordmark {
     display: none;
   }
 

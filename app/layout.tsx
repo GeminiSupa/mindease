@@ -17,8 +17,9 @@ export const metadata: Metadata = {
   description:
     "Private online therapy sessions with qualified clinical psychologists and experienced therapists.",
   icons: {
-    icon: "/favicon.svg",
-    shortcut: "/favicon.svg",
+    icon: "/favicon.png",
+    shortcut: "/favicon.png",
+    apple: "/apple-touch-icon.png",
   },
   openGraph: {
     title: "MindEase Online Clinic",
