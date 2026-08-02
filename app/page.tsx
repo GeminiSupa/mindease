@@ -142,6 +142,7 @@ export default function Home() {
                 alt="Clinical psychologist Ishrat Noureen"
                 width={280}
                 height={360}
+                loading="eager"
                 priority
               />
               <div>
