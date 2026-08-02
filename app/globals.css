@@ -1,18 +1,19 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f7fbf8;
+  --background: #f8fbf9;
   --foreground: #18231f;
   --ink: #18231f;
-  --muted: #596760;
-  --line: #dbe8df;
-  --teal: #147c72;
-  --teal-dark: #0f5f58;
+  --muted: #4c5d55;
+  --line: #d5e4db;
+  --teal: #107b74;
+  --teal-dark: #0b5d58;
   --sage: #dbeadf;
   --mint: #eef8f0;
-  --coral: #d96f55;
-  --gold: #d9a441;
+  --coral: #bd5d48;
+  --gold: #b9811d;
   --white: #ffffff;
+  --deep: #10221e;
 }
 
 @theme inline {
@@ -56,9 +57,9 @@ main {
 
 .hero-shell {
   background:
-    linear-gradient(120deg, rgba(20, 124, 114, 0.12), transparent 32%),
-    linear-gradient(180deg, #f7fbf8 0%, #edf7f0 100%);
-  padding: 20px clamp(18px, 4vw, 64px) 58px;
+    linear-gradient(120deg, rgba(16, 123, 116, 0.14), transparent 36%),
+    linear-gradient(180deg, #f8fbf9 0%, #edf7f0 100%);
+  padding: 20px clamp(18px, 4vw, 64px) 46px;
 }
 
 .nav {
@@ -74,7 +75,7 @@ main {
   align-items: center;
   display: inline-flex;
   gap: 8px;
-  min-width: 230px;
+  min-width: 212px;
 }
 
 .brand-icon {
@@ -85,33 +86,19 @@ main {
   width: 42px;
 }
 
-.brand-wordmark {
-  height: 44px;
-  object-fit: contain;
-  object-position: left center;
-  width: 152px;
-}
-
-.brand-mark {
-  align-items: center;
-  background: var(--teal);
-  border-radius: 8px;
-  color: var(--white);
-  display: inline-flex;
-  font-size: 0.82rem;
-  font-weight: 800;
-  height: 42px;
-  justify-content: center;
-  width: 42px;
-}
-
-.brand strong,
-.brand small {
+.brand-text,
+.brand-text strong,
+.brand-text small {
   display: block;
   line-height: 1.05;
 }
 
-.brand small {
+.brand-text strong {
+  color: var(--ink);
+  font-size: 1rem;
+}
+
+.brand-text small {
   color: var(--muted);
   font-size: 0.76rem;
   margin-top: 4px;
@@ -125,8 +112,9 @@ main {
 }
 
 .nav-links a {
-  color: #3d4b44;
+  color: #33453d;
   font-size: 0.95rem;
+  font-weight: 700;
 }
 
 .nav-cta,
@@ -165,7 +153,7 @@ main {
   align-items: center;
   display: grid;
   gap: clamp(28px, 5vw, 68px);
-  grid-template-columns: minmax(0, 1fr) minmax(320px, 430px);
+  grid-template-columns: minmax(0, 0.95fr) minmax(340px, 0.75fr);
   margin: 64px auto 0;
   max-width: 1180px;
 }
@@ -197,15 +185,15 @@ p {
 
 h1 {
   color: var(--ink);
-  font-size: clamp(2.6rem, 7vw, 5.7rem);
-  line-height: 0.95;
+  font-size: 5.2rem;
+  line-height: 1.08;
   margin-bottom: 22px;
   max-width: 780px;
 }
 
 .hero-copy p {
   color: #405049;
-  font-size: clamp(1.02rem, 2vw, 1.28rem);
+  font-size: 1.18rem;
   line-height: 1.65;
   margin-bottom: 30px;
   max-width: 660px;
@@ -225,13 +213,119 @@ h1 {
 }
 
 .trust-strip span {
-  background: rgba(255, 255, 255, 0.72);
+  background: rgba(255, 255, 255, 0.82);
   border: 1px solid var(--line);
   border-radius: 8px;
-  color: #34413b;
+  color: #283b34;
   font-size: 0.9rem;
-  font-weight: 700;
+  font-weight: 800;
   padding: 10px 12px;
+}
+
+.hero-visual {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: 1fr 0.72fr;
+}
+
+.hero-logo-panel,
+.hero-portrait-card,
+.hero-stat-card,
+.booking-card,
+.therapist-card,
+.service-card,
+.pricing-grid article,
+.stack-grid article,
+.contact-form,
+.proof-grid article {
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 24px 60px rgba(27, 49, 38, 0.08);
+}
+
+.hero-logo-panel {
+  align-items: center;
+  background:
+    radial-gradient(circle at 42% 48%, rgba(46, 201, 190, 0.34), transparent 31%),
+    linear-gradient(135deg, #f5fbf8, #dcefe8);
+  display: flex;
+  grid-column: 1 / -1;
+  justify-content: center;
+  min-height: 190px;
+  overflow: hidden;
+  padding: 28px;
+}
+
+.hero-logo-panel img {
+  height: auto;
+  max-height: 118px;
+  object-fit: contain;
+  width: min(100%, 430px);
+}
+
+.hero-portrait-card {
+  overflow: hidden;
+}
+
+.hero-portrait-card img {
+  aspect-ratio: 4 / 5;
+  display: block;
+  height: auto;
+  object-fit: cover;
+  object-position: center 18%;
+  width: 100%;
+}
+
+.hero-portrait-card div {
+  padding: 16px;
+}
+
+.hero-portrait-card span,
+.hero-stat-card span {
+  color: var(--teal-dark);
+  display: block;
+  font-size: 0.74rem;
+  font-weight: 900;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+}
+
+.hero-portrait-card strong,
+.hero-stat-card strong {
+  color: var(--ink);
+  display: block;
+  font-size: 1.15rem;
+  line-height: 1.1;
+}
+
+.hero-portrait-card p,
+.hero-stat-card p {
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.45;
+  margin: 8px 0 0;
+}
+
+.hero-stat-card {
+  align-self: start;
+  background: var(--deep);
+  color: var(--white);
+  padding: 18px;
+}
+
+.hero-stat-card span {
+  color: #a8dbc8;
+}
+
+.hero-stat-card strong {
+  color: var(--white);
+  font-size: 5.4rem;
+}
+
+.hero-stat-card p {
+  color: #d9eee6;
+  font-weight: 700;
 }
 
 .booking-card,
@@ -240,10 +334,74 @@ h1 {
 .pricing-grid article,
 .stack-grid article,
 .contact-form {
-  background: rgba(255, 255, 255, 0.88);
+}
+
+.booking-section {
+  align-items: start;
+  display: grid;
+  gap: clamp(24px, 5vw, 58px);
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 430px);
+  margin: 0 auto;
+  max-width: 1180px;
+  padding: 76px clamp(18px, 4vw, 40px);
+}
+
+.booking-copy > span {
+  color: var(--teal-dark);
+  display: inline-block;
+  font-size: 0.78rem;
+  font-weight: 900;
+  margin-bottom: 14px;
+  text-transform: uppercase;
+}
+
+.booking-copy h2 {
+  color: var(--ink);
+  font-size: 3.2rem;
+  line-height: 1.02;
+  margin-bottom: 16px;
+}
+
+.booking-copy > p {
+  color: var(--muted);
+  line-height: 1.65;
+  max-width: 680px;
+}
+
+.workflow-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 26px;
+}
+
+.workflow-grid article {
+  background: var(--white);
   border: 1px solid var(--line);
   border-radius: 8px;
-  box-shadow: 0 24px 60px rgba(27, 49, 38, 0.08);
+  min-height: 150px;
+  padding: 18px;
+}
+
+.workflow-grid article > span {
+  color: var(--coral);
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 900;
+  margin-bottom: 24px;
+}
+
+.workflow-grid strong {
+  color: var(--ink);
+  display: block;
+  font-size: 1.05rem;
+  margin-bottom: 7px;
+}
+
+.workflow-grid p {
+  color: var(--muted);
+  line-height: 1.48;
+  margin-bottom: 0;
 }
 
 .booking-card {
@@ -351,25 +509,25 @@ textarea:focus {
   align-items: end;
   display: grid;
   grid-template-columns: minmax(0, 1.4fr) minmax(280px, 0.6fr);
-  margin: -24px auto 0;
+  margin: 0 auto;
   max-width: 1180px;
-  padding: 0 clamp(18px, 4vw, 0px);
+  padding: 0 clamp(18px, 4vw, 40px);
 }
 
 .therapy-photo {
   aspect-ratio: 16 / 7;
-  background:
-    linear-gradient(90deg, rgba(24, 35, 31, 0.02), rgba(24, 35, 31, 0.04)),
-    url("https://images.unsplash.com/photo-1573497620053-ea5300f94f21?auto=format&fit=crop&w=1600&q=85") center / cover;
   border-radius: 8px;
   box-shadow: 0 28px 80px rgba(27, 49, 38, 0.14);
   display: block;
-  min-height: 300px;
+  height: auto;
+  min-height: 280px;
+  object-fit: cover;
+  object-position: center;
   width: 100%;
 }
 
-.image-band div {
-  background: var(--ink);
+.image-band-copy {
+  background: var(--deep);
   border-radius: 8px;
   color: var(--white);
   margin-left: -80px;
@@ -377,13 +535,13 @@ textarea:focus {
   padding: 26px;
 }
 
-.image-band strong {
+.image-band-copy strong {
   display: block;
-  font-size: clamp(1.2rem, 2vw, 1.7rem);
+  font-size: 1.45rem;
   line-height: 1.2;
 }
 
-.image-band span {
+.image-band-copy span {
   color: #a8dbc8;
 }
 
@@ -393,7 +551,7 @@ textarea:focus {
 footer {
   margin: 0 auto;
   max-width: 1180px;
-  padding: 82px clamp(18px, 4vw, 0px);
+  padding: 82px clamp(18px, 4vw, 40px);
 }
 
 .muted {
@@ -412,7 +570,7 @@ footer {
 .journey-copy h2,
 .contact-section h2 {
   color: var(--ink);
-  font-size: clamp(2rem, 4vw, 3.5rem);
+  font-size: 3.2rem;
   line-height: 1.02;
   margin-bottom: 16px;
 }
@@ -442,7 +600,8 @@ footer {
 
 .service-card,
 .pricing-grid article,
-.stack-grid article {
+.stack-grid article,
+.proof-grid article {
   padding: 22px;
 }
 
@@ -458,20 +617,82 @@ footer {
 .service-card h3,
 .pricing-grid h3,
 .stack-grid h3,
-.therapist-card h3 {
+.therapist-card h3,
+.proof-grid h3 {
   color: var(--ink);
   font-size: 1.1rem;
   margin-bottom: 8px;
 }
 
-.therapist-grid {
+.clinic-proof {
+  padding-bottom: 20px;
+}
+
+.proof-grid {
+  display: grid;
+  gap: 16px;
   grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 34px;
+}
+
+.proof-grid article {
+  display: grid;
+  gap: 14px;
+}
+
+.proof-grid img {
+  border-radius: 8px;
+  height: 104px;
+  object-fit: cover;
+  object-position: center 20%;
+  width: 104px;
+}
+
+.proof-grid p {
+  color: var(--muted);
+  line-height: 1.58;
+  margin-bottom: 0;
+}
+
+.interface-shot {
+  background:
+    linear-gradient(135deg, rgba(16, 123, 116, 0.16), rgba(189, 93, 72, 0.08)),
+    #f7fbf8;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  min-height: 104px;
+  padding: 16px;
+}
+
+.interface-shot span {
+  color: var(--teal-dark);
+  display: block;
+  font-size: 2.5rem;
+  font-weight: 900;
+  line-height: 1;
+  margin-bottom: 10px;
+}
+
+.interface-shot strong {
+  color: var(--ink);
+  display: block;
+  margin-bottom: 6px;
+}
+
+.interface-shot p {
+  font-size: 0.88rem;
+  line-height: 1.4;
+}
+
+.therapist-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .therapist-card {
   display: grid;
-  gap: 18px;
-  padding: 22px;
+  gap: 16px;
+  grid-template-columns: 96px minmax(0, 1fr);
+  padding: 20px;
 }
 
 .avatar {
@@ -490,10 +711,10 @@ footer {
   aspect-ratio: 1;
   border: 3px solid #dbeadf;
   border-radius: 8px;
-  height: 88px;
+  height: 96px;
   object-fit: cover;
   object-position: center 22%;
-  width: 88px;
+  width: 96px;
 }
 
 .therapist-copy p {
@@ -513,6 +734,7 @@ footer {
 dl {
   display: grid;
   gap: 12px;
+  grid-column: 1 / -1;
   margin: 0;
 }
 
@@ -538,12 +760,14 @@ dd {
   align-items: center;
   display: flex;
   gap: 12px;
+  grid-column: 1 / -1;
   justify-content: space-between;
 }
 
 .card-action strong {
   color: var(--teal-dark);
-  font-size: 1.3rem;
+  font-size: 1rem;
+  min-width: 0;
 }
 
 .card-action span {
@@ -605,7 +829,7 @@ dd {
 }
 
 .stack-grid {
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
 }
 
 .contact-section {
@@ -665,6 +889,7 @@ footer p {
   }
 
   .hero-grid,
+  .booking-section,
   .journey,
   .contact-section,
   .image-band {
@@ -675,15 +900,37 @@ footer p {
     margin-top: 0;
   }
 
-  .image-band div {
+  .image-band-copy {
     margin: -24px 18px 0;
   }
 
   .service-grid,
   .therapist-grid,
   .pricing-grid,
-  .stack-grid {
+  .stack-grid,
+  .proof-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .hero-visual {
+    grid-template-columns: minmax(0, 1fr) minmax(220px, 0.72fr);
+  }
+
+  h1,
+  .admin-login h1 {
+    font-size: 4rem;
+  }
+
+  .booking-copy h2,
+  .section-heading h2,
+  .journey-copy h2,
+  .contact-section h2,
+  .admin-topbar h1 {
+    font-size: 2.6rem;
+  }
+
+  .hero-stat-card strong {
+    font-size: 4.4rem;
   }
 }
 
@@ -701,7 +948,7 @@ footer p {
     min-width: 0;
   }
 
-  .brand-wordmark {
+  .brand-text {
     display: none;
   }
 
@@ -709,8 +956,25 @@ footer p {
     margin-top: 42px;
   }
 
-  h1 {
-    font-size: clamp(2.35rem, 16vw, 4.1rem);
+  h1,
+  .admin-login h1 {
+    font-size: 3rem;
+  }
+
+  .booking-copy h2,
+  .section-heading h2,
+  .journey-copy h2,
+  .contact-section h2,
+  .admin-topbar h1 {
+    font-size: 2.15rem;
+  }
+
+  .hero-copy p {
+    font-size: 1.02rem;
+  }
+
+  .hero-stat-card strong {
+    font-size: 3.6rem;
   }
 
   .hero-actions a {
@@ -721,11 +985,26 @@ footer p {
     padding: 16px;
   }
 
+  .hero-visual,
+  .workflow-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .hero-logo-panel {
+    min-height: 150px;
+    padding: 18px;
+  }
+
+  .hero-portrait-card img {
+    aspect-ratio: 16 / 10;
+  }
+
   .therapy-photo {
     aspect-ratio: 4 / 3;
   }
 
   .section,
+  .booking-section,
   .journey,
   .contact-section {
     padding-bottom: 56px;
@@ -740,8 +1019,20 @@ footer p {
   .therapist-grid,
   .pricing-grid,
   .stack-grid,
+  .proof-grid,
   .timeline {
     grid-template-columns: 1fr;
+  }
+
+  .therapist-card {
+    grid-template-columns: 82px minmax(0, 1fr);
+    padding: 16px;
+  }
+
+  .therapist-photo,
+  .avatar {
+    height: 82px;
+    width: 82px;
   }
 
   footer {
@@ -801,8 +1092,8 @@ footer p {
 
 .admin-login h1 {
   color: var(--ink);
-  font-size: clamp(2.4rem, 6vw, 5.1rem);
-  line-height: 0.95;
+  font-size: 4.8rem;
+  line-height: 1.08;
   margin-bottom: 22px;
 }
 
@@ -971,7 +1262,7 @@ footer p {
 }
 
 .admin-topbar h1 {
-  font-size: clamp(2rem, 4vw, 3.8rem);
+  font-size: 3.4rem;
   line-height: 1;
 }
 
@@ -1019,7 +1310,7 @@ footer p {
 .admin-kpis strong {
   color: var(--ink);
   display: block;
-  font-size: clamp(1.8rem, 3vw, 2.7rem);
+  font-size: 2.4rem;
   line-height: 1;
   margin: 12px 0 8px;
 }

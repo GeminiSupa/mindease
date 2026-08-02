@@ -55,12 +55,12 @@ const therapists = [
 ];
 
 const services = [
-  "Anxiety and panic support",
-  "Depression counselling",
-  "Stress and burnout",
-  "Relationship therapy",
-  "Grief and life transitions",
-  "Self-esteem and confidence",
+  ["Anxiety and panic support", "Assessment-led care for worry, panic, phobias, and nervous-system overload."],
+  ["Depression counselling", "Structured support for low mood, motivation, sleep, and daily functioning."],
+  ["Stress and burnout", "Practical therapy for professionals, students, caregivers, and overwhelmed clients."],
+  ["Relationship therapy", "Individual, couple, and family support for conflict, trust, and communication."],
+  ["Grief and trauma support", "Confidential care for loss, trauma reactions, adjustment, and life transitions."],
+  ["Child and family therapy", "Parent guidance, child concerns, academic stress, and family counselling."],
 ];
 
 const stack = [
@@ -69,6 +69,13 @@ const stack = [
   ["Resend", "Verification, booking confirmations, reminders, contact replies"],
   ["Calendar", "Therapist availability, client invites, reschedule sync"],
   ["Vercel", "Fast deployment, environment variables, production hosting"],
+];
+
+const workflow = [
+  ["Search", "Choose concern, language, therapist type, and preferred time."],
+  ["Compare", "See credentials, experience, focus areas, and next available slots."],
+  ["Book", "Hold a slot, register securely, complete consent, and pay online."],
+  ["Care", "Receive reminders, join the session, and track follow-ups."],
 ];
 
 export default function Home() {
@@ -85,14 +92,10 @@ export default function Home() {
               className="brand-icon"
               priority
             />
-            <Image
-              src="/brand/mindease-wordmark.png"
-              alt="MindEase Online Clinic"
-              width={210}
-              height={74}
-              className="brand-wordmark"
-              priority
-            />
+            <span className="brand-text">
+              <strong>MindEase</strong>
+              <small>Online Clinic</small>
+            </span>
           </a>
           <div className="nav-links">
             <a href="#services">Services</a>
@@ -123,7 +126,60 @@ export default function Home() {
             </div>
           </div>
 
-          <aside className="booking-card" id="booking" aria-label="Book a session">
+          <aside className="hero-visual" aria-label="MindEase clinic preview">
+            <div className="hero-logo-panel">
+              <Image
+                src="/brand/mindease-wordmark.png"
+                alt="MindEase Online Clinic"
+                width={520}
+                height={184}
+                priority
+              />
+            </div>
+            <div className="hero-portrait-card">
+              <Image
+                src="/team/ishrat-noureen.jpeg"
+                alt="Clinical psychologist Ishrat Noureen"
+                width={280}
+                height={360}
+                priority
+              />
+              <div>
+                <span>Featured clinician</span>
+                <strong>Ishrat Noureen</strong>
+                <p>Clinical Psychologist, 9+ years experience</p>
+              </div>
+            </div>
+            <div className="hero-stat-card">
+              <span>Online clinic</span>
+              <strong>5</strong>
+              <p>verified therapists ready for scheduling</p>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <section className="booking-section" id="booking">
+        <div className="booking-copy">
+          <span>Book like Oladoc, but for therapy</span>
+          <h2>Find the right therapist, then confirm the session.</h2>
+          <p>
+            Clients should compare therapists, pick an available time, register,
+            complete intake, pay, and receive reminders without calling multiple
+            numbers or waiting for manual replies.
+          </p>
+          <div className="workflow-grid">
+            {workflow.map(([title, description], index) => (
+              <article key={title}>
+                <span>{String(index + 1).padStart(2, "0")}</span>
+                <strong>{title}</strong>
+                <p>{description}</p>
+              </article>
+            ))}
+          </div>
+        </div>
+
+        <aside className="booking-card" aria-label="Book a session">
             <div className="booking-head">
               <span>Session booking</span>
               <strong>4 simple steps</strong>
@@ -181,18 +237,61 @@ export default function Home() {
               <button type="button">Check therapist availability</button>
             </form>
           </aside>
-        </div>
       </section>
 
       <section className="image-band" aria-label="Online therapy preview">
-        <div
+        <Image
+          src="/brand/mindease-glow-wordmark.png"
+          alt="MindEase Online Clinic brand visual"
+          width={1600}
+          height={900}
           className="therapy-photo"
-          role="img"
-          aria-label="A calm online consultation setup with a laptop and notebook"
         />
-        <div>
+        <div className="image-band-copy">
           <span>Designed for ease</span>
           <strong>Clients should know what happens next at every step.</strong>
+        </div>
+      </section>
+
+      <section className="section clinic-proof">
+        <div className="section-heading">
+          <span>Why clients trust it</span>
+          <h2>Clinical credibility should be visible before signup.</h2>
+          <p>
+            The page now prioritizes real credentials, privacy, scheduling ease,
+            and clear next steps instead of generic wellness messaging.
+          </p>
+        </div>
+        <div className="proof-grid">
+          <article>
+            <Image
+              src="/brand/mindease-app-icon.png"
+              alt=""
+              width={104}
+              height={104}
+            />
+            <h3>Professional brand signal</h3>
+            <p>Consistent logo, favicon, and app-style icon build recognition across web and mobile.</p>
+          </article>
+          <article>
+            <Image
+              src="/team/ishrat-noureen.jpeg"
+              alt="MindEase clinical psychologist profile visual"
+              width={240}
+              height={240}
+            />
+            <h3>Real therapist presence</h3>
+            <p>Provider photos and verified CV details make therapist choice feel human and safer.</p>
+          </article>
+          <article>
+            <div className="interface-shot" aria-hidden="true">
+              <span>08</span>
+              <strong>Today&apos;s sessions</strong>
+              <p>Payment pending, confirmed, and reschedule requests in one admin queue.</p>
+            </div>
+            <h3>Operations-ready</h3>
+            <p>Admin views are planned for appointment requests, payments, contact messages, and therapist slots.</p>
+          </article>
         </div>
       </section>
 
@@ -206,11 +305,11 @@ export default function Home() {
           </p>
         </div>
         <div className="service-grid">
-          {services.map((service) => (
+          {services.map(([service, description]) => (
             <article className="service-card" key={service}>
               <span className="service-dot" />
               <h3>{service}</h3>
-              <p>Match with a therapist based on concern, language, availability, and session type.</p>
+              <p>{description}</p>
             </article>
           ))}
         </div>
