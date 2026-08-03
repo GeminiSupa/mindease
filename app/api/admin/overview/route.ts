@@ -5,14 +5,18 @@ const SUPABASE_URL =
 const SUPABASE_ANON_KEY =
   process.env.SUPABASE_ANON_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const DEFAULT_ADMIN_USER_IDS = ["1bcf8cbe-9716-4cde-91d8-3cb9f0c4fafe"];
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS ?? "")
   .split(",")
   .map((email) => email.trim().toLowerCase())
   .filter(Boolean);
-const ADMIN_USER_IDS = (process.env.ADMIN_USER_IDS ?? "")
-  .split(",")
-  .map((id) => id.trim())
-  .filter(Boolean);
+const ADMIN_USER_IDS = [
+  ...DEFAULT_ADMIN_USER_IDS,
+  ...(process.env.ADMIN_USER_IDS ?? "")
+    .split(",")
+    .map((id) => id.trim())
+    .filter(Boolean),
+];
 
 type SupabaseUser = {
   id: string;
@@ -25,7 +29,7 @@ type RecordLike = Record<string, unknown>;
 
 const setupSteps = [
   "Create the admin user in Supabase Auth.",
-  "Add the Supabase Auth user id to ADMIN_USER_IDS, or set profiles.role = 'admin'.",
+  "This build already allows the primary Supabase admin user id.",
   "Add SUPABASE_URL and SUPABASE_ANON_KEY in Vercel so the server can verify sessions.",
   "Keep SUPABASE_SERVICE_ROLE_KEY only in server/runtime environment variables.",
   "Enable Row Level Security on public client-facing tables before launch.",
