@@ -9,6 +9,10 @@ const ADMIN_EMAILS = (process.env.ADMIN_EMAILS ?? "")
   .split(",")
   .map((email) => email.trim().toLowerCase())
   .filter(Boolean);
+const ADMIN_USER_IDS = (process.env.ADMIN_USER_IDS ?? "")
+  .split(",")
+  .map((id) => id.trim())
+  .filter(Boolean);
 
 type SupabaseUser = {
   id: string;
@@ -21,7 +25,7 @@ type RecordLike = Record<string, unknown>;
 
 const setupSteps = [
   "Create the admin user in Supabase Auth.",
-  "Add that user to public.profiles with role = 'admin', or create public.admin_users with user_id.",
+  "Add the Supabase Auth user id to ADMIN_USER_IDS, add the email to ADMIN_EMAILS, or set profiles.role = 'admin'.",
   "Keep SUPABASE_SERVICE_ROLE_KEY only in server/runtime environment variables.",
   "Enable Row Level Security on public client-facing tables before launch.",
 ];
@@ -74,6 +78,7 @@ async function isAdmin(user: SupabaseUser) {
     user.app_metadata?.role ?? user.user_metadata?.role ?? user.app_metadata?.user_role;
 
   if (metadataRole === "admin") return true;
+  if (ADMIN_USER_IDS.includes(user.id)) return true;
   if (email && ADMIN_EMAILS.includes(email)) return true;
   if (!SUPABASE_SERVICE_ROLE_KEY) return false;
 

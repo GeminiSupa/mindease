@@ -175,40 +175,6 @@ export function AdminConsole() {
     }
   }
 
-  async function sendMagicLink() {
-    setLoading(true);
-    setError("");
-    setNotice("");
-
-    try {
-      const response = await fetch(`${SUPABASE_URL}/auth/v1/otp`, {
-        method: "POST",
-        headers: {
-          apikey: SUPABASE_ANON_KEY,
-          "content-type": "application/json",
-        },
-        body: JSON.stringify({
-          email,
-          create_user: false,
-          options: {
-            email_redirect_to: `${window.location.origin}/admin`,
-          },
-        }),
-      });
-      const body = await response.text();
-
-      if (!response.ok) {
-        throw new Error(body || "Could not send login link");
-      }
-
-      setNotice("Magic link sent. Check your email inbox.");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not send login link");
-    } finally {
-      setLoading(false);
-    }
-  }
-
   useEffect(() => {
     if (!session?.access_token) return;
 
@@ -283,7 +249,7 @@ export function AdminConsole() {
             <div>
               <span>Secure login</span>
               <h2>Admin sign in</h2>
-              <p>Use a Supabase Auth account with admin access.</p>
+              <p>Use the confirmed Supabase Auth email and password. No magic link or email SMTP is required.</p>
             </div>
             <label>
               Email
@@ -310,14 +276,6 @@ export function AdminConsole() {
             {notice ? <p className="admin-notice">{notice}</p> : null}
             <button disabled={loading || !email || !password} type="submit">
               {loading ? "Signing in..." : "Sign in"}
-            </button>
-            <button
-              className="admin-link-button"
-              disabled={loading || !email}
-              onClick={() => void sendMagicLink()}
-              type="button"
-            >
-              Send magic link instead
             </button>
           </form>
         </section>
