@@ -79,13 +79,7 @@ type AdminOverview = {
   setupSteps: string[];
 };
 
-const setupSteps = [
-  "Create the admin user in Supabase Auth.",
-  "This build already allows the primary Supabase admin user id.",
-  "Add SUPABASE_URL and SUPABASE_ANON_KEY in Vercel so the server can verify sessions.",
-  "Keep SUPABASE_SERVICE_ROLE_KEY only in server/runtime environment variables.",
-  "Enable Row Level Security on public client-facing tables before launch.",
-];
+const setupSteps: string[] = [];
 
 function json(body: unknown, status = 200) {
   return Response.json(body, {

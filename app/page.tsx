@@ -36,13 +36,7 @@ const journey = [
   ["Join", "Get email reminders, calendar invite, and the session link."],
 ];
 
-const integrations = [
-  ["Supabase", "Auth, profiles, therapists, intake forms, appointments, payments, RLS."],
-  ["Stripe", "Checkout, receipts, refunds, packages, and payment webhooks."],
-  ["Resend", "OTP, booking confirmations, reminders, and contact replies."],
-  ["Calendar", "Therapist slots, rescheduling, and session invites."],
-  ["Vercel", "Fast deployment, secrets, analytics, and production hosting."],
-];
+
 
 function initials(name: string) {
   return name
@@ -226,12 +220,10 @@ export default async function Home() {
 
       <section className="section intro-section">
         <div className="section-heading">
-          <span>Client flow</span>
-          <h2>Clear steps reduce anxiety before therapy begins.</h2>
+          <span>Your Journey</span>
+          <h2>Clear steps to start your healing process.</h2>
           <p>
-            The landing page now works like a healthcare booking product: choose
-            a concern, compare clinicians, confirm payment, then receive reminders
-            and the session link.
+            Our simple process makes it easy to get the care you need. Choose your concern, select a therapist, and securely book your first session in minutes.
           </p>
         </div>
         <div className="journey-grid">
@@ -255,12 +247,10 @@ export default async function Home() {
           />
         </div>
         <div className="proof-copy">
-          <span>Trust before signup</span>
-          <h2>Clients see real credentials before sharing sensitive details.</h2>
+          <span>Verified Professionals</span>
+          <h2>Qualified experts you can trust.</h2>
           <p>
-            Public pages show verified names, qualifications, experience, focus
-            areas, languages, pricing, and next slot. Intake details stay private
-            inside Supabase after login and consent.
+            All our therapists are fully licensed and carefully vetted. We maintain strict confidentiality and secure your private information at every step of your journey.
           </p>
           <div className="proof-list">
             <span>Confidential online consultation</span>
@@ -273,8 +263,8 @@ export default async function Home() {
       <section className="section" id="therapists">
         <div className="section-heading inline-heading">
           <div>
-            <span>Therapists</span>
-            <h2>Compare providers the way clients expect.</h2>
+            <span>Our Therapists</span>
+            <h2>Find the right professional for you.</h2>
           </div>
           <a className="text-link" href="#booking">Check all slots</a>
         </div>
@@ -340,10 +330,9 @@ export default async function Home() {
       <section className="section soft-section" id="services">
         <div className="section-heading">
           <span>Care areas</span>
-          <h2>Simple labels, clinical depth after registration.</h2>
+          <h2>Specialized care for your unique needs.</h2>
           <p>
-            The page avoids overwhelming clients with diagnostic language. Once
-            logged in, Supabase intake forms can collect fuller clinical history.
+            We offer focused support across a variety of areas. Our experienced professionals will help you navigate your challenges with compassion and expertise.
           </p>
         </div>
         <div className="service-grid">
@@ -384,31 +373,14 @@ export default async function Home() {
         </div>
       </section>
 
-      <section className="section integration-section">
-        <div className="section-heading inline-heading">
-          <div>
-            <span>API integrations</span>
-            <h2>Ready for Supabase, Vercel, email, payment, and scheduling.</h2>
-          </div>
-          <a className="text-link" href="/admin">Admin login</a>
-        </div>
-        <div className="integration-grid">
-          {integrations.map(([name, description]) => (
-            <article key={name}>
-              <h3>{name}</h3>
-              <p>{description}</p>
-            </article>
-          ))}
-        </div>
-      </section>
+
 
       <section className="contact-section" id="contact">
         <div className="contact-copy">
-          <span>Contact</span>
-          <h2>Let clients ask questions without oversharing.</h2>
+          <span>Contact Us</span>
+          <h2>We're here to help you get started.</h2>
           <p>
-            Public contact forms should collect only basic information. Sensitive
-            clinical details belong in the secure intake form after registration.
+            Have questions about our services or need help finding the right therapist? Reach out to our care coordinators for guidance.
           </p>
           <div className="policy-note">
             MindEase is not an emergency service. If someone is at immediate risk,

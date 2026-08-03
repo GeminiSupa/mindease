@@ -611,22 +611,7 @@ export function AdminConsole() {
             </div>
           </article>
 
-          <article className="admin-panel wide" id="setup">
-            <div className="admin-panel-head">
-              <div>
-                <span>Next improvements</span>
-                <h2>Recommended roadmap</h2>
-              </div>
-            </div>
-            <div className="setup-list">
-              {(overview.setupSteps ?? emptyOverview.setupSteps ?? []).map((step) => (
-                <p key={step}>{step}</p>
-              ))}
-              <p>Add a therapist portal where therapist users update bio, credentials, slots, and photo through Supabase Storage.</p>
-              <p>Add admin page-content controls for hero text, pricing, care areas, and featured profile ordering.</p>
-              <p>Add message status actions: open, in progress, closed, assigned to coordinator.</p>
-            </div>
-          </article>
+
         </section>
       </section>
     </main>
