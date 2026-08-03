@@ -1,9 +1,9 @@
 const SUPABASE_URL =
+  process.env.SUPABASE_URL ??
   process.env.NEXT_PUBLIC_SUPABASE_URL ??
-  "https://ryumrzlbaiccowxerpls.supabase.co";
+  "https://lhcjubkyyikirliafwfd.supabase.co";
 const SUPABASE_ANON_KEY =
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ??
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ5dW1yemxiYWljY293eGVycGxzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ1MzI2NzUsImV4cCI6MjEwMDEwODY3NX0.0Tr9dGi0A4hkRwwb0mPgzchCg_F7mbRoJcooxVTgbiU";
+  process.env.SUPABASE_ANON_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS ?? "")
   .split(",")
@@ -25,7 +25,8 @@ type RecordLike = Record<string, unknown>;
 
 const setupSteps = [
   "Create the admin user in Supabase Auth.",
-  "Add the Supabase Auth user id to ADMIN_USER_IDS, add the email to ADMIN_EMAILS, or set profiles.role = 'admin'.",
+  "Add the Supabase Auth user id to ADMIN_USER_IDS, or set profiles.role = 'admin'.",
+  "Add SUPABASE_URL and SUPABASE_ANON_KEY in Vercel so the server can verify sessions.",
   "Keep SUPABASE_SERVICE_ROLE_KEY only in server/runtime environment variables.",
   "Enable Row Level Security on public client-facing tables before launch.",
 ];
@@ -40,6 +41,8 @@ function json(body: unknown, status = 200) {
 }
 
 async function getUser(token: string) {
+  if (!SUPABASE_ANON_KEY) return null;
+
   const response = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
     headers: {
       apikey: SUPABASE_ANON_KEY,

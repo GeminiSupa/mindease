@@ -4,13 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 
-const SUPABASE_URL =
-  process.env.NEXT_PUBLIC_SUPABASE_URL ??
-  "https://ryumrzlbaiccowxerpls.supabase.co";
-const SUPABASE_ANON_KEY =
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ??
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ5dW1yemxiYWljY293eGVycGxzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ1MzI2NzUsImV4cCI6MjEwMDEwODY3NX0.0Tr9dGi0A4hkRwwb0mPgzchCg_F7mbRoJcooxVTgbiU";
-
 type AdminSession = {
   access_token: string;
   refresh_token?: string;
@@ -144,21 +137,17 @@ export function AdminConsole() {
     setNotice("");
 
     try {
-      const response = await fetch(
-        `${SUPABASE_URL}/auth/v1/token?grant_type=password`,
-        {
-          method: "POST",
-          headers: {
-            apikey: SUPABASE_ANON_KEY,
-            "content-type": "application/json",
-          },
-          body: JSON.stringify({ email, password }),
+      const response = await fetch("/api/admin/login", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
         },
-      );
+        body: JSON.stringify({ email, password }),
+      });
       const body = await response.json();
 
       if (!response.ok) {
-        throw new Error(body?.error_description ?? body?.msg ?? "Login failed");
+        throw new Error(body?.error ?? "Login failed");
       }
 
       const nextSession = body as AdminSession;
