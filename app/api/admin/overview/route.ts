@@ -75,6 +75,7 @@ async function isAdmin(user: SupabaseUser) {
 
   if (metadataRole === "admin") return true;
   if (email && ADMIN_EMAILS.includes(email)) return true;
+  if (!SUPABASE_SERVICE_ROLE_KEY) return false;
 
   const profiles = await getRows(
     "profiles",
@@ -119,16 +120,6 @@ export async function GET(request: Request) {
     return json({ error: "Your admin session has expired. Please sign in again.", setupSteps }, 401);
   }
 
-  if (!SUPABASE_SERVICE_ROLE_KEY) {
-    return json(
-      {
-        error: "Server Supabase service key is not configured.",
-        setupSteps,
-      },
-      500,
-    );
-  }
-
   const allowed = await isAdmin(user);
   if (!allowed) {
     return json(
@@ -142,6 +133,25 @@ export async function GET(request: Request) {
       },
       403,
     );
+  }
+
+  if (!SUPABASE_SERVICE_ROLE_KEY) {
+    return json({
+      user: {
+        email: user.email,
+        role: "admin",
+      },
+      stats: {
+        appointmentsToday: 0,
+        pendingRequests: 0,
+        activeTherapists: 0,
+        paidThisMonth: "PKR 0",
+      },
+      appointments: [],
+      therapists: [],
+      messages: [],
+      setupSteps,
+    });
   }
 
   const [appointmentsRows, therapistRows, paymentRows, messageRows] =
