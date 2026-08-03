@@ -27,6 +27,58 @@ type SupabaseUser = {
 
 type RecordLike = Record<string, unknown>;
 
+type AdminOverview = {
+  user: {
+    email?: string;
+    role: "admin";
+  };
+  stats: {
+    appointmentsToday: number;
+    pendingRequests: number;
+    activeTherapists: number;
+    pendingTherapists: number;
+    openMessages: number;
+    paidThisMonth: string;
+  };
+  appointments: Array<{
+    id: string;
+    client: string;
+    therapist: string;
+    time: string;
+    status: string;
+    amount: string;
+  }>;
+  therapists: Array<{
+    id: string;
+    name: string;
+    role: string;
+    focus: string;
+    status: string;
+    approvalStatus: string;
+    isActive: boolean;
+    photo?: string;
+  }>;
+  pendingTherapists: Array<{
+    id: string;
+    name: string;
+    role: string;
+    focus: string;
+    status: string;
+    approvalStatus: string;
+    isActive: boolean;
+    photo?: string;
+  }>;
+  messages: Array<{
+    id: string;
+    name: string;
+    topic: string;
+    status: string;
+    contact: string;
+    createdAt: string;
+  }>;
+  setupSteps: string[];
+};
+
 const setupSteps = [
   "Create the admin user in Supabase Auth.",
   "This build already allows the primary Supabase admin user id.",
@@ -120,6 +172,28 @@ function money(amount: unknown) {
   return "PKR 0";
 }
 
+function emptyOverview(user: SupabaseUser): AdminOverview {
+  return {
+    user: {
+      email: user.email,
+      role: "admin",
+    },
+    stats: {
+      appointmentsToday: 0,
+      pendingRequests: 0,
+      activeTherapists: 0,
+      pendingTherapists: 0,
+      openMessages: 0,
+      paidThisMonth: "PKR 0",
+    },
+    appointments: [],
+    therapists: [],
+    pendingTherapists: [],
+    messages: [],
+    setupSteps,
+  };
+}
+
 export async function GET(request: Request) {
   const token = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
 
@@ -148,22 +222,7 @@ export async function GET(request: Request) {
   }
 
   if (!SUPABASE_SERVICE_ROLE_KEY) {
-    return json({
-      user: {
-        email: user.email,
-        role: "admin",
-      },
-      stats: {
-        appointmentsToday: 0,
-        pendingRequests: 0,
-        activeTherapists: 0,
-        paidThisMonth: "PKR 0",
-      },
-      appointments: [],
-      therapists: [],
-      messages: [],
-      setupSteps,
-    });
+    return json(emptyOverview(user));
   }
 
   const [appointmentsRows, therapistRows, paymentRows, messageRows] =
@@ -185,16 +244,27 @@ export async function GET(request: Request) {
   }));
 
   const therapists = therapistRows.map((row) => ({
+    id: value(row, ["id"]),
     name: value(row, ["name", "full_name"], "Therapist"),
     role: value(row, ["role", "title"], "Clinical Psychologist"),
     focus: value(row, ["focus", "specialty", "specialization"], "Therapy and assessment"),
     status: value(row, ["status", "availability_status"], "Available"),
+    approvalStatus: value(row, ["approval_status"], "approved"),
+    isActive: row.is_active === true,
+    photo: value(row, ["profile_image_url", "photo_url"]),
   }));
+  const activeTherapists = therapists.filter((therapist) => therapist.isActive);
+  const pendingTherapists = therapists.filter(
+    (therapist) => therapist.approvalStatus !== "approved" || !therapist.isActive,
+  );
 
   const messages = messageRows.map((row) => ({
+    id: value(row, ["id"]),
     name: value(row, ["name", "full_name", "client_name"], "Website visitor"),
     topic: value(row, ["topic", "subject", "message"], "Contact request"),
     status: value(row, ["status"], "Open"),
+    contact: value(row, ["email", "phone"], ""),
+    createdAt: value(row, ["created_at"], ""),
   }));
 
   const paidThisMonth = paymentRows
@@ -218,11 +288,14 @@ export async function GET(request: Request) {
           value(row, ["status"], "pending").toLowerCase(),
         ),
       ).length,
-      activeTherapists: therapists.length,
+      activeTherapists: activeTherapists.length,
+      pendingTherapists: pendingTherapists.length,
+      openMessages: messages.filter((message) => message.status.toLowerCase() === "open").length,
       paidThisMonth: money(paidThisMonth),
     },
     appointments,
-    therapists,
+    therapists: activeTherapists,
+    pendingTherapists,
     messages,
     setupSteps,
   });

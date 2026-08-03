@@ -81,6 +81,7 @@ create table if not exists public.services (
 
 create table if not exists public.therapists (
   id uuid primary key default gen_random_uuid(),
+  user_id uuid references auth.users(id) on delete set null,
   slug text not null unique,
   full_name text not null,
   title text not null default 'Clinical Psychologist',
@@ -94,11 +95,22 @@ create table if not exists public.therapists (
   session_fee numeric(12, 2) not null default 0,
   currency text not null default 'PKR',
   availability_status text not null default 'Available',
+  approval_status text not null default 'pending' check (approval_status in ('pending', 'approved', 'rejected')),
+  approved_at timestamptz,
+  approved_by uuid references auth.users(id) on delete set null,
+  admin_notes text,
   is_featured boolean not null default false,
   is_active boolean not null default true,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table public.therapists
+  add column if not exists user_id uuid references auth.users(id) on delete set null,
+  add column if not exists approval_status text not null default 'pending' check (approval_status in ('pending', 'approved', 'rejected')),
+  add column if not exists approved_at timestamptz,
+  add column if not exists approved_by uuid references auth.users(id) on delete set null,
+  add column if not exists admin_notes text;
 
 create table if not exists public.therapist_services (
   therapist_id uuid not null references public.therapists(id) on delete cascade,
@@ -345,7 +357,7 @@ with check (public.is_mindease_admin());
 drop policy if exists "therapists_public_read" on public.therapists;
 create policy "therapists_public_read"
 on public.therapists for select
-using (is_active = true or public.is_mindease_admin());
+using ((is_active = true and approval_status = 'approved') or public.is_mindease_admin());
 
 drop policy if exists "therapists_admin_write" on public.therapists;
 create policy "therapists_admin_write"
@@ -469,6 +481,7 @@ using (public.is_mindease_admin());
 
 create index if not exists profiles_role_idx on public.profiles(role);
 create index if not exists therapists_active_featured_idx on public.therapists(is_active, is_featured);
+create index if not exists therapists_approval_idx on public.therapists(approval_status, is_active, created_at desc);
 create index if not exists availability_therapist_time_idx on public.availability_slots(therapist_id, starts_at);
 create index if not exists availability_open_time_idx on public.availability_slots(starts_at) where is_booked = false;
 create index if not exists appointments_client_time_idx on public.appointments(client_id, scheduled_at desc);
@@ -493,110 +506,11 @@ on conflict (slug) do update set
   default_price = excluded.default_price,
   sort_order = excluded.sort_order;
 
-insert into public.therapists (
-  slug,
-  full_name,
-  title,
-  qualifications,
-  years_experience,
-  bio,
-  specialization,
-  languages,
-  therapy_methods,
-  session_fee,
-  is_featured,
-  availability_status
-)
-values
-  (
-    'aneela-mushtaq',
-    'Aneela Mushtaq',
-    'Clinical Psychologist & Senior Lecturer',
-    'M.Phil Clinical Psychology, PMDCP, PhD Fellow',
-    9,
-    'Clinical psychologist and academic with experience in assessment, psychotherapy, clinical supervision, mental health camps, and research.',
-    'Psychological assessment, psychotherapy, grief, family counselling, emotional wellbeing',
-    array['Urdu', 'English'],
-    array['Psychological assessment', 'Psychotherapy', 'Psychoeducation'],
-    4500,
-    true,
-    'Flexible online slots'
-  ),
-  (
-    'saeed-anwar',
-    'Saeed Anwar',
-    'Clinical Psychologist & Relationship Counselor',
-    'Master Clinical Psychology, PhD Scholar',
-    8,
-    'Online clinical psychologist focused on OCD, anxiety, depression, trauma, anger, panic, and relationship concerns.',
-    'OCD, anxiety, depression, trauma, marital and relationship concerns',
-    array['Urdu', 'English', 'Chinese'],
-    array['Metacognitive Therapy', 'CBT', 'ACT', 'Mindfulness'],
-    5000,
-    true,
-    'Online appointments'
-  ),
-  (
-    'ishrat-noureen',
-    'Ishrat Noureen',
-    'Clinical Psychologist',
-    'MS Clinical Psychology',
-    9,
-    'Clinical psychologist with experience in addiction counselling, couple counselling, child and family therapy, CBT, and psychological testing.',
-    'Addiction counselling, couple therapy, child and family therapy',
-    array['Urdu', 'English'],
-    array['CBT', 'Interpersonal Therapy', 'Psychological Testing'],
-    5000,
-    true,
-    'Flexible timings'
-  ),
-  (
-    'mujahid-iqbal',
-    'Mujahid Iqbal',
-    'Clinical Psychologist & Online Therapist',
-    'PhD Psychology, MS Clinical Psychology',
-    10,
-    'Clinical psychologist and online therapist with helpline, rehabilitation, addiction, trauma, and workplace mental health experience.',
-    'Anxiety, depression, OCD, trauma, addiction, workplace distress',
-    array['Urdu', 'English', 'Chinese'],
-    array['CBT', 'DBT', 'MCT', 'ACT', 'Motivational Interviewing'],
-    5500,
-    true,
-    'Online counselling'
-  ),
-  (
-    'romana-younas',
-    'Romana Younas',
-    'Clinical Psychologist & PhD Scholar',
-    'M.Phil Clinical Psychology, Certified Hypnotherapist, NLP Practitioner',
-    6,
-    'Clinical psychologist and PhD scholar with experience in helpline counselling, crisis support, psychodiagnostics, psychotherapy support, and clinical research.',
-    'Crisis support, psychodiagnostics, OCD, stress, anxiety, depression',
-    array['Urdu', 'English'],
-    array['CBT', 'DBT', 'Person-centered Therapy', 'Stress Management', 'Hypnotherapy'],
-    5000,
-    true,
-    'Remote counselling'
-  )
-on conflict (slug) do update set
-  full_name = excluded.full_name,
-  title = excluded.title,
-  qualifications = excluded.qualifications,
-  years_experience = excluded.years_experience,
-  bio = excluded.bio,
-  specialization = excluded.specialization,
-  languages = excluded.languages,
-  therapy_methods = excluded.therapy_methods,
-  session_fee = excluded.session_fee,
-  is_featured = excluded.is_featured,
-  availability_status = excluded.availability_status,
-  updated_at = now();
-
 insert into public.therapist_services (therapist_id, service_id, price, duration_minutes)
 select therapists.id, services.id, therapists.session_fee, services.default_duration_minutes
 from public.therapists
 cross join public.services
-where therapists.is_active = true
+where therapists.is_active = true and therapists.approval_status = 'approved'
 on conflict (therapist_id, service_id) do update set
   price = excluded.price,
   duration_minutes = excluded.duration_minutes;

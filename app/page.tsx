@@ -1,58 +1,24 @@
 import Image from "next/image";
 
-const therapists = [
-  {
-    name: "Aneela Mushtaq",
-    role: "Clinical Psychologist",
-    credentials: "M.Phil Clinical Psychology, PMDCP, PhD Fellow",
-    years: "9+ years",
-    focus: ["Assessment", "Grief", "Family counselling"],
-    languages: "Urdu, English",
-    next: "Today 8:00 PM",
-    fee: "PKR 4,500",
-  },
-  {
-    name: "Saeed Anwar",
-    role: "Clinical Psychologist",
-    credentials: "Master Clinical Psychology, PhD Scholar",
-    years: "8+ years",
-    focus: ["OCD", "Trauma", "Relationships"],
-    languages: "Urdu, English, Chinese",
-    next: "Tomorrow 6:30 PM",
-    fee: "PKR 5,000",
-  },
-  {
-    name: "Ishrat Noureen",
-    role: "Clinical Psychologist",
-    credentials: "MS Clinical Psychology",
-    years: "9+ years",
-    focus: ["Addiction", "Couple therapy", "Family therapy"],
-    languages: "English, Urdu",
-    next: "Today 9:00 PM",
-    fee: "PKR 4,500",
-    photo: "/team/ishrat-noureen.jpeg",
-  },
-  {
-    name: "Mujahid Iqbal",
-    role: "Clinical Psychologist",
-    credentials: "PhD Psychology, MS Clinical Psychology",
-    years: "10+ years",
-    focus: ["Anxiety", "Depression", "Work stress"],
-    languages: "Urdu, English, Chinese",
-    next: "Sat 7:00 PM",
-    fee: "PKR 5,500",
-  },
-  {
-    name: "Romana Younas",
-    role: "Clinical Psychologist",
-    credentials: "M.Phil Clinical Psychology, Hypnotherapist, NLP Practitioner",
-    years: "6+ years",
-    focus: ["Crisis support", "OCD", "Stress"],
-    languages: "Urdu, English",
-    next: "Weekend slots",
-    fee: "PKR 4,500",
-  },
-];
+const SUPABASE_URL =
+  process.env.SUPABASE_URL ??
+  process.env.NEXT_PUBLIC_SUPABASE_URL ??
+  "https://lhcjubkyyikirliafwfd.supabase.co";
+const SUPABASE_ANON_KEY =
+  process.env.SUPABASE_ANON_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+type LiveTherapist = {
+  id: string;
+  full_name: string;
+  title: string;
+  qualifications?: string;
+  years_experience?: number;
+  specialization?: string;
+  languages?: string[];
+  session_fee?: number;
+  currency?: string;
+  availability_status?: string;
+};
 
 const services = [
   ["Anxiety & panic", "Structured therapy for worry, panic attacks, fears, and overthinking."],
@@ -86,7 +52,45 @@ function initials(name: string) {
     .join("");
 }
 
-export default function Home() {
+function splitFocus(value?: string) {
+  return (value ?? "")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .slice(0, 3);
+}
+
+async function getApprovedTherapists() {
+  if (!SUPABASE_ANON_KEY) return [];
+
+  const query = new URLSearchParams({
+    select:
+      "id,full_name,title,qualifications,years_experience,specialization,languages,session_fee,currency,availability_status",
+    is_active: "eq.true",
+    approval_status: "eq.approved",
+    order: "is_featured.desc,created_at.desc",
+    limit: "12",
+  });
+
+  try {
+    const response = await fetch(`${SUPABASE_URL}/rest/v1/therapists?${query}`, {
+      headers: {
+        apikey: SUPABASE_ANON_KEY,
+        authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+      },
+      next: { revalidate: 60 },
+    });
+
+    if (!response.ok) return [];
+    return (await response.json()) as LiveTherapist[];
+  } catch {
+    return [];
+  }
+}
+
+export default async function Home() {
+  const therapists = await getApprovedTherapists();
+
   return (
     <main>
       <section className="hero-shell" id="top">
@@ -180,9 +184,7 @@ export default function Home() {
             </form>
 
             <div className="quick-slots" aria-label="Available slots">
-              <span>Today 8:00 PM</span>
-              <span>Today 9:00 PM</span>
-              <span>Tomorrow 6:30 PM</span>
+              <span>Live slots appear after admin approval</span>
             </div>
           </aside>
 
@@ -195,9 +197,9 @@ export default function Home() {
               priority
             />
             <div className="clinician-badge">
-              <span>Featured clinician</span>
-              <strong>Ishrat Noureen</strong>
-              <p>Clinical Psychologist, 9+ years experience</p>
+              <span>Provider profile preview</span>
+              <strong>Admin-approved therapists</strong>
+              <p>Only reviewed profiles are published on the website.</p>
             </div>
           </aside>
         </div>
@@ -205,20 +207,20 @@ export default function Home() {
 
       <section className="metrics-band" aria-label="Clinic highlights">
         <div>
-          <strong>5</strong>
-          <span>verified therapists</span>
+          <strong>Review</strong>
+          <span>therapist profiles</span>
         </div>
         <div>
-          <strong>6</strong>
-          <span>major care areas</span>
+          <strong>Approve</strong>
+          <span>qualified providers</span>
         </div>
         <div>
-          <strong>50 min</strong>
-          <span>standard session</span>
+          <strong>Publish</strong>
+          <span>live website cards</span>
         </div>
         <div>
-          <strong>100%</strong>
-          <span>online scheduling</span>
+          <strong>Track</strong>
+          <span>messages and requests</span>
         </div>
       </section>
 
@@ -278,29 +280,22 @@ export default function Home() {
         </div>
 
         <div className="therapist-grid">
-          {therapists.map((therapist) => (
-            <article className="therapist-card" key={therapist.name}>
+          {therapists.map((therapist) => {
+            const focus = splitFocus(therapist.specialization);
+
+            return (
+            <article className="therapist-card" key={therapist.id}>
               <div className="therapist-top">
-                {therapist.photo ? (
-                  <Image
-                    src={therapist.photo}
-                    alt={`${therapist.name}, ${therapist.role}`}
-                    width={76}
-                    height={76}
-                    className="therapist-photo"
-                  />
-                ) : (
-                  <div className="avatar" aria-hidden="true">{initials(therapist.name)}</div>
-                )}
+                <div className="avatar" aria-hidden="true">{initials(therapist.full_name)}</div>
                 <div>
-                  <h3>{therapist.name}</h3>
-                  <p>{therapist.role}</p>
-                  <small>{therapist.credentials}</small>
+                  <h3>{therapist.full_name}</h3>
+                  <p>{therapist.title}</p>
+                  <small>{therapist.qualifications}</small>
                 </div>
               </div>
 
               <div className="pill-row">
-                {therapist.focus.map((item) => (
+                {(focus.length ? focus : ["Online therapy"]).map((item) => (
                   <span key={item}>{item}</span>
                 ))}
               </div>
@@ -308,28 +303,38 @@ export default function Home() {
               <dl className="therapist-meta">
                 <div>
                   <dt>Experience</dt>
-                  <dd>{therapist.years}</dd>
+                  <dd>{therapist.years_experience ? `${therapist.years_experience}+ years` : "Profile review complete"}</dd>
                 </div>
                 <div>
                   <dt>Languages</dt>
-                  <dd>{therapist.languages}</dd>
+                  <dd>{therapist.languages?.join(", ") || "Urdu, English"}</dd>
                 </div>
                 <div>
                   <dt>Next slot</dt>
-                  <dd>{therapist.next}</dd>
+                  <dd>{therapist.availability_status || "Contact admin"}</dd>
                 </div>
               </dl>
 
               <div className="card-footer">
                 <div>
                   <span>Session fee</span>
-                  <strong>{therapist.fee}</strong>
+                  <strong>
+                    {therapist.session_fee
+                      ? `${therapist.currency ?? "PKR"} ${therapist.session_fee.toLocaleString("en-PK")}`
+                      : "Ask admin"}
+                  </strong>
                 </div>
                 <a href="#booking">Book</a>
               </div>
             </article>
-          ))}
+          )})}
         </div>
+        {therapists.length === 0 ? (
+          <div className="empty-state">
+            <strong>No approved therapists are live yet.</strong>
+            <p>Admin-approved therapist profiles from Supabase will appear here automatically.</p>
+          </div>
+        ) : null}
       </section>
 
       <section className="section soft-section" id="services">
@@ -410,7 +415,7 @@ export default function Home() {
             they should contact local emergency support.
           </div>
         </div>
-        <form className="contact-form" aria-label="Contact MindEase">
+        <form className="contact-form" aria-label="Contact MindEase" action="/api/contact" method="post">
           <label>
             Full name
             <input name="name" placeholder="Your name" />

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -14,6 +14,17 @@ type AdminSession = {
   };
 };
 
+type AdminTherapist = {
+  id: string;
+  name: string;
+  role: string;
+  focus: string;
+  status: string;
+  approvalStatus: string;
+  isActive: boolean;
+  photo?: string;
+};
+
 type Overview = {
   user?: {
     email?: string;
@@ -23,6 +34,8 @@ type Overview = {
     appointmentsToday: number;
     pendingRequests: number;
     activeTherapists: number;
+    pendingTherapists: number;
+    openMessages: number;
     paidThisMonth: string;
   };
   appointments?: Array<{
@@ -33,78 +46,62 @@ type Overview = {
     status: string;
     amount: string;
   }>;
-  therapists?: Array<{
-    name: string;
-    role: string;
-    focus: string;
-    status: string;
-  }>;
+  therapists?: AdminTherapist[];
+  pendingTherapists?: AdminTherapist[];
   messages?: Array<{
+    id: string;
     name: string;
     topic: string;
     status: string;
+    contact: string;
+    createdAt: string;
   }>;
   setupSteps?: string[];
 };
 
-const sampleOverview: Overview = {
+const emptyOverview: Overview = {
   stats: {
-    appointmentsToday: 8,
-    pendingRequests: 14,
-    activeTherapists: 5,
-    paidThisMonth: "PKR 428k",
+    appointmentsToday: 0,
+    pendingRequests: 0,
+    activeTherapists: 0,
+    pendingTherapists: 0,
+    openMessages: 0,
+    paidThisMonth: "PKR 0",
   },
-  appointments: [
-    {
-      id: "A-1042",
-      client: "New intake",
-      therapist: "Aneela Mushtaq",
-      time: "Today, 7:30 PM",
-      status: "Payment pending",
-      amount: "PKR 4,500",
-    },
-    {
-      id: "A-1043",
-      client: "Follow-up",
-      therapist: "Saeed Anwar",
-      time: "Tomorrow, 6:00 PM",
-      status: "Confirmed",
-      amount: "PKR 5,000",
-    },
-    {
-      id: "A-1044",
-      client: "Couple session",
-      therapist: "Ishrat Noureen",
-      time: "Sat, 8:00 PM",
-      status: "Needs review",
-      amount: "PKR 6,000",
-    },
+  appointments: [],
+  therapists: [],
+  pendingTherapists: [],
+  messages: [],
+  setupSteps: [
+    "Create therapist profiles from this admin panel.",
+    "Therapists stay hidden until admin approval.",
+    "Approved therapists become live on the public website.",
+    "Contact form submissions appear in Client messages.",
   ],
-  therapists: [
-    {
-      name: "Aneela Mushtaq",
-      role: "Clinical Psychologist",
-      focus: "Assessment, psychotherapy, family counselling",
-      status: "Available",
-    },
-    {
-      name: "Mujahid Iqbal",
-      role: "Online Therapist",
-      focus: "OCD, trauma, addiction, workplace distress",
-      status: "Online",
-    },
-    {
-      name: "Romana Younas",
-      role: "Clinical Psychologist",
-      focus: "Crisis support, psychodiagnostics, stress",
-      status: "Limited slots",
-    },
-  ],
-  messages: [
-    { name: "Website visitor", topic: "First session pricing", status: "Open" },
-    { name: "Returning client", topic: "Reschedule request", status: "Open" },
-    { name: "Therapist", topic: "Availability update", status: "Done" },
-  ],
+};
+
+type TherapistForm = {
+  fullName: string;
+  title: string;
+  qualifications: string;
+  specialization: string;
+  languages: string;
+  yearsExperience: string;
+  sessionFee: string;
+  profileImageUrl: string;
+  bio: string;
+};
+
+const blankTherapistForm: TherapistForm = {
+  fullName: "",
+  title: "Clinical Psychologist",
+  qualifications: "",
+  specialization: "",
+  languages: "Urdu, English",
+  yearsExperience: "",
+  sessionFee: "",
+  profileImageUrl: "",
+  bio: "",
 };
 
 export function AdminConsole() {
@@ -123,13 +120,35 @@ export function AdminConsole() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [overview, setOverview] = useState<Overview | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [overview, setOverview] = useState<Overview>(emptyOverview);
+  const [therapistForm, setTherapistForm] = useState<TherapistForm>(blankTherapistForm);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
 
   const firstName = useMemo(() => {
     return session?.user?.email?.split("@")[0] ?? "Admin";
   }, [session?.user?.email]);
+
+  const loadOverview = useCallback(async (accessToken = session?.access_token) => {
+    if (!accessToken) return;
+
+    const response = await fetch("/api/admin/overview", {
+      headers: {
+        authorization: `Bearer ${accessToken}`,
+      },
+    });
+    const body = (await response.json()) as Overview & { error?: string };
+
+    if (!response.ok) {
+      setOverview({ ...emptyOverview, setupSteps: body.setupSteps ?? emptyOverview.setupSteps });
+      setError(body.error ?? "Admin access or Supabase data is not configured yet.");
+      return;
+    }
+
+    setError("");
+    setOverview(body);
+  }, [session?.access_token]);
 
   async function signIn() {
     setLoading(true);
@@ -156,7 +175,8 @@ export function AdminConsole() {
         "mindease-admin-session",
         JSON.stringify(nextSession),
       );
-      setNotice("Signed in. Checking admin access...");
+      setNotice("Signed in.");
+      await loadOverview(nextSession.access_token);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed");
     } finally {
@@ -164,45 +184,88 @@ export function AdminConsole() {
     }
   }
 
-  useEffect(() => {
+  async function createTherapist() {
     if (!session?.access_token) return;
 
-    let cancelled = false;
+    setSaving(true);
+    setError("");
+    setNotice("");
 
-    async function run() {
-      const response = await fetch("/api/admin/overview", {
+    try {
+      const response = await fetch("/api/admin/therapists", {
+        method: "POST",
         headers: {
-          authorization: `Bearer ${session?.access_token}`,
+          authorization: `Bearer ${session.access_token}`,
+          "content-type": "application/json",
         },
+        body: JSON.stringify(therapistForm),
       });
-      const body = (await response.json()) as Overview & { error?: string };
-
-      if (cancelled) return;
+      const body = await response.json();
 
       if (!response.ok) {
-        setOverview({ ...sampleOverview, setupSteps: body.setupSteps });
-        setError(body.error ?? "Admin access is not configured for this account.");
-        return;
+        throw new Error(body?.error ?? "Could not create therapist.");
       }
 
-      setError("");
-      setOverview(body);
-      setNotice("Admin access confirmed.");
+      setTherapistForm(blankTherapistForm);
+      setNotice("Therapist profile created. It is pending approval and hidden from the website.");
+      await loadOverview();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not create therapist.");
+    } finally {
+      setSaving(false);
     }
+  }
 
-    void run();
+  async function updateTherapist(id: string, action: "approve" | "reject" | "hide") {
+    if (!session?.access_token) return;
 
-    return () => {
-      cancelled = true;
-    };
-  }, [session?.access_token]);
+    setSaving(true);
+    setError("");
+    setNotice("");
+
+    try {
+      const response = await fetch("/api/admin/therapists", {
+        method: "PATCH",
+        headers: {
+          authorization: `Bearer ${session.access_token}`,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({ id, action }),
+      });
+      const body = await response.json();
+
+      if (!response.ok) {
+        throw new Error(body?.error ?? "Could not update therapist.");
+      }
+
+      setNotice(action === "approve" ? "Therapist approved and published." : "Therapist updated.");
+      await loadOverview();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not update therapist.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  useEffect(() => {
+    if (!session?.access_token) return;
+    const timer = window.setTimeout(() => {
+      void loadOverview(session.access_token);
+    }, 0);
+
+    return () => window.clearTimeout(timer);
+  }, [loadOverview, session?.access_token]);
 
   function signOut() {
     setSession(null);
-    setOverview(null);
+    setOverview(emptyOverview);
     setError("");
     setNotice("");
     window.localStorage.removeItem("mindease-admin-session");
+  }
+
+  function updateTherapistField(field: keyof TherapistForm, value: string) {
+    setTherapistForm((current) => ({ ...current, [field]: value }));
   }
 
   if (!session) {
@@ -215,16 +278,15 @@ export function AdminConsole() {
               <span>MindEase Admin</span>
             </Link>
             <p className="admin-kicker">Clinic operations</p>
-            <h1>Manage bookings like a modern healthcare marketplace.</h1>
+            <h1>Manage therapist approvals, messages, and bookings.</h1>
             <p>
-              Inspired by Oladoc-style workflows: therapist availability,
-              appointment requests, intake status, payments, and client messages
-              in one protected admin space.
+              Sign in with the Supabase Auth admin account. Therapist profiles
+              remain hidden until admin approval publishes them to the website.
             </p>
             <div className="admin-feature-list">
-              <span>Supabase Auth</span>
-              <span>Admin-only server data</span>
-              <span>Payments and scheduling ready</span>
+              <span>Password login</span>
+              <span>Therapist approval</span>
+              <span>Live contact messages</span>
             </div>
           </div>
 
@@ -238,7 +300,7 @@ export function AdminConsole() {
             <div>
               <span>Secure login</span>
               <h2>Admin sign in</h2>
-              <p>Use the confirmed Supabase Auth email and password. No magic link or email SMTP is required.</p>
+              <p>Use the confirmed Supabase Auth email and password.</p>
             </div>
             <label>
               Email
@@ -272,7 +334,11 @@ export function AdminConsole() {
     );
   }
 
-  const current = overview ?? sampleOverview;
+  const stats = overview.stats ?? emptyOverview.stats;
+  const appointments = overview.appointments ?? [];
+  const therapists = overview.therapists ?? [];
+  const pendingTherapists = overview.pendingTherapists ?? [];
+  const messages = overview.messages ?? [];
 
   return (
     <main className="admin-shell">
@@ -283,10 +349,10 @@ export function AdminConsole() {
         </Link>
         <nav aria-label="Admin sections">
           <a href="#overview">Overview</a>
-          <a href="#appointments">Appointments</a>
-          <a href="#therapists">Therapists</a>
+          <a href="#create-therapist">Create therapist</a>
+          <a href="#approvals">Approvals</a>
+          <a href="#therapists">Live therapists</a>
           <a href="#messages">Messages</a>
-          <a href="#setup">Setup</a>
         </nav>
         <button onClick={signOut} type="button">
           Sign out
@@ -300,17 +366,14 @@ export function AdminConsole() {
             <h1>{firstName}</h1>
           </div>
           <div className="admin-search" aria-label="Search placeholder">
-            Search clients, therapists, slots
+            Search clients, therapists, messages
           </div>
         </header>
 
         {error ? (
           <section className="admin-warning">
             <strong>{error}</strong>
-            <p>
-              The dashboard preview is visible, but live admin data requires one
-              admin rule in Supabase.
-            </p>
+            <p>No demo data is shown. Configure Supabase tables to show live clinic records.</p>
           </section>
         ) : null}
         {notice ? <p className="admin-notice inline">{notice}</p> : null}
@@ -318,37 +381,163 @@ export function AdminConsole() {
         <section className="admin-kpis" aria-label="Clinic metrics">
           <article>
             <span>Today</span>
-            <strong>{current.stats?.appointmentsToday ?? 0}</strong>
+            <strong>{stats?.appointmentsToday ?? 0}</strong>
             <p>appointments</p>
           </article>
           <article>
-            <span>Queue</span>
-            <strong>{current.stats?.pendingRequests ?? 0}</strong>
-            <p>pending requests</p>
+            <span>Approval queue</span>
+            <strong>{stats?.pendingTherapists ?? 0}</strong>
+            <p>therapists pending</p>
           </article>
           <article>
-            <span>Team</span>
-            <strong>{current.stats?.activeTherapists ?? 0}</strong>
-            <p>active therapists</p>
+            <span>Live team</span>
+            <strong>{stats?.activeTherapists ?? 0}</strong>
+            <p>published therapists</p>
           </article>
           <article>
-            <span>Revenue</span>
-            <strong>{current.stats?.paidThisMonth ?? "PKR 0"}</strong>
-            <p>this month</p>
+            <span>Messages</span>
+            <strong>{stats?.openMessages ?? 0}</strong>
+            <p>open messages</p>
           </article>
         </section>
 
         <section className="admin-grid">
+          <article className="admin-panel wide" id="create-therapist">
+            <div className="admin-panel-head">
+              <div>
+                <span>User management</span>
+                <h2>Create therapist profile</h2>
+              </div>
+            </div>
+            <form
+              className="admin-form-grid"
+              onSubmit={(event) => {
+                event.preventDefault();
+                void createTherapist();
+              }}
+            >
+              <label>
+                Full name
+                <input
+                  value={therapistForm.fullName}
+                  onChange={(event) => updateTherapistField("fullName", event.target.value)}
+                  placeholder="Therapist full name"
+                />
+              </label>
+              <label>
+                Title
+                <input
+                  value={therapistForm.title}
+                  onChange={(event) => updateTherapistField("title", event.target.value)}
+                  placeholder="Clinical Psychologist"
+                />
+              </label>
+              <label>
+                Qualifications
+                <input
+                  value={therapistForm.qualifications}
+                  onChange={(event) => updateTherapistField("qualifications", event.target.value)}
+                  placeholder="MS Clinical Psychology"
+                />
+              </label>
+              <label>
+                Languages
+                <input
+                  value={therapistForm.languages}
+                  onChange={(event) => updateTherapistField("languages", event.target.value)}
+                  placeholder="Urdu, English"
+                />
+              </label>
+              <label>
+                Experience years
+                <input
+                  inputMode="numeric"
+                  value={therapistForm.yearsExperience}
+                  onChange={(event) => updateTherapistField("yearsExperience", event.target.value)}
+                  placeholder="5"
+                />
+              </label>
+              <label>
+                Session fee
+                <input
+                  inputMode="numeric"
+                  value={therapistForm.sessionFee}
+                  onChange={(event) => updateTherapistField("sessionFee", event.target.value)}
+                  placeholder="4500"
+                />
+              </label>
+              <label>
+                Focus areas
+                <input
+                  value={therapistForm.specialization}
+                  onChange={(event) => updateTherapistField("specialization", event.target.value)}
+                  placeholder="Anxiety, depression, relationships"
+                />
+              </label>
+              <label>
+                Photo URL
+                <input
+                  value={therapistForm.profileImageUrl}
+                  onChange={(event) => updateTherapistField("profileImageUrl", event.target.value)}
+                  placeholder="Supabase Storage public URL"
+                />
+              </label>
+              <label className="wide-field">
+                Bio
+                <textarea
+                  value={therapistForm.bio}
+                  onChange={(event) => updateTherapistField("bio", event.target.value)}
+                  placeholder="Short professional bio for admin review"
+                />
+              </label>
+              <button disabled={saving || !therapistForm.fullName} type="submit">
+                {saving ? "Saving..." : "Create as pending"}
+              </button>
+            </form>
+          </article>
+
+          <article className="admin-panel wide" id="approvals">
+            <div className="admin-panel-head">
+              <div>
+                <span>Approval queue</span>
+                <h2>Therapist profiles waiting for admin</h2>
+              </div>
+            </div>
+            <div className="admin-list">
+              {pendingTherapists.map((therapist) => (
+                <div key={therapist.id}>
+                  <strong>{therapist.name}</strong>
+                  <p>{therapist.role}</p>
+                  <small>{therapist.focus}</small>
+                  <em>{therapist.approvalStatus}</em>
+                  <div className="admin-actions">
+                    <button disabled={saving} onClick={() => void updateTherapist(therapist.id, "approve")} type="button">
+                      Approve live
+                    </button>
+                    <button disabled={saving} onClick={() => void updateTherapist(therapist.id, "reject")} type="button">
+                      Reject
+                    </button>
+                  </div>
+                </div>
+              ))}
+              {pendingTherapists.length === 0 ? (
+                <div className="empty-state compact">
+                  <strong>No therapist approvals waiting.</strong>
+                  <p>Created therapist profiles will appear here before going live.</p>
+                </div>
+              ) : null}
+            </div>
+          </article>
+
           <article className="admin-panel wide" id="appointments">
             <div className="admin-panel-head">
               <div>
                 <span>Scheduling</span>
                 <h2>Appointment requests</h2>
               </div>
-              <button type="button">New booking</button>
             </div>
             <div className="admin-table">
-              {(current.appointments ?? []).map((appointment) => (
+              {appointments.map((appointment) => (
                 <div className="admin-row" key={appointment.id}>
                   <span>{appointment.id}</span>
                   <strong>{appointment.client}</strong>
@@ -358,25 +547,42 @@ export function AdminConsole() {
                   <b>{appointment.amount}</b>
                 </div>
               ))}
+              {appointments.length === 0 ? (
+                <div className="empty-state compact">
+                  <strong>No live appointments yet.</strong>
+                  <p>Booking requests from Supabase will appear here.</p>
+                </div>
+              ) : null}
             </div>
           </article>
 
           <article className="admin-panel" id="therapists">
             <div className="admin-panel-head">
               <div>
-                <span>Provider network</span>
-                <h2>Therapists</h2>
+                <span>Live website</span>
+                <h2>Published therapists</h2>
               </div>
             </div>
             <div className="admin-list">
-              {(current.therapists ?? []).map((therapist) => (
-                <div key={therapist.name}>
+              {therapists.map((therapist) => (
+                <div key={therapist.id}>
                   <strong>{therapist.name}</strong>
                   <p>{therapist.role}</p>
                   <small>{therapist.focus}</small>
                   <em>{therapist.status}</em>
+                  <div className="admin-actions">
+                    <button disabled={saving} onClick={() => void updateTherapist(therapist.id, "hide")} type="button">
+                      Hide from site
+                    </button>
+                  </div>
                 </div>
               ))}
+              {therapists.length === 0 ? (
+                <div className="empty-state compact">
+                  <strong>No therapists are live.</strong>
+                  <p>Approve a therapist profile to publish it on the landing page.</p>
+                </div>
+              ) : null}
             </div>
           </article>
 
@@ -388,32 +594,37 @@ export function AdminConsole() {
               </div>
             </div>
             <div className="admin-list compact">
-              {(current.messages ?? []).map((message) => (
-                <div key={`${message.name}-${message.topic}`}>
+              {messages.map((message) => (
+                <div key={message.id}>
                   <strong>{message.name}</strong>
                   <p>{message.topic}</p>
+                  <small>{message.contact}</small>
                   <em>{message.status}</em>
                 </div>
               ))}
+              {messages.length === 0 ? (
+                <div className="empty-state compact">
+                  <strong>No contact messages yet.</strong>
+                  <p>Website contact form submissions will appear here.</p>
+                </div>
+              ) : null}
             </div>
           </article>
 
           <article className="admin-panel wide" id="setup">
             <div className="admin-panel-head">
               <div>
-                <span>Supabase setup</span>
-                <h2>Admin access rules</h2>
+                <span>Next improvements</span>
+                <h2>Recommended roadmap</h2>
               </div>
             </div>
             <div className="setup-list">
-              {(current.setupSteps ?? [
-                "Create Supabase Auth users for admin staff.",
-                "Add admins to profiles.role = 'admin' or admin_users.",
-                "Store service-role key only in server environment variables.",
-                "Keep RLS enabled on client-facing tables.",
-              ]).map((step) => (
+              {(overview.setupSteps ?? emptyOverview.setupSteps ?? []).map((step) => (
                 <p key={step}>{step}</p>
               ))}
+              <p>Add a therapist portal where therapist users update bio, credentials, slots, and photo through Supabase Storage.</p>
+              <p>Add admin page-content controls for hero text, pricing, care areas, and featured profile ordering.</p>
+              <p>Add message status actions: open, in progress, closed, assigned to coordinator.</p>
             </div>
           </article>
         </section>
