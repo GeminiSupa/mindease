@@ -1,11 +1,11 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 
-export default function AppointmentConfirmPage() {
+function AppointmentConfirmContent() {
   const searchParams = useSearchParams();
   const token = searchParams.get("token") ?? "";
   const [loading, setLoading] = useState(false);
@@ -86,5 +86,21 @@ export default function AppointmentConfirmPage() {
         </section>
       </section>
     </main>
+  );
+}
+
+export default function AppointmentConfirmPage() {
+  return (
+    <Suspense
+      fallback={(
+        <main className="admin-page">
+          <section className="admin-login">
+            <p className="admin-kicker">Loading appointment confirmation</p>
+          </section>
+        </main>
+      )}
+    >
+      <AppointmentConfirmContent />
+    </Suspense>
   );
 }
