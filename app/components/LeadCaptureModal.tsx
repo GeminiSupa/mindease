@@ -11,13 +11,10 @@ export default function LeadCaptureModal() {
   const router = useRouter();
 
   useEffect(() => {
-    // Check if the cookie is set. Since we can't easily read httpOnly cookies,
-    // we'll rely on the server to pass a prop or just read a non-httpOnly one.
-    // For simplicity, we'll check localStorage here as a fallback or if not using httpOnly.
-    const hasCaptured = document.cookie.includes('lead_captured=true');
-    if (!hasCaptured) {
-      setIsOpen(true);
-    }
+    queueMicrotask(() => {
+      const hasCaptured = document.cookie.includes('lead_captured=true');
+      setIsOpen(!hasCaptured);
+    });
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -35,8 +32,8 @@ export default function LeadCaptureModal() {
         setIsOpen(false);
         router.refresh(); // Refresh page to remove blur effect rendered by server
       }
-    } catch (error) {
-      console.error(error);
+    } catch {
+      // Lead capture is non-critical; keep the modal open for another attempt.
     } finally {
       setLoading(false);
     }

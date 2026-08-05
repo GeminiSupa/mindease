@@ -1,93 +1,483 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from "react";
+import Image from "next/image";
+import Link from "next/link";
+
+type TherapistSession = {
+  access_token: string;
+  user?: {
+    email?: string;
+  };
+};
+
+type TherapistProfile = {
+  id: string;
+  full_name: string;
+  title?: string;
+  qualifications?: string;
+  bio?: string;
+  specialization?: string;
+  languages?: string[];
+  profile_image_url?: string;
+  session_fee?: number;
+  availability_status?: string;
+  approval_status?: string;
+  is_active?: boolean;
+};
+
+type DashboardData = {
+  therapist?: TherapistProfile;
+  appointments?: Array<{
+    id: string;
+    client: string;
+    time: string;
+    status: string;
+    concern: string;
+  }>;
+  slots?: Array<{
+    id: string;
+    startsAt: string;
+    endsAt: string;
+    isBooked: boolean;
+    slotType: string;
+    approvalStatus: string;
+    recurrenceRule: string;
+    notes: string;
+  }>;
+  changeRequests?: Array<{
+    id: string;
+    status: string;
+    createdAt: string;
+    adminNote?: string;
+    requestedChanges?: Record<string, unknown>;
+  }>;
+};
+
+type ProfileForm = {
+  title: string;
+  qualifications: string;
+  bio: string;
+  specialization: string;
+  languages: string;
+  profileImageUrl: string;
+  sessionFee: string;
+  availabilityStatus: string;
+};
+
+const blankForm: ProfileForm = {
+  title: "",
+  qualifications: "",
+  bio: "",
+  specialization: "",
+  languages: "Urdu, English",
+  profileImageUrl: "",
+  sessionFee: "",
+  availabilityStatus: "Available",
+};
 
 export default function TherapistDashboard() {
-  const [loading, setLoading] = useState(false);
-  const [profile, setProfile] = useState({
-    title: '',
-    bio: '',
-    specialization: '',
-    sessionFee: 0,
-    availabilityStatus: 'Available'
-  });
+  const [session, setSession] = useState<TherapistSession | null>(null);
+  const [dashboard, setDashboard] = useState<DashboardData>({});
+  const [form, setForm] = useState<ProfileForm>(blankForm);
+  const [slotStartsAt, setSlotStartsAt] = useState("");
+  const [slotEndsAt, setSlotEndsAt] = useState("");
+  const [slotType, setSlotType] = useState("available");
+  const [recurrenceRule, setRecurrenceRule] = useState("none");
+  const [slotNotes, setSlotNotes] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
 
-  const handleSave = (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
-      alert('Profile updated and submitted for admin review!');
-    }, 1000);
-  };
+  const loadDashboard = useCallback(async (accessToken: string) => {
+    const response = await fetch("/api/therapist/me", {
+      headers: {
+        authorization: `Bearer ${accessToken}`,
+      },
+    });
+    const body = (await response.json()) as DashboardData & { error?: string };
+
+    if (!response.ok) {
+      throw new Error(body.error ?? "Could not load therapist dashboard.");
+    }
+
+    const therapist = body.therapist;
+    setDashboard(body);
+    if (therapist) {
+      setForm({
+        title: therapist.title ?? "",
+        qualifications: therapist.qualifications ?? "",
+        bio: therapist.bio ?? "",
+        specialization: therapist.specialization ?? "",
+        languages: therapist.languages?.join(", ") ?? "Urdu, English",
+        profileImageUrl: therapist.profile_image_url ?? "",
+        sessionFee: therapist.session_fee ? String(therapist.session_fee) : "",
+        availabilityStatus: therapist.availability_status ?? "Available",
+      });
+    }
+  }, []);
+
+  useEffect(() => {
+    queueMicrotask(() => {
+      try {
+        const raw = window.localStorage.getItem("mindease-therapist-session");
+        if (!raw) {
+          window.location.href = "/therapist/login";
+          return;
+        }
+        const stored = JSON.parse(raw) as TherapistSession;
+        if (!stored.access_token) {
+          window.location.href = "/therapist/login";
+          return;
+        }
+        setSession(stored);
+        void loadDashboard(stored.access_token)
+          .catch((err) => setError(err instanceof Error ? err.message : "Could not load dashboard."))
+          .finally(() => setLoading(false));
+      } catch {
+        window.location.href = "/therapist/login";
+      }
+    });
+  }, [loadDashboard]);
+
+  function updateField(field: keyof ProfileForm, value: string) {
+    setForm((current) => ({ ...current, [field]: value }));
+  }
+
+  async function submitChanges(event: React.FormEvent) {
+    event.preventDefault();
+    if (!session?.access_token) return;
+
+    setSaving(true);
+    setError("");
+    setNotice("");
+
+    try {
+      const response = await fetch("/api/therapist/me", {
+        method: "PATCH",
+        headers: {
+          authorization: `Bearer ${session.access_token}`,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify(form),
+      });
+      const body = (await response.json()) as { error?: string };
+
+      if (!response.ok) {
+        throw new Error(body.error ?? "Could not submit profile changes.");
+      }
+
+      setNotice("Profile changes submitted for admin approval. Public profile remains unchanged until approved.");
+      await loadDashboard(session.access_token);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not submit changes.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function addSlot(event: React.FormEvent) {
+    event.preventDefault();
+    if (!session?.access_token) return;
+
+    setSaving(true);
+    setError("");
+    setNotice("");
+
+    try {
+      const response = await fetch("/api/therapist/me", {
+        method: "PATCH",
+        headers: {
+          authorization: `Bearer ${session.access_token}`,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({ slotStartsAt, slotEndsAt, slotType, recurrenceRule, notes: slotNotes }),
+      });
+      const body = (await response.json()) as { error?: string };
+
+      if (!response.ok) {
+        throw new Error(body.error ?? "Could not add availability slot.");
+      }
+
+      setSlotStartsAt("");
+      setSlotEndsAt("");
+      setSlotNotes("");
+      setRecurrenceRule("none");
+      setSlotType("available");
+      setNotice("Availability submitted for admin approval.");
+      await loadDashboard(session.access_token);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not add slot.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function signOut() {
+    window.localStorage.removeItem("mindease-therapist-session");
+    window.location.href = "/therapist/login";
+  }
+
+  async function uploadProfilePhoto(file: File) {
+    if (!session?.access_token) return;
+
+    setSaving(true);
+    setError("");
+    setNotice("");
+
+    try {
+      const formData = new FormData();
+      formData.set("file", file);
+      formData.set("purpose", "therapist-photo");
+      const response = await fetch("/api/uploads", {
+        method: "POST",
+        headers: {
+          authorization: `Bearer ${session.access_token}`,
+        },
+        body: formData,
+      });
+      const body = await response.json();
+
+      if (!response.ok) {
+        throw new Error(body?.error ?? "Upload failed.");
+      }
+
+      updateField("profileImageUrl", String(body.url ?? ""));
+      setNotice("Photo uploaded. Submit profile edits to send it for admin approval.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Upload failed.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (loading) {
+    return (
+      <main className="admin-page">
+        <section className="admin-login">
+          <p className="admin-kicker">Loading therapist dashboard</p>
+        </section>
+      </main>
+    );
+  }
+
+  const therapist = dashboard.therapist;
+  const appointments = dashboard.appointments ?? [];
+  const slots = dashboard.slots ?? [];
+  const changeRequests = dashboard.changeRequests ?? [];
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-4xl mx-auto">
-        <div className="flex justify-between items-center mb-10">
+    <main className="admin-shell therapist-shell">
+      <aside className="admin-sidebar">
+        <Link className="admin-mini-brand" href="/">
+          <Image src="/brand/mindease-app-icon.png" alt="" width={44} height={44} />
+          <span>MindEase</span>
+        </Link>
+        <nav aria-label="Therapist dashboard sections">
+          <a href="#overview">Overview</a>
+          <a href="#profile">Profile</a>
+          <a href="#availability">Availability</a>
+          <a href="#appointments">Appointments</a>
+          <a href="#reviews">Review queue</a>
+        </nav>
+        <button onClick={signOut} type="button">Sign out</button>
+      </aside>
+
+      <section className="admin-content" id="overview">
+        <header className="admin-topbar">
           <div>
-            <h1 className="text-3xl font-extrabold text-gray-900 dark:text-white">Your Dashboard</h1>
-            <p className="text-gray-500 dark:text-gray-400 mt-1">Complete your profile to go live on the directory.</p>
+            <span>Therapist dashboard</span>
+            <h1>{therapist?.full_name ?? session?.user?.email ?? "Therapist"}</h1>
           </div>
-          <span className="px-4 py-2 bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400 rounded-full text-sm font-bold shadow-sm border border-yellow-200 dark:border-yellow-800">
-            Status: PENDING
-          </span>
-        </div>
+          <div className="admin-search">
+            Public status: {therapist?.approval_status ?? "pending"} / {therapist?.is_active ? "live" : "hidden"}
+          </div>
+        </header>
 
-        <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden">
-          <form onSubmit={handleSave} className="p-8 space-y-8">
-            
-            {/* Image Upload Section */}
-            <div>
-              <label className="block text-lg font-bold text-gray-900 dark:text-white mb-4">Profile Image</label>
-              <div className="flex items-center gap-6">
-                <div className="w-24 h-24 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center overflow-hidden border-4 border-white dark:border-gray-800 shadow-lg">
-                  <svg className="w-12 h-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
-                </div>
-                <div>
-                  <label className="px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 rounded-lg shadow-sm text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-600 cursor-pointer transition-colors">
-                    <span>Upload New Photo</span>
-                    <input type="file" className="sr-only" accept="image/*" />
-                  </label>
-                  <p className="text-xs text-gray-500 mt-2">JPG, GIF or PNG. 1MB max.</p>
-                </div>
-              </div>
-            </div>
+        {error ? <p className="admin-error">{error}</p> : null}
+        {notice ? <p className="admin-notice inline">{notice}</p> : null}
 
-            <hr className="border-gray-200 dark:border-gray-700" />
+        <section className="admin-kpis" aria-label="Therapist metrics">
+          <article>
+            <span>Upcoming</span>
+            <strong>{appointments.length}</strong>
+            <p>appointment records</p>
+          </article>
+          <article>
+            <span>Open slots</span>
+            <strong>{slots.filter((slot) => !slot.isBooked).length}</strong>
+            <p>available times</p>
+          </article>
+          <article>
+            <span>Pending edits</span>
+            <strong>{changeRequests.filter((request) => request.status === "pending").length}</strong>
+            <p>admin review</p>
+          </article>
+          <article>
+            <span>Profile</span>
+            <strong>{therapist?.is_active ? "Live" : "Hidden"}</strong>
+            <p>directory status</p>
+          </article>
+        </section>
 
-            {/* Profile Info */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <section className="admin-grid">
+          <article className="admin-panel wide" id="profile">
+            <div className="admin-panel-head">
               <div>
-                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Professional Title</label>
-                <input type="text" value={profile.title} onChange={e => setProfile({...profile, title: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500" placeholder="e.g. Clinical Psychologist" />
+                <span>Public profile</span>
+                <h2>Submit profile edits for admin approval</h2>
               </div>
+            </div>
+            <form className="admin-form-grid" onSubmit={submitChanges}>
+              <label>
+                Professional title
+                <input value={form.title} onChange={(event) => updateField("title", event.target.value)} />
+              </label>
+              <label>
+                Qualifications
+                <input value={form.qualifications} onChange={(event) => updateField("qualifications", event.target.value)} />
+              </label>
+              <label>
+                Focus areas
+                <input value={form.specialization} onChange={(event) => updateField("specialization", event.target.value)} />
+              </label>
+              <label>
+                Languages
+                <input value={form.languages} onChange={(event) => updateField("languages", event.target.value)} />
+              </label>
+              <label>
+                Session fee
+                <input inputMode="numeric" value={form.sessionFee} onChange={(event) => updateField("sessionFee", event.target.value)} />
+              </label>
+              <label>
+                Availability note
+                <input value={form.availabilityStatus} onChange={(event) => updateField("availabilityStatus", event.target.value)} />
+              </label>
+              <label className="wide-field">
+                Profile photo URL
+                <input value={form.profileImageUrl} onChange={(event) => updateField("profileImageUrl", event.target.value)} />
+              </label>
+              <label className="wide-field">
+                Upload profile photo
+                <input
+                  accept="image/jpeg,image/png,image/webp"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    if (file) void uploadProfilePhoto(file);
+                  }}
+                  type="file"
+                />
+              </label>
+              <label className="wide-field">
+                Bio
+                <textarea value={form.bio} onChange={(event) => updateField("bio", event.target.value)} />
+              </label>
+              <button disabled={saving} type="submit">{saving ? "Submitting..." : "Submit edits for approval"}</button>
+            </form>
+          </article>
+
+          <article className="admin-panel" id="availability">
+            <div className="admin-panel-head">
               <div>
-                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Session Fee (PKR)</label>
-                <input type="number" value={profile.sessionFee} onChange={e => setProfile({...profile, sessionFee: Number(e.target.value)})} className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500" placeholder="5000" />
+                <span>Scheduling</span>
+                <h2>Add appointment slot</h2>
               </div>
             </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Specialization</label>
-              <input type="text" value={profile.specialization} onChange={e => setProfile({...profile, specialization: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Anxiety, Depression, Trauma..." />
+            <form className="admin-form-grid single" onSubmit={addSlot}>
+              <label>
+                Starts
+                <input type="datetime-local" value={slotStartsAt} onChange={(event) => setSlotStartsAt(event.target.value)} required />
+              </label>
+              <label>
+                Ends
+                <input type="datetime-local" value={slotEndsAt} onChange={(event) => setSlotEndsAt(event.target.value)} required />
+              </label>
+              <label>
+                Type
+                <select value={slotType} onChange={(event) => setSlotType(event.target.value)}>
+                  <option value="available">Available</option>
+                  <option value="blocked">Blocked/unavailable</option>
+                </select>
+              </label>
+              <label>
+                Repeat
+                <select value={recurrenceRule} onChange={(event) => setRecurrenceRule(event.target.value)}>
+                  <option value="none">Does not repeat</option>
+                  <option value="weekly_4">Weekly for 4 weeks</option>
+                  <option value="weekly_8">Weekly for 8 weeks</option>
+                  <option value="weekly_12">Weekly for 12 weeks</option>
+                </select>
+              </label>
+              <label className="wide-field">
+                Notes
+                <input value={slotNotes} onChange={(event) => setSlotNotes(event.target.value)} placeholder="Optional context for admin approval" />
+              </label>
+              <button disabled={saving} type="submit">Submit availability</button>
+            </form>
+            <div className="admin-list compact">
+              {slots.slice(0, 5).map((slot) => (
+                <div key={slot.id}>
+                  <strong>{slot.startsAt ? new Date(slot.startsAt).toLocaleString("en-GB") : "Slot"}</strong>
+                  <p>{slot.endsAt ? `Ends ${new Date(slot.endsAt).toLocaleString("en-GB")}` : "No end time"}</p>
+                  <small>{slot.slotType} {slot.recurrenceRule ? `/ ${slot.recurrenceRule}` : ""}</small>
+                  <em>{slot.approvalStatus} / {slot.isBooked ? "booked" : "open"}</em>
+                </div>
+              ))}
             </div>
+          </article>
 
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Full Bio</label>
-              <textarea rows={5} value={profile.bio} onChange={e => setProfile({...profile, bio: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500 resize-none" placeholder="Write a compelling bio for your clients..." />
+          <article className="admin-panel" id="appointments">
+            <div className="admin-panel-head">
+              <div>
+                <span>Caseload</span>
+                <h2>Appointment overview</h2>
+              </div>
             </div>
+            <div className="admin-list compact">
+              {appointments.map((appointment) => (
+                <div key={appointment.id}>
+                  <strong>{appointment.client}</strong>
+                  <p>{appointment.concern}</p>
+                  <small>{appointment.time}</small>
+                  <em>{appointment.status}</em>
+                </div>
+              ))}
+              {appointments.length === 0 ? (
+                <div className="empty-state compact">
+                  <strong>No appointment records yet.</strong>
+                  <p>Confirmed and requested sessions assigned to you will appear here.</p>
+                </div>
+              ) : null}
+            </div>
+          </article>
 
-            <div className="flex justify-end pt-4">
-              <button type="submit" disabled={loading} className="px-8 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold rounded-xl shadow-lg transition-transform transform hover:-translate-y-1 disabled:opacity-50">
-                {loading ? 'Saving...' : 'Save Profile & Submit'}
-              </button>
+          <article className="admin-panel wide" id="reviews">
+            <div className="admin-panel-head">
+              <div>
+                <span>Admin review</span>
+                <h2>Submitted profile changes</h2>
+              </div>
             </div>
-          </form>
-        </div>
-      </div>
-    </div>
+            <div className="admin-list">
+              {changeRequests.map((request) => (
+                <div key={request.id}>
+                  <strong>{request.status}</strong>
+                  <p>{request.createdAt ? new Date(request.createdAt).toLocaleString("en-GB") : "Submitted"}</p>
+                  <small>{Object.keys(request.requestedChanges ?? {}).join(", ") || "No field summary"}</small>
+                  {request.adminNote ? <small>{request.adminNote}</small> : null}
+                </div>
+              ))}
+              {changeRequests.length === 0 ? (
+                <div className="empty-state compact">
+                  <strong>No submitted changes.</strong>
+                  <p>Profile edits you submit will wait here until admin approves or declines them.</p>
+                </div>
+              ) : null}
+            </div>
+          </article>
+        </section>
+      </section>
+    </main>
   );
 }

@@ -44,6 +44,10 @@ type Overview = {
     therapist: string;
     time: string;
     status: string;
+    lifecycleStage: string;
+    confirmationStatus: string;
+    paymentReference: string;
+    paymentInstructions: string;
     amount: string;
   }>;
   therapists?: AdminTherapist[];
@@ -54,6 +58,44 @@ type Overview = {
     topic: string;
     status: string;
     contact: string;
+    createdAt: string;
+    suggestedTherapistId?: string;
+    suggestedTherapistName?: string;
+    coordinatorNote?: string;
+    appointmentId?: string;
+  }>;
+  pendingProfileChanges?: Array<{
+    id: string;
+    therapistId: string;
+    therapistName: string;
+    status: string;
+    createdAt: string;
+    changes: Record<string, unknown>;
+  }>;
+  blogPosts?: Array<{
+    id: string;
+    title: string;
+    slug: string;
+    status: string;
+    excerpt: string;
+    imageUrl: string;
+    publishedAt: string;
+  }>;
+  availabilitySlots?: Array<{
+    id: string;
+    therapistId: string;
+    therapistName: string;
+    startsAt: string;
+    endsAt: string;
+    slotType: string;
+    approvalStatus: string;
+    isBooked: boolean;
+  }>;
+  auditLogs?: Array<{
+    id: string;
+    actorId: string;
+    action: string;
+    subject: string;
     createdAt: string;
   }>;
   setupSteps?: string[];
@@ -72,6 +114,10 @@ const emptyOverview: Overview = {
   therapists: [],
   pendingTherapists: [],
   messages: [],
+  pendingProfileChanges: [],
+  blogPosts: [],
+  availabilitySlots: [],
+  auditLogs: [],
   setupSteps: [
     "Create therapist profiles from this admin panel.",
     "Therapists stay hidden until admin approval.",
@@ -82,6 +128,8 @@ const emptyOverview: Overview = {
 
 type TherapistForm = {
   fullName: string;
+  email: string;
+  password: string;
   title: string;
   qualifications: string;
   specialization: string;
@@ -94,6 +142,8 @@ type TherapistForm = {
 
 const blankTherapistForm: TherapistForm = {
   fullName: "",
+  email: "",
+  password: "",
   title: "Clinical Psychologist",
   qualifications: "",
   specialization: "",
@@ -102,6 +152,24 @@ const blankTherapistForm: TherapistForm = {
   sessionFee: "",
   profileImageUrl: "",
   bio: "",
+};
+
+type BlogForm = {
+  title: string;
+  slug: string;
+  excerpt: string;
+  body: string;
+  imageUrl: string;
+  status: "draft" | "published";
+};
+
+const blankBlogForm: BlogForm = {
+  title: "",
+  slug: "",
+  excerpt: "",
+  body: "",
+  imageUrl: "",
+  status: "draft",
 };
 
 export function AdminConsole() {
@@ -123,6 +191,9 @@ export function AdminConsole() {
   const [saving, setSaving] = useState(false);
   const [overview, setOverview] = useState<Overview>(emptyOverview);
   const [therapistForm, setTherapistForm] = useState<TherapistForm>(blankTherapistForm);
+  const [blogForm, setBlogForm] = useState<BlogForm>(blankBlogForm);
+  const [messageDrafts, setMessageDrafts] = useState<Record<string, { therapistId: string; note: string; status: string; slotId: string; paymentInstructions: string }>>({});
+  const [appointmentDrafts, setAppointmentDrafts] = useState<Record<string, { paymentReference: string; adminNotes: string }>>({});
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
 
@@ -207,7 +278,9 @@ export function AdminConsole() {
       }
 
       setTherapistForm(blankTherapistForm);
-      setNotice("Therapist profile created. It is pending approval and hidden from the website.");
+      setNotice(body?.credentialsCreated
+        ? "Therapist login and pending profile created. Share the temporary password securely."
+        : "Therapist profile created. It is pending approval and hidden from the website.");
       await loadOverview();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not create therapist.");
@@ -266,6 +339,261 @@ export function AdminConsole() {
 
   function updateTherapistField(field: keyof TherapistForm, value: string) {
     setTherapistForm((current) => ({ ...current, [field]: value }));
+  }
+
+  function updateBlogField(field: keyof BlogForm, value: string) {
+    setBlogForm((current) => ({ ...current, [field]: value }));
+  }
+
+  function updateMessageDraft(id: string, field: "therapistId" | "note" | "status" | "slotId" | "paymentInstructions", value: string) {
+    setMessageDrafts((current) => ({
+      ...current,
+      [id]: {
+        therapistId: current[id]?.therapistId ?? "",
+        note: current[id]?.note ?? "",
+        status: current[id]?.status ?? "in_progress",
+        slotId: current[id]?.slotId ?? "",
+        paymentInstructions: current[id]?.paymentInstructions ?? "",
+        [field]: value,
+      },
+    }));
+  }
+
+  function updateAppointmentDraft(id: string, field: "paymentReference" | "adminNotes", value: string) {
+    setAppointmentDrafts((current) => ({
+      ...current,
+      [id]: {
+        paymentReference: current[id]?.paymentReference ?? "",
+        adminNotes: current[id]?.adminNotes ?? "",
+        [field]: value,
+      },
+    }));
+  }
+
+  async function uploadImage(file: File, purpose: "therapist-photo" | "blog-image", therapistId = "") {
+    if (!session?.access_token) return "";
+
+    const formData = new FormData();
+    formData.set("file", file);
+    formData.set("purpose", purpose);
+    if (therapistId) formData.set("therapistId", therapistId);
+
+    const response = await fetch("/api/uploads", {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${session.access_token}`,
+      },
+      body: formData,
+    });
+    const body = await response.json();
+
+    if (!response.ok) {
+      throw new Error(body?.error ?? "Upload failed.");
+    }
+
+    return String(body.url ?? "");
+  }
+
+  async function updateInquiry(id: string) {
+    if (!session?.access_token) return;
+
+    const draft = messageDrafts[id] ?? { therapistId: "", note: "", status: "in_progress" };
+    setSaving(true);
+    setError("");
+    setNotice("");
+
+    try {
+      const response = await fetch("/api/admin/inquiries", {
+        method: "PATCH",
+        headers: {
+          authorization: `Bearer ${session.access_token}`,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          id,
+          status: draft.status || "in_progress",
+          suggestedTherapistId: draft.therapistId,
+          coordinatorNote: draft.note,
+          slotId: draft.slotId,
+          paymentInstructions: draft.paymentInstructions,
+        }),
+      });
+      const body = await response.json();
+
+      if (!response.ok) {
+        throw new Error(body?.error ?? "Could not update inquiry.");
+      }
+
+      setNotice("Inquiry updated with coordinator note and therapist suggestion.");
+      await loadOverview();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not update inquiry.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function reviewProfileChange(id: string, action: "approve" | "decline") {
+    if (!session?.access_token) return;
+
+    setSaving(true);
+    setError("");
+    setNotice("");
+
+    try {
+      const response = await fetch("/api/admin/profile-change-requests", {
+        method: "PATCH",
+        headers: {
+          authorization: `Bearer ${session.access_token}`,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({ id, action }),
+      });
+      const body = await response.json();
+
+      if (!response.ok) {
+        throw new Error(body?.error ?? "Could not review profile change.");
+      }
+
+      setNotice(action === "approve" ? "Profile changes approved and published." : "Profile changes declined.");
+      await loadOverview();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not review profile change.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function saveBlogPost(event: React.FormEvent) {
+    event.preventDefault();
+    if (!session?.access_token) return;
+
+    setSaving(true);
+    setError("");
+    setNotice("");
+
+    try {
+      const response = await fetch("/api/admin/blog-posts", {
+        method: "POST",
+        headers: {
+          authorization: `Bearer ${session.access_token}`,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify(blogForm),
+      });
+      const body = await response.json();
+
+      if (!response.ok) {
+        throw new Error(body?.error ?? "Could not save blog post.");
+      }
+
+      setBlogForm(blankBlogForm);
+      setNotice(blogForm.status === "published" ? "Blog post published." : "Blog post saved as draft.");
+      await loadOverview();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not save blog post.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function updateBlogPost(id: string, action: "publish" | "draft") {
+    if (!session?.access_token) return;
+
+    setSaving(true);
+    setError("");
+    setNotice("");
+
+    try {
+      const response = await fetch("/api/admin/blog-posts", {
+        method: "PATCH",
+        headers: {
+          authorization: `Bearer ${session.access_token}`,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({ id, action }),
+      });
+      const body = await response.json();
+
+      if (!response.ok) {
+        throw new Error(body?.error ?? "Could not update blog post.");
+      }
+
+      setNotice(action === "publish" ? "Blog post published." : "Blog post moved to draft.");
+      await loadOverview();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not update blog post.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function updateAppointment(id: string, action: "mark_payment_pending" | "record_payment" | "confirm_session" | "complete" | "cancel") {
+    if (!session?.access_token) return;
+
+    const draft = appointmentDrafts[id] ?? { paymentReference: "", adminNotes: "" };
+    setSaving(true);
+    setError("");
+    setNotice("");
+
+    try {
+      const response = await fetch("/api/admin/appointments", {
+        method: "PATCH",
+        headers: {
+          authorization: `Bearer ${session.access_token}`,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          id,
+          action,
+          paymentReference: draft.paymentReference,
+          adminNotes: draft.adminNotes,
+        }),
+      });
+      const body = await response.json();
+
+      if (!response.ok) {
+        throw new Error(body?.error ?? "Could not update appointment.");
+      }
+
+      setNotice("Appointment lifecycle updated. Notification record queued only; no external message was sent.");
+      await loadOverview();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not update appointment.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function reviewAvailability(id: string, action: "approve" | "decline", override = false) {
+    if (!session?.access_token) return;
+
+    setSaving(true);
+    setError("");
+    setNotice("");
+
+    try {
+      const response = await fetch("/api/admin/availability", {
+        method: "PATCH",
+        headers: {
+          authorization: `Bearer ${session.access_token}`,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({ id, action, override }),
+      });
+      const body = await response.json();
+
+      if (!response.ok) {
+        throw new Error(body?.error ?? "Could not review availability.");
+      }
+
+      setNotice(action === "approve" ? "Availability approved." : "Availability declined.");
+      await loadOverview();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not review availability.");
+    } finally {
+      setSaving(false);
+    }
   }
 
   if (!session) {
@@ -339,6 +667,10 @@ export function AdminConsole() {
   const therapists = overview.therapists ?? [];
   const pendingTherapists = overview.pendingTherapists ?? [];
   const messages = overview.messages ?? [];
+  const pendingProfileChanges = overview.pendingProfileChanges ?? [];
+  const blogPosts = overview.blogPosts ?? [];
+  const availabilitySlots = overview.availabilitySlots ?? [];
+  const auditLogs = overview.auditLogs ?? [];
 
   return (
     <main className="admin-shell">
@@ -351,8 +683,12 @@ export function AdminConsole() {
           <a href="#overview">Overview</a>
           <a href="#create-therapist">Create therapist</a>
           <a href="#approvals">Approvals</a>
+          <a href="#profile-changes">Profile edits</a>
           <a href="#therapists">Live therapists</a>
           <a href="#messages">Messages</a>
+          <a href="#availability">Availability</a>
+          <a href="#blog">Blog</a>
+          <a href="#audit">Audit</a>
         </nav>
         <button onClick={signOut} type="button">
           Sign out
@@ -387,7 +723,7 @@ export function AdminConsole() {
           <article>
             <span>Approval queue</span>
             <strong>{stats?.pendingTherapists ?? 0}</strong>
-            <p>therapists pending</p>
+            <p>therapists and edits pending</p>
           </article>
           <article>
             <span>Live team</span>
@@ -422,6 +758,24 @@ export function AdminConsole() {
                   value={therapistForm.fullName}
                   onChange={(event) => updateTherapistField("fullName", event.target.value)}
                   placeholder="Therapist full name"
+                />
+              </label>
+              <label>
+                Login email
+                <input
+                  type="email"
+                  value={therapistForm.email}
+                  onChange={(event) => updateTherapistField("email", event.target.value)}
+                  placeholder="therapist@example.com"
+                />
+              </label>
+              <label>
+                Temporary password
+                <input
+                  value={therapistForm.password}
+                  onChange={(event) => updateTherapistField("password", event.target.value)}
+                  placeholder="Set only if creating login"
+                  type="password"
                 />
               </label>
               <label>
@@ -479,7 +833,23 @@ export function AdminConsole() {
                 <input
                   value={therapistForm.profileImageUrl}
                   onChange={(event) => updateTherapistField("profileImageUrl", event.target.value)}
-                  placeholder="Supabase Storage public URL"
+                  placeholder="Upload through Supabase Storage below"
+                />
+              </label>
+              <label>
+                Upload photo
+                <input
+                  accept="image/jpeg,image/png,image/webp"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    if (!file) return;
+                    void uploadImage(file, "therapist-photo", therapistForm.fullName ? "new-profile" : "")
+                      .then((url) => {
+                        if (url) updateTherapistField("profileImageUrl", url);
+                      })
+                      .catch((err) => setError(err instanceof Error ? err.message : "Upload failed."));
+                  }}
+                  type="file"
                 />
               </label>
               <label className="wide-field">
@@ -491,7 +861,7 @@ export function AdminConsole() {
                 />
               </label>
               <button disabled={saving || !therapistForm.fullName} type="submit">
-                {saving ? "Saving..." : "Create as pending"}
+                {saving ? "Saving..." : "Create pending profile"}
               </button>
             </form>
           </article>
@@ -529,6 +899,41 @@ export function AdminConsole() {
             </div>
           </article>
 
+          <article className="admin-panel wide" id="profile-changes">
+            <div className="admin-panel-head">
+              <div>
+                <span>Therapist-originated edits</span>
+                <h2>Pending public profile changes</h2>
+              </div>
+            </div>
+            <div className="admin-list">
+              {pendingProfileChanges
+                .filter((change) => change.status === "pending")
+                .map((change) => (
+                  <div key={change.id}>
+                    <strong>{change.therapistName}</strong>
+                    <p>{change.createdAt ? new Date(change.createdAt).toLocaleString("en-GB") : "Submitted"}</p>
+                    <small>{Object.keys(change.changes).join(", ") || "No field summary"}</small>
+                    <pre className="admin-json-preview">{JSON.stringify(change.changes, null, 2)}</pre>
+                    <div className="admin-actions">
+                      <button disabled={saving} onClick={() => void reviewProfileChange(change.id, "approve")} type="button">
+                        Approve and publish
+                      </button>
+                      <button disabled={saving} onClick={() => void reviewProfileChange(change.id, "decline")} type="button">
+                        Decline
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              {pendingProfileChanges.filter((change) => change.status === "pending").length === 0 ? (
+                <div className="empty-state compact">
+                  <strong>No therapist edits waiting.</strong>
+                  <p>Therapist dashboard submissions will appear here before public publication.</p>
+                </div>
+              ) : null}
+            </div>
+          </article>
+
           <article className="admin-panel wide" id="appointments">
             <div className="admin-panel-head">
               <div>
@@ -542,9 +947,46 @@ export function AdminConsole() {
                   <span>{appointment.id}</span>
                   <strong>{appointment.client}</strong>
                   <p>{appointment.therapist}</p>
-                  <p>{appointment.time}</p>
+                  <p>
+                    {appointment.time}
+                    <br />
+                    {appointment.lifecycleStage} / {appointment.confirmationStatus}
+                  </p>
                   <em>{appointment.status}</em>
                   <b>{appointment.amount}</b>
+                  <label>
+                    Payment reference
+                    <input
+                      value={appointmentDrafts[appointment.id]?.paymentReference ?? appointment.paymentReference ?? ""}
+                      onChange={(event) => updateAppointmentDraft(appointment.id, "paymentReference", event.target.value)}
+                      placeholder="Manual receipt/reference"
+                    />
+                  </label>
+                  <label>
+                    Admin notes
+                    <input
+                      value={appointmentDrafts[appointment.id]?.adminNotes ?? ""}
+                      onChange={(event) => updateAppointmentDraft(appointment.id, "adminNotes", event.target.value)}
+                      placeholder="Internal note"
+                    />
+                  </label>
+                  <div className="admin-actions">
+                    <button disabled={saving} onClick={() => void updateAppointment(appointment.id, "mark_payment_pending")} type="button">
+                      Payment pending
+                    </button>
+                    <button disabled={saving} onClick={() => void updateAppointment(appointment.id, "record_payment")} type="button">
+                      Record payment
+                    </button>
+                    <button disabled={saving} onClick={() => void updateAppointment(appointment.id, "confirm_session")} type="button">
+                      Confirm session
+                    </button>
+                    <button disabled={saving} onClick={() => void updateAppointment(appointment.id, "complete")} type="button">
+                      Complete
+                    </button>
+                    <button disabled={saving} onClick={() => void updateAppointment(appointment.id, "cancel")} type="button">
+                      Cancel
+                    </button>
+                  </div>
                 </div>
               ))}
               {appointments.length === 0 ? (
@@ -590,7 +1032,7 @@ export function AdminConsole() {
             <div className="admin-panel-head">
               <div>
                 <span>Contact center</span>
-                <h2>Client messages</h2>
+                <h2>Client inquiries</h2>
               </div>
             </div>
             <div className="admin-list compact">
@@ -599,13 +1041,254 @@ export function AdminConsole() {
                   <strong>{message.name}</strong>
                   <p>{message.topic}</p>
                   <small>{message.contact}</small>
+                  {message.suggestedTherapistName ? (
+                    <small>Suggested: {message.suggestedTherapistName}</small>
+                  ) : null}
+                  {message.coordinatorNote ? <small>{message.coordinatorNote}</small> : null}
                   <em>{message.status}</em>
+                  <label>
+                    Suggest therapist
+                    <select
+                      value={messageDrafts[message.id]?.therapistId ?? message.suggestedTherapistId ?? ""}
+                      onChange={(event) => updateMessageDraft(message.id, "therapistId", event.target.value)}
+                    >
+                      <option value="">No therapist selected</option>
+                      {therapists.map((therapist) => (
+                        <option key={therapist.id} value={therapist.id}>
+                          {therapist.name} - {therapist.status}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    Suggested slot
+                    <select
+                      value={messageDrafts[message.id]?.slotId ?? ""}
+                      onChange={(event) => updateMessageDraft(message.id, "slotId", event.target.value)}
+                    >
+                      <option value="">No slot selected</option>
+                      {availabilitySlots
+                        .filter((slot) =>
+                          slot.approvalStatus === "approved" &&
+                          slot.slotType === "available" &&
+                          !slot.isBooked &&
+                          (!messageDrafts[message.id]?.therapistId || slot.therapistId === messageDrafts[message.id]?.therapistId)
+                        )
+                        .slice(0, 20)
+                        .map((slot) => (
+                          <option key={slot.id} value={slot.id}>
+                            {slot.therapistName} - {slot.startsAt ? new Date(slot.startsAt).toLocaleString("en-GB") : "slot"}
+                          </option>
+                        ))}
+                    </select>
+                  </label>
+                  <label>
+                    Status
+                    <select
+                      value={messageDrafts[message.id]?.status ?? message.status ?? "in_progress"}
+                      onChange={(event) => updateMessageDraft(message.id, "status", event.target.value)}
+                    >
+                      <option value="open">Open</option>
+                      <option value="in_progress">In progress</option>
+                      <option value="closed">Closed</option>
+                      <option value="spam">Spam</option>
+                    </select>
+                  </label>
+                  <label>
+                    Coordinator note
+                    <textarea
+                      value={messageDrafts[message.id]?.note ?? message.coordinatorNote ?? ""}
+                      onChange={(event) => updateMessageDraft(message.id, "note", event.target.value)}
+                      placeholder="Preferred therapist unavailable; suggested another evening-slot option."
+                    />
+                  </label>
+                  <label>
+                    Payment instructions
+                    <textarea
+                      value={messageDrafts[message.id]?.paymentInstructions ?? ""}
+                      onChange={(event) => updateMessageDraft(message.id, "paymentInstructions", event.target.value)}
+                      placeholder="Manual placeholder only. Do not enter real payment gateway credentials here."
+                    />
+                  </label>
+                  <div className="admin-actions">
+                    <button disabled={saving} onClick={() => void updateInquiry(message.id)} type="button">
+                      Save inquiry update
+                    </button>
+                  </div>
                 </div>
               ))}
               {messages.length === 0 ? (
                 <div className="empty-state compact">
                   <strong>No contact messages yet.</strong>
                   <p>Website contact form submissions will appear here.</p>
+                </div>
+              ) : null}
+            </div>
+          </article>
+
+          <article className="admin-panel wide" id="availability">
+            <div className="admin-panel-head">
+              <div>
+                <span>Availability approval</span>
+                <h2>Recurring slots and blocked time</h2>
+              </div>
+            </div>
+            <div className="admin-list">
+              {availabilitySlots.map((slot) => (
+                <div key={slot.id}>
+                  <strong>{slot.therapistName}</strong>
+                  <p>
+                    {slot.startsAt ? new Date(slot.startsAt).toLocaleString("en-GB") : "No start"} -{" "}
+                    {slot.endsAt ? new Date(slot.endsAt).toLocaleString("en-GB") : "No end"}
+                  </p>
+                  <small>{slot.slotType} / {slot.isBooked ? "booked" : "open"}</small>
+                  <em>{slot.approvalStatus}</em>
+                  <div className="admin-actions">
+                    <button disabled={saving} onClick={() => void reviewAvailability(slot.id, "approve")} type="button">
+                      Approve
+                    </button>
+                    <button disabled={saving} onClick={() => void reviewAvailability(slot.id, "approve", true)} type="button">
+                      Override approve
+                    </button>
+                    <button disabled={saving} onClick={() => void reviewAvailability(slot.id, "decline")} type="button">
+                      Decline
+                    </button>
+                  </div>
+                </div>
+              ))}
+              {availabilitySlots.length === 0 ? (
+                <div className="empty-state compact">
+                  <strong>No availability submitted.</strong>
+                  <p>Therapist recurring slots and blocked times will appear here for admin approval.</p>
+                </div>
+              ) : null}
+            </div>
+          </article>
+
+          <article className="admin-panel wide" id="blog">
+            <div className="admin-panel-head">
+              <div>
+                <span>CMS</span>
+                <h2>Create and publish blog posts</h2>
+              </div>
+            </div>
+            <form className="admin-form-grid" onSubmit={saveBlogPost}>
+              <label>
+                Title
+                <input
+                  value={blogForm.title}
+                  onChange={(event) => updateBlogField("title", event.target.value)}
+                  placeholder="How therapy matching works"
+                />
+              </label>
+              <label>
+                Slug
+                <input
+                  value={blogForm.slug}
+                  onChange={(event) => updateBlogField("slug", event.target.value)}
+                  placeholder="therapy-matching"
+                />
+              </label>
+              <label>
+                Image URL
+                <input
+                  value={blogForm.imageUrl}
+                  onChange={(event) => updateBlogField("imageUrl", event.target.value)}
+                  placeholder="Upload through Supabase Storage below"
+                />
+              </label>
+              <label>
+                Upload image
+                <input
+                  accept="image/jpeg,image/png,image/webp"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    if (!file) return;
+                    void uploadImage(file, "blog-image")
+                      .then((url) => {
+                        if (url) updateBlogField("imageUrl", url);
+                      })
+                      .catch((err) => setError(err instanceof Error ? err.message : "Upload failed."));
+                  }}
+                  type="file"
+                />
+              </label>
+              <label>
+                Status
+                <select
+                  value={blogForm.status}
+                  onChange={(event) => updateBlogField("status", event.target.value)}
+                >
+                  <option value="draft">Draft</option>
+                  <option value="published">Published</option>
+                </select>
+              </label>
+              <label className="wide-field">
+                Excerpt
+                <textarea
+                  value={blogForm.excerpt}
+                  onChange={(event) => updateBlogField("excerpt", event.target.value)}
+                  placeholder="Short summary shown on the landing page."
+                />
+              </label>
+              <label className="wide-field">
+                Body
+                <textarea
+                  value={blogForm.body}
+                  onChange={(event) => updateBlogField("body", event.target.value)}
+                  placeholder="Article body for the CMS record."
+                />
+              </label>
+              <button disabled={saving || !blogForm.title} type="submit">
+                {saving ? "Saving..." : "Save blog post"}
+              </button>
+            </form>
+            <div className="admin-list">
+              {blogPosts.map((post) => (
+                <div key={post.id}>
+                  <strong>{post.title}</strong>
+                  <p>{post.excerpt}</p>
+                  <small>{post.slug}</small>
+                  <em>{post.status}</em>
+                  <div className="admin-actions">
+                    <button disabled={saving} onClick={() => void updateBlogPost(post.id, "publish")} type="button">
+                      Publish
+                    </button>
+                    <button disabled={saving} onClick={() => void updateBlogPost(post.id, "draft")} type="button">
+                      Move to draft
+                    </button>
+                  </div>
+                </div>
+              ))}
+              {blogPosts.length === 0 ? (
+                <div className="empty-state compact">
+                  <strong>No CMS posts yet.</strong>
+                  <p>Create a draft or published wellbeing post with a relevant image.</p>
+                </div>
+              ) : null}
+            </div>
+          </article>
+
+          <article className="admin-panel wide" id="audit">
+            <div className="admin-panel-head">
+              <div>
+                <span>Audit trail</span>
+                <h2>Recent admin and therapist actions</h2>
+              </div>
+            </div>
+            <div className="admin-list">
+              {auditLogs.map((log) => (
+                <div key={log.id}>
+                  <strong>{log.action}</strong>
+                  <p>{log.subject || "No subject"}</p>
+                  <small>{log.createdAt ? new Date(log.createdAt).toLocaleString("en-GB") : "No timestamp"}</small>
+                  <em>{log.actorId || "system"}</em>
+                </div>
+              ))}
+              {auditLogs.length === 0 ? (
+                <div className="empty-state compact">
+                  <strong>No audit records yet.</strong>
+                  <p>Approvals, assignments, uploads, CMS changes and appointment updates will be recorded here.</p>
                 </div>
               ) : null}
             </div>

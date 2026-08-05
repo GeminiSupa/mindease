@@ -1,68 +1,110 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import Image from "next/image";
+import Link from "next/link";
+
+type AuthSession = {
+  access_token: string;
+  refresh_token?: string;
+  expires_at?: number;
+  user?: {
+    id?: string;
+    email?: string;
+  };
+};
 
 export default function TherapistLogin() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const router = useRouter();
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
+  async function handleLogin(event: React.FormEvent) {
+    event.preventDefault();
     setLoading(true);
+    setError("");
 
-    // Simulate login for this prototype
-    setTimeout(() => {
+    try {
+      const response = await fetch("/api/admin/login", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({ email, password }),
+      });
+      const body = (await response.json()) as AuthSession & { error?: string };
+
+      if (!response.ok || !body.access_token) {
+        throw new Error(body.error ?? "Login failed.");
+      }
+
+      window.localStorage.setItem("mindease-therapist-session", JSON.stringify(body));
+      router.push("/therapist/dashboard");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Login failed.");
+    } finally {
       setLoading(false);
-      // We would normally set a Supabase session here
-      // For now, just redirect to the dashboard
-      router.push('/therapist/dashboard');
-    }, 1000);
-  };
+    }
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-white dark:bg-gray-800 rounded-3xl shadow-xl p-8 border border-gray-100 dark:border-gray-700">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-extrabold text-gray-900 dark:text-white mb-2">Therapist Portal</h1>
-          <p className="text-gray-500 dark:text-gray-400">Sign in to manage your profile and rates.</p>
+    <main className="admin-page">
+      <section className="admin-login therapist-login">
+        <div className="admin-login-copy">
+          <Link className="admin-mini-brand" href="/">
+            <Image src="/brand/mindease-app-icon.png" alt="" width={44} height={44} />
+            <span>MindEase Therapist Portal</span>
+          </Link>
+          <p className="admin-kicker">Therapist access</p>
+          <h1>Maintain your public profile without publishing changes directly.</h1>
+          <p>
+            Use credentials created by the admin. Profile updates are submitted for approval,
+            while availability slots can be added for coordinator review and booking workflows.
+          </p>
+          <div className="admin-feature-list">
+            <span>Profile approval queue</span>
+            <span>Availability slots</span>
+            <span>Appointment overview</span>
+          </div>
         </div>
 
-        <form onSubmit={handleLogin} className="space-y-6">
+        <form className="admin-login-card" onSubmit={handleLogin}>
           <div>
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Email Address</label>
-            <input 
-              type="email" 
-              required 
+            <span>Secure login</span>
+            <h2>Therapist sign in</h2>
+            <p>Enter the email and temporary password provided by MindEase admin.</p>
+          </div>
+          <label>
+            Email
+            <input
+              autoComplete="email"
+              onChange={(event) => setEmail(event.target.value)}
+              placeholder="therapist@example.com"
+              required
+              type="email"
               value={email}
-              onChange={e => setEmail(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500" 
-              placeholder="dr.jane@example.com" 
             />
-          </div>
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Password</label>
-            <input 
-              type="password" 
-              required 
+          </label>
+          <label>
+            Password
+            <input
+              autoComplete="current-password"
+              onChange={(event) => setPassword(event.target.value)}
+              placeholder="Temporary password"
+              required
+              type="password"
               value={password}
-              onChange={e => setPassword(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500" 
-              placeholder="••••••••" 
             />
-          </div>
-
-          <button 
-            type="submit" 
-            disabled={loading}
-            className="w-full py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold rounded-xl shadow-lg transition-transform transform hover:-translate-y-1 disabled:opacity-50"
-          >
-            {loading ? 'Signing in...' : 'Sign In'}
+          </label>
+          {error ? <p className="admin-error">{error}</p> : null}
+          <button disabled={loading || !email || !password} type="submit">
+            {loading ? "Signing in..." : "Sign in"}
           </button>
         </form>
-      </div>
-    </div>
+      </section>
+    </main>
   );
 }

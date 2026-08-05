@@ -1,86 +1,216 @@
-import { cookies } from 'next/headers';
-import LeadCaptureModal from '../components/LeadCaptureModal';
-import Image from 'next/image';
+import Image from "next/image";
+import Link from "next/link";
 
-const mockTherapists = [
+const SUPABASE_URL =
+  process.env.SUPABASE_URL ??
+  process.env.NEXT_PUBLIC_SUPABASE_URL ??
+  "https://lhcjubkyyikirliafwfd.supabase.co";
+const SUPABASE_ANON_KEY =
+  process.env.SUPABASE_ANON_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const WHATSAPP_NUMBER = "923001234567";
+const DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === "true";
+
+type LiveTherapist = {
+  id: string;
+  full_name: string;
+  title: string;
+  qualifications?: string;
+  years_experience?: number;
+  bio?: string;
+  specialization?: string;
+  languages?: string[];
+  session_fee?: number;
+  currency?: string;
+  availability_status?: string;
+  profile_image_url?: string;
+};
+
+const fallbackTherapists: LiveTherapist[] = [
   {
-    id: '1',
-    name: 'Dr. Sarah Jenkins',
-    title: 'Clinical Psychologist',
-    bio: 'Specializing in cognitive behavioral therapy for anxiety and depression.',
-    imageUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=400&h=400',
-    tags: ['Anxiety', 'Depression', 'CBT'],
+    id: "sample-ishrat",
+    full_name: "Ishrat Noureen",
+    title: "Clinical Psychologist",
+    qualifications: "MS Clinical Psychology",
+    years_experience: 6,
+    specialization: "Anxiety, depression, relationship stress",
+    languages: ["Urdu", "English"],
+    session_fee: 4500,
+    currency: "PKR",
+    availability_status: "Evening slots by request",
+    profile_image_url: "/team/ishrat-noureen.jpeg",
+    bio: "A calm, structured therapy style for clients who want practical tools and reflective support.",
   },
   {
-    id: '2',
-    name: 'Michael Chen, LCSW',
-    title: 'Licensed Clinical Social Worker',
-    bio: 'Helping individuals navigate life transitions, stress, and relationship issues.',
-    imageUrl: 'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?auto=format&fit=crop&q=80&w=400&h=400',
-    tags: ['Relationships', 'Stress', 'Life Transitions'],
+    id: "sample-aisha",
+    full_name: "Aisha Rahman",
+    title: "Counselling Psychologist",
+    qualifications: "MPhil Psychology",
+    years_experience: 5,
+    specialization: "Stress, self-esteem, family transitions",
+    languages: ["Urdu", "English", "Punjabi"],
+    session_fee: 4000,
+    currency: "PKR",
+    availability_status: "Weekend intake available",
+    profile_image_url:
+      "https://images.unsplash.com/photo-1551836022-d5d88e9218df?auto=format&fit=crop&q=80&w=500&h=620",
+    bio: "Focused on helping clients build steadier routines, boundaries, and emotional regulation.",
   },
   {
-    id: '3',
-    name: 'Dr. Emily Parker',
-    title: 'Couples Therapist',
-    bio: 'Dedicated to fostering healthy communication and intimacy in relationships.',
-    imageUrl: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&q=80&w=400&h=400',
-    tags: ['Couples', 'Communication', 'Family'],
-  }
+    id: "sample-hamza",
+    full_name: "Hamza Ali",
+    title: "Psychotherapist",
+    qualifications: "Advanced Diploma in Counselling",
+    years_experience: 7,
+    specialization: "Burnout, sleep, life transitions",
+    languages: ["Urdu", "English"],
+    session_fee: 5000,
+    currency: "PKR",
+    availability_status: "Limited weekday mornings",
+    profile_image_url:
+      "https://images.unsplash.com/photo-1582750433449-648ed127bb54?auto=format&fit=crop&q=80&w=500&h=620",
+    bio: "A collaborative approach for professionals and students managing overload and uncertainty.",
+  },
 ];
 
+function initials(name: string) {
+  return name
+    .split(" ")
+    .map((part) => part[0])
+    .slice(0, 2)
+    .join("");
+}
+
+function splitFocus(value?: string) {
+  return (value ?? "")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .slice(0, 4);
+}
+
+async function getApprovedTherapists() {
+  if (!SUPABASE_ANON_KEY) return DEMO_MODE ? fallbackTherapists : [];
+
+  const query = new URLSearchParams({
+    select:
+      "id,full_name,title,qualifications,years_experience,bio,specialization,languages,session_fee,currency,availability_status,profile_image_url",
+    is_active: "eq.true",
+    approval_status: "eq.approved",
+    order: "is_featured.desc,created_at.desc",
+    limit: "50",
+  });
+
+  try {
+    const response = await fetch(`${SUPABASE_URL}/rest/v1/therapists?${query}`, {
+      headers: {
+        apikey: SUPABASE_ANON_KEY,
+        authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+      },
+      next: { revalidate: 60 },
+    });
+
+    if (!response.ok) return DEMO_MODE ? fallbackTherapists : [];
+    const therapists = (await response.json()) as LiveTherapist[];
+    return therapists.length ? therapists : DEMO_MODE ? fallbackTherapists : [];
+  } catch {
+    return DEMO_MODE ? fallbackTherapists : [];
+  }
+}
+
 export default async function TherapistsPage() {
-  const cookieStore = await cookies();
-  const hasCaptured = cookieStore.get('lead_captured')?.value === 'true';
+  const therapists = await getApprovedTherapists();
+  const whatsappHref = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(
+    "Hello MindEase, I would like help choosing a therapist.",
+  )}`;
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-12 px-4 sm:px-6 lg:px-8 relative">
-      <div className="max-w-7xl mx-auto">
-        <div className="text-center mb-16">
-          <h1 className="text-4xl md:text-5xl font-extrabold text-gray-900 dark:text-white tracking-tight mb-4">
-            Our Expert Therapists
-          </h1>
-          <p className="text-xl text-gray-500 dark:text-gray-400 max-w-2xl mx-auto">
-            Find the right professional to guide you on your mental health journey.
+    <main>
+      <section className="directory-hero">
+        <nav className="site-nav" aria-label="Therapist directory navigation">
+          <Link className="brand" href="/">
+            <Image src="/brand/mindease-app-icon.png" alt="" width={42} height={42} className="brand-icon" />
+            <span>
+              <strong>MindEase</strong>
+              <small>Therapist Directory</small>
+            </span>
+          </Link>
+          <div className="nav-links">
+            <Link href="/">Home</Link>
+            <Link href="/self-tests">Self-checks</Link>
+            <Link href="/therapist/login">Therapist portal</Link>
+          </div>
+          <a className="nav-cta" href={whatsappHref}>Ask for match</a>
+        </nav>
+        <div className="directory-copy">
+          <span className="eyebrow">Admin-approved profiles</span>
+          <h1>Choose with context, then confirm availability with the coordinator.</h1>
+          <p>
+            Public cards show live approved therapist information. If a preferred therapist is not available,
+            the admin workflow can suggest alternatives before a booking is confirmed.
           </p>
         </div>
+      </section>
 
-        <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 transition-all duration-500 ${!hasCaptured ? 'blur-md pointer-events-none select-none opacity-50' : ''}`}>
-          {mockTherapists.map((therapist) => (
-            <div key={therapist.id} className="bg-white dark:bg-gray-800 rounded-3xl shadow-xl overflow-hidden hover:shadow-2xl transition-shadow duration-300 transform hover:-translate-y-1">
-              <div className="relative h-64 w-full">
-                <img
-                  src={therapist.imageUrl}
-                  alt={therapist.name}
-                  className="w-full h-full object-cover"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                <div className="absolute bottom-4 left-6 right-6">
-                  <h3 className="text-2xl font-bold text-white mb-1">{therapist.name}</h3>
-                  <p className="text-gray-200 font-medium">{therapist.title}</p>
+      <section className="section">
+        <div className="therapist-grid directory-grid">
+          {therapists.map((therapist) => {
+            const focus = splitFocus(therapist.specialization);
+            return (
+              <article className="therapist-card directory-card" key={therapist.id}>
+                <div className="therapist-top">
+                  {therapist.profile_image_url ? (
+                    <img className="therapist-photo" src={therapist.profile_image_url} alt={therapist.full_name} />
+                  ) : (
+                    <div className="avatar" aria-hidden="true">{initials(therapist.full_name)}</div>
+                  )}
+                  <div>
+                    <h3>{therapist.full_name}</h3>
+                    <p>{therapist.title}</p>
+                    <small>{therapist.qualifications}</small>
+                  </div>
                 </div>
-              </div>
-              <div className="p-6">
-                <p className="text-gray-600 dark:text-gray-300 mb-6 leading-relaxed">
-                  {therapist.bio}
-                </p>
-                <div className="flex flex-wrap gap-2 mb-6">
-                  {therapist.tags.map(tag => (
-                    <span key={tag} className="px-3 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-sm font-medium rounded-full">
-                      {tag}
-                    </span>
+                <p>{therapist.bio}</p>
+                <div className="pill-row">
+                  {(focus.length ? focus : ["Online therapy"]).map((item) => (
+                    <span key={item}>{item}</span>
                   ))}
                 </div>
-                <button className="w-full py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl font-bold hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors">
-                  Book Session
-                </button>
-              </div>
-            </div>
-          ))}
+                <dl className="therapist-meta">
+                  <div>
+                    <dt>Experience</dt>
+                    <dd>{therapist.years_experience ? `${therapist.years_experience}+ years` : "Reviewed profile"}</dd>
+                  </div>
+                  <div>
+                    <dt>Languages</dt>
+                    <dd>{therapist.languages?.join(", ") || "Urdu, English"}</dd>
+                  </div>
+                  <div>
+                    <dt>Availability</dt>
+                    <dd>{therapist.availability_status || "Ask coordinator"}</dd>
+                  </div>
+                </dl>
+                <div className="card-footer">
+                  <div>
+                    <span>Session fee</span>
+                    <strong>
+                      {therapist.session_fee
+                        ? `${therapist.currency ?? "PKR"} ${therapist.session_fee.toLocaleString("en-PK")}`
+                        : "Ask admin"}
+                    </strong>
+                  </div>
+                  <a href={whatsappHref}>Ask about fit</a>
+                </div>
+              </article>
+            );
+          })}
         </div>
-      </div>
-
-      {!hasCaptured && <LeadCaptureModal />}
-    </div>
+        {therapists.length === 0 ? (
+          <div className="empty-state">
+            <strong>No approved therapists are live yet.</strong>
+            <p>Admin-approved therapist profiles will appear here after Supabase is configured.</p>
+          </div>
+        ) : null}
+      </section>
+    </main>
   );
 }

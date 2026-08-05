@@ -32,11 +32,15 @@ test("server-renders the MindEase clinic landing page", async () => {
 
   const html = await response.text();
   assert.match(html, /<title>MindEase Online Clinic<\/title>/i);
-  assert.match(html, /Qualified clinical psychologists/i);
-  assert.match(html, /Book your first session/i);
-  assert.match(html, /Choose your concern/i);
-  assert.match(html, /Supabase/i);
-  assert.match(html, /Stripe/i);
+  assert.match(html, /Find a therapist who fits your concern/i);
+  assert.match(html, /Message on WhatsApp/i);
+  assert.match(html, /View therapist directory/i);
+  assert.match(html, /Send private inquiry/i);
+  assert.match(html, /hello@mindease\.example/i);
+  assert.match(html, /Informational self-checks/i);
+  assert.match(html, /Check anxiety patterns/i);
+  assert.match(html, /self-tests#relationship-adjustment/i);
+  assert.match(html, /Clinic CMS/i);
   assert.match(html, /MindEase is not an emergency service/i);
   assert.doesNotMatch(html, /codex-preview|react-loading-skeleton|SkeletonPreview/i);
 });
