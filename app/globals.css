@@ -1670,6 +1670,13 @@ footer {
   opacity: 0.55;
 }
 
+.admin-form-grid label > small {
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
 .admin-row {
   align-items: center;
   background: #f7fbf9;

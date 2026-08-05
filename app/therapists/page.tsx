@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { getPublicContactSettings } from "../site-settings";
 
 const SUPABASE_URL =
   process.env.SUPABASE_URL ??
@@ -7,7 +8,6 @@ const SUPABASE_URL =
   "https://lhcjubkyyikirliafwfd.supabase.co";
 const SUPABASE_ANON_KEY =
   process.env.SUPABASE_ANON_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-const WHATSAPP_NUMBER = "923001234567";
 const DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === "true";
 
 type LiveTherapist = {
@@ -118,8 +118,11 @@ async function getApprovedTherapists() {
 }
 
 export default async function TherapistsPage() {
-  const therapists = await getApprovedTherapists();
-  const whatsappHref = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(
+  const [therapists, contactSettings] = await Promise.all([
+    getApprovedTherapists(),
+    getPublicContactSettings(),
+  ]);
+  const whatsappHref = `https://wa.me/${contactSettings.whatsappNumber}?text=${encodeURIComponent(
     "Hello MindEase, I would like help choosing a therapist.",
   )}`;
 

@@ -4,14 +4,15 @@ import test from "node:test";
 
 const templateRoot = new URL("../", import.meta.url);
 
-async function render() {
+async function render(path = "/", init = {}) {
   const workerUrl = new URL("../dist/server/index.js", import.meta.url);
   workerUrl.searchParams.set("test", `${process.pid}-${Date.now()}`);
   const { default: worker } = await import(workerUrl.href);
 
   return worker.fetch(
-    new Request("http://localhost/", {
+    new Request(`http://localhost${path}`, {
       headers: { accept: "text/html" },
+      ...init,
     }),
     {
       ASSETS: {
@@ -59,4 +60,38 @@ test("removes starter preview code and metadata", async () => {
   assert.doesNotMatch(packageJson, /react-loading-skeleton/);
 
   await assert.rejects(access(new URL("app/_sites-preview", templateRoot)));
+});
+
+test("includes protected admin-managed public contact settings", async () => {
+  const [page, directory, admin, route, migration] = await Promise.all([
+    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/therapists/page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/admin/AdminConsole.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/api/admin/site-settings/route.ts", import.meta.url), "utf8"),
+    readFile(new URL("../supabase/mindease-site-settings.sql", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(page, /getPublicContactSettings/);
+  assert.match(directory, /getPublicContactSettings/);
+  assert.match(admin, /Publish contact settings/);
+  assert.match(route, /requireAdmin/);
+  assert.match(route, /site_contact_settings_updated/);
+  assert.match(migration, /site_settings_public_read/);
+  assert.match(migration, /grant select \(/);
+});
+
+test("rejects unauthenticated public contact setting updates", async () => {
+  const response = await render("/api/admin/site-settings", {
+    method: "PATCH",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      whatsappNumber: "923001234567",
+      displayPhone: "+92 300 1234567",
+      contactEmail: "hello@mindease.example",
+      emailIsPlaceholder: true,
+    }),
+  });
+
+  assert.equal(response.status, 403);
+  assert.match(await response.text(), /Admin access required/i);
 });

@@ -25,6 +25,20 @@ type AdminTherapist = {
   photo?: string;
 };
 
+type ContactSettingsForm = {
+  whatsappNumber: string;
+  displayPhone: string;
+  contactEmail: string;
+  emailIsPlaceholder: boolean;
+};
+
+const defaultContactSettings: ContactSettingsForm = {
+  whatsappNumber: "923001234567",
+  displayPhone: "+92 300 1234567",
+  contactEmail: "hello@mindease.example",
+  emailIsPlaceholder: true,
+};
+
 type Overview = {
   user?: {
     email?: string;
@@ -98,6 +112,7 @@ type Overview = {
     subject: string;
     createdAt: string;
   }>;
+  contactSettings?: ContactSettingsForm;
   setupSteps?: string[];
 };
 
@@ -118,6 +133,7 @@ const emptyOverview: Overview = {
   blogPosts: [],
   availabilitySlots: [],
   auditLogs: [],
+  contactSettings: defaultContactSettings,
   setupSteps: [
     "Create therapist profiles from this admin panel.",
     "Therapists stay hidden until admin approval.",
@@ -192,6 +208,7 @@ export function AdminConsole() {
   const [overview, setOverview] = useState<Overview>(emptyOverview);
   const [therapistForm, setTherapistForm] = useState<TherapistForm>(blankTherapistForm);
   const [blogForm, setBlogForm] = useState<BlogForm>(blankBlogForm);
+  const [contactSettings, setContactSettings] = useState<ContactSettingsForm>(defaultContactSettings);
   const [messageDrafts, setMessageDrafts] = useState<Record<string, { therapistId: string; note: string; status: string; slotId: string; paymentInstructions: string }>>({});
   const [appointmentDrafts, setAppointmentDrafts] = useState<Record<string, { paymentReference: string; adminNotes: string }>>({});
   const [error, setError] = useState("");
@@ -219,6 +236,7 @@ export function AdminConsole() {
 
     setError("");
     setOverview(body);
+    setContactSettings(body.contactSettings ?? defaultContactSettings);
   }, [session?.access_token]);
 
   async function signIn() {
@@ -343,6 +361,10 @@ export function AdminConsole() {
 
   function updateBlogField(field: keyof BlogForm, value: string) {
     setBlogForm((current) => ({ ...current, [field]: value }));
+  }
+
+  function updateContactSetting(field: keyof ContactSettingsForm, value: string | boolean) {
+    setContactSettings((current) => ({ ...current, [field]: value }));
   }
 
   function updateMessageDraft(id: string, field: "therapistId" | "note" | "status" | "slotId" | "paymentInstructions", value: string) {
@@ -596,6 +618,38 @@ export function AdminConsole() {
     }
   }
 
+  async function saveContactSettings(event: React.FormEvent) {
+    event.preventDefault();
+    if (!session?.access_token) return;
+
+    setSaving(true);
+    setError("");
+    setNotice("");
+
+    try {
+      const response = await fetch("/api/admin/site-settings", {
+        method: "PATCH",
+        headers: {
+          authorization: `Bearer ${session.access_token}`,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify(contactSettings),
+      });
+      const body = await response.json();
+
+      if (!response.ok) {
+        throw new Error(body?.error ?? "Could not update public contact settings.");
+      }
+
+      setNotice("Public WhatsApp, phone, and email settings updated.");
+      await loadOverview();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not update public contact settings.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
   if (!session) {
     return (
       <main className="admin-page">
@@ -687,6 +741,7 @@ export function AdminConsole() {
           <a href="#therapists">Live therapists</a>
           <a href="#messages">Messages</a>
           <a href="#availability">Availability</a>
+          <a href="#site-settings">Site contact</a>
           <a href="#blog">Blog</a>
           <a href="#audit">Audit</a>
         </nav>
@@ -1163,6 +1218,62 @@ export function AdminConsole() {
                 </div>
               ) : null}
             </div>
+          </article>
+
+          <article className="admin-panel wide" id="site-settings">
+            <div className="admin-panel-head">
+              <div>
+                <span>Public website</span>
+                <h2>WhatsApp, phone, and email</h2>
+              </div>
+            </div>
+            <form className="admin-form-grid" onSubmit={saveContactSettings}>
+              <label>
+                WhatsApp number
+                <input
+                  inputMode="tel"
+                  onChange={(event) => updateContactSetting("whatsappNumber", event.target.value)}
+                  placeholder="923001234567"
+                  value={contactSettings.whatsappNumber}
+                />
+                <small>Include country code and digits only. This builds the wa.me link.</small>
+              </label>
+              <label>
+                Public phone display
+                <input
+                  inputMode="tel"
+                  onChange={(event) => updateContactSetting("displayPhone", event.target.value)}
+                  placeholder="+92 300 1234567"
+                  value={contactSettings.displayPhone}
+                />
+                <small>This formatted version is shown to visitors.</small>
+              </label>
+              <label className="wide-field">
+                Contact email
+                <input
+                  onChange={(event) => updateContactSetting("contactEmail", event.target.value)}
+                  placeholder="hello@example.com"
+                  type="email"
+                  value={contactSettings.contactEmail}
+                />
+              </label>
+              <label className="wide-field consent-check">
+                <input
+                  checked={contactSettings.emailIsPlaceholder}
+                  onChange={(event) => updateContactSetting("emailIsPlaceholder", event.target.checked)}
+                  type="checkbox"
+                />
+                <span>
+                  Mark this email as temporary. Temporary addresses are displayed as a notice and are not clickable.
+                </span>
+              </label>
+              <button
+                disabled={saving || !contactSettings.whatsappNumber || !contactSettings.displayPhone || !contactSettings.contactEmail}
+                type="submit"
+              >
+                {saving ? "Saving..." : "Publish contact settings"}
+              </button>
+            </form>
           </article>
 
           <article className="admin-panel wide" id="blog">

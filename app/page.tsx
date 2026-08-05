@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { getPublicContactSettings, phoneHref } from "./site-settings";
 
 const SUPABASE_URL =
   process.env.SUPABASE_URL ??
@@ -7,9 +8,6 @@ const SUPABASE_URL =
 const SUPABASE_ANON_KEY =
   process.env.SUPABASE_ANON_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-const WHATSAPP_NUMBER = "923001234567";
-const DISPLAY_PHONE = "+92 300 1234567";
-const PLACEHOLDER_EMAIL = "hello@mindease.example";
 const DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === "true";
 
 type LiveTherapist = {
@@ -227,11 +225,16 @@ async function getPublishedBlogPosts() {
 }
 
 export default async function Home() {
-  const [therapists, posts] = await Promise.all([getApprovedTherapists(), getPublishedBlogPosts()]);
+  const [therapists, posts, contactSettings] = await Promise.all([
+    getApprovedTherapists(),
+    getPublishedBlogPosts(),
+    getPublicContactSettings(),
+  ]);
   const featuredTherapists = therapists.slice(0, 3);
-  const whatsappHref = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(
+  const whatsappHref = `https://wa.me/${contactSettings.whatsappNumber}?text=${encodeURIComponent(
     "Hello MindEase, I would like help finding a therapist.",
   )}`;
+  const callHref = phoneHref(contactSettings.displayPhone);
 
   return (
     <main>
@@ -335,9 +338,13 @@ export default async function Home() {
             </form>
 
             <div className="quick-slots" aria-label="Contact options">
-              <a href={whatsappHref}>WhatsApp {DISPLAY_PHONE}</a>
-              <a href={`tel:${DISPLAY_PHONE.replace(/\s/g, "")}`}>Call {DISPLAY_PHONE}</a>
-              <span>{PLACEHOLDER_EMAIL} temporary placeholder</span>
+              <a href={whatsappHref}>WhatsApp {contactSettings.displayPhone}</a>
+              <a href={callHref}>Call {contactSettings.displayPhone}</a>
+              {contactSettings.emailIsPlaceholder ? (
+                <span>{contactSettings.contactEmail} temporary placeholder</span>
+              ) : (
+                <a href={`mailto:${contactSettings.contactEmail}`}>Email {contactSettings.contactEmail}</a>
+              )}
             </div>
           </aside>
 
@@ -542,13 +549,21 @@ export default async function Home() {
           <span>Contact Us</span>
           <h2>Start with a private message.</h2>
           <p>
-            WhatsApp is the primary contact method while the domain and final clinic email are pending.
-            The placeholder email below is temporary and should not be treated as a configured inbox.
+            WhatsApp is the primary contact method. Email availability is maintained by the clinic admin.
+            {contactSettings.emailIsPlaceholder
+              ? " The displayed email is temporary and should not be treated as a configured inbox yet."
+              : " You can also contact the clinic through the published email address."}
           </p>
           <div className="contact-cta-stack">
-            <a className="primary-btn" href={whatsappHref}>WhatsApp {DISPLAY_PHONE}</a>
-            <a className="ghost-btn" href={`tel:${DISPLAY_PHONE.replace(/\s/g, "")}`}>Call {DISPLAY_PHONE}</a>
-            <span>{PLACEHOLDER_EMAIL} temporary placeholder</span>
+            <a className="primary-btn" href={whatsappHref}>WhatsApp {contactSettings.displayPhone}</a>
+            <a className="ghost-btn" href={callHref}>Call {contactSettings.displayPhone}</a>
+            {contactSettings.emailIsPlaceholder ? (
+              <span>{contactSettings.contactEmail} temporary placeholder</span>
+            ) : (
+              <a className="ghost-btn" href={`mailto:${contactSettings.contactEmail}`}>
+                Email {contactSettings.contactEmail}
+              </a>
+            )}
           </div>
           <div className="policy-note">
             MindEase is not an emergency service. If someone is in immediate danger in Pakistan,

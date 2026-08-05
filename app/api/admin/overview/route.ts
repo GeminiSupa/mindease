@@ -101,6 +101,12 @@ type AdminOverview = {
     subject: string;
     createdAt: string;
   }>;
+  contactSettings: {
+    whatsappNumber: string;
+    displayPhone: string;
+    contactEmail: string;
+    emailIsPlaceholder: boolean;
+  };
   setupSteps: string[];
 };
 
@@ -128,6 +134,12 @@ function emptyOverview(user: SupabaseUser): AdminOverview {
     blogPosts: [],
     availabilitySlots: [],
     auditLogs: [],
+    contactSettings: {
+      whatsappNumber: "923001234567",
+      displayPhone: "+92 300 1234567",
+      contactEmail: "hello@mindease.example",
+      emailIsPlaceholder: true,
+    },
     setupSteps,
   };
 }
@@ -163,7 +175,7 @@ export async function GET(request: Request) {
     return json(emptyOverview(user));
   }
 
-  const [appointmentsRows, therapistRows, paymentRows, messageRows, changeRows, blogRows, slotRows, auditRows] =
+  const [appointmentsRows, therapistRows, paymentRows, messageRows, changeRows, blogRows, slotRows, auditRows, settingsRows] =
     await Promise.all([
       getRows("appointments", "select=*&order=scheduled_at.asc&limit=20"),
       getRows("therapists", "select=*&order=created_at.desc&limit=50"),
@@ -173,6 +185,7 @@ export async function GET(request: Request) {
       getRows("blog_posts", "select=*&order=created_at.desc&limit=20"),
       getRows("availability_slots", "select=*&order=starts_at.asc&limit=50"),
       getRows("admin_audit_logs", "select=*&order=created_at.desc&limit=30"),
+      getRows("site_settings", "id=eq.clinic&select=*&limit=1"),
     ]);
 
   const today = new Date().toISOString().slice(0, 10);
@@ -269,6 +282,20 @@ export async function GET(request: Request) {
     createdAt: value(row, ["created_at"], ""),
   }));
 
+  const settingsRow = settingsRows[0];
+  const contactSettings = {
+    whatsappNumber: settingsRow
+      ? value(settingsRow, ["whatsapp_number"], "923001234567")
+      : "923001234567",
+    displayPhone: settingsRow
+      ? value(settingsRow, ["display_phone"], "+92 300 1234567")
+      : "+92 300 1234567",
+    contactEmail: settingsRow
+      ? value(settingsRow, ["contact_email"], "hello@mindease.example")
+      : "hello@mindease.example",
+    emailIsPlaceholder: settingsRow ? settingsRow.email_is_placeholder !== false : true,
+  };
+
   const paidThisMonth = paymentRows
     .filter((row) => value(row, ["status"], "paid").toLowerCase() !== "failed")
     .reduce((sum, row) => {
@@ -305,6 +332,7 @@ export async function GET(request: Request) {
     blogPosts,
     availabilitySlots,
     auditLogs,
+    contactSettings,
     setupSteps,
   });
 }
