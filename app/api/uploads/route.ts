@@ -38,19 +38,33 @@ async function uploadObject(path: string, file: File) {
 
   if (!response.ok) {
     const text = await response.text();
-    throw new Error(text || "Upload failed.");
+    let detail = "";
+    try {
+      const body = JSON.parse(text) as { message?: string; error?: string };
+      detail = body.message ?? body.error ?? "";
+    } catch {
+      detail = text;
+    }
+
+    if (response.status === 404) {
+      throw new Error("Image storage is not configured. Run supabase/mindease-production-upgrade.sql to create the mindease-media bucket.");
+    }
+    if (response.status === 401 || response.status === 403) {
+      throw new Error("Image storage rejected the upload. Verify SUPABASE_SERVICE_ROLE_KEY and the mindease-media storage policies.");
+    }
+    throw new Error(detail || "Supabase Storage could not upload this image.");
   }
 }
 
 export async function POST(request: Request) {
-  if (!SUPABASE_SERVICE_ROLE_KEY) {
-    return json({ error: "SUPABASE_SERVICE_ROLE_KEY is required for uploads." }, 500);
-  }
-
   const admin = await requireAdmin(request);
   const therapistSession = admin ? null : await requireTherapist(request);
   if (!admin && !therapistSession) {
     return json({ error: "Authenticated admin or therapist access required." }, 403);
+  }
+
+  if (!SUPABASE_SERVICE_ROLE_KEY) {
+    return json({ error: "Image uploads are not configured. Add SUPABASE_SERVICE_ROLE_KEY to the server environment." }, 500);
   }
 
   const formData = await request.formData();
@@ -112,7 +126,10 @@ export async function POST(request: Request) {
     actorId: admin?.id ?? therapistSession?.user.id,
     action: "media_uploaded",
     subjectTable: purpose === "therapist-photo" ? "therapists" : "blog_posts",
-    subjectId: purpose === "therapist-photo" ? therapistId : undefined,
+    subjectId:
+      purpose === "therapist-photo" && /^[0-9a-f-]{36}$/i.test(therapistId)
+        ? therapistId
+        : undefined,
     details: {
       purpose,
       path,

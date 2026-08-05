@@ -209,6 +209,8 @@ export function AdminConsole() {
   const [therapistForm, setTherapistForm] = useState<TherapistForm>(blankTherapistForm);
   const [blogForm, setBlogForm] = useState<BlogForm>(blankBlogForm);
   const [contactSettings, setContactSettings] = useState<ContactSettingsForm>(defaultContactSettings);
+  const [uploading, setUploading] = useState(false);
+  const [lastCreatedTherapist, setLastCreatedTherapist] = useState<{ email: string; loginUrl: string } | null>(null);
   const [messageDrafts, setMessageDrafts] = useState<Record<string, { therapistId: string; note: string; status: string; slotId: string; paymentInstructions: string }>>({});
   const [appointmentDrafts, setAppointmentDrafts] = useState<Record<string, { paymentReference: string; adminNotes: string }>>({});
   const [error, setError] = useState("");
@@ -295,10 +297,12 @@ export function AdminConsole() {
         throw new Error(body?.error ?? "Could not create therapist.");
       }
 
+      setLastCreatedTherapist({
+        email: therapistForm.email,
+        loginUrl: String(body?.loginUrl ?? "/therapist/login"),
+      });
       setTherapistForm(blankTherapistForm);
-      setNotice(body?.credentialsCreated
-        ? "Therapist login and pending profile created. Share the temporary password securely."
-        : "Therapist profile created. It is pending approval and hidden from the website.");
+      setNotice("Therapist login and pending profile created. Share the temporary password securely.");
       await loadOverview();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not create therapist.");
@@ -395,25 +399,30 @@ export function AdminConsole() {
   async function uploadImage(file: File, purpose: "therapist-photo" | "blog-image", therapistId = "") {
     if (!session?.access_token) return "";
 
-    const formData = new FormData();
-    formData.set("file", file);
-    formData.set("purpose", purpose);
-    if (therapistId) formData.set("therapistId", therapistId);
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.set("file", file);
+      formData.set("purpose", purpose);
+      if (therapistId) formData.set("therapistId", therapistId);
 
-    const response = await fetch("/api/uploads", {
-      method: "POST",
-      headers: {
-        authorization: `Bearer ${session.access_token}`,
-      },
-      body: formData,
-    });
-    const body = await response.json();
+      const response = await fetch("/api/uploads", {
+        method: "POST",
+        headers: {
+          authorization: `Bearer ${session.access_token}`,
+        },
+        body: formData,
+      });
+      const body = await response.json();
 
-    if (!response.ok) {
-      throw new Error(body?.error ?? "Upload failed.");
+      if (!response.ok) {
+        throw new Error(body?.error ?? "Upload failed.");
+      }
+
+      return String(body.url ?? "");
+    } finally {
+      setUploading(false);
     }
-
-    return String(body.url ?? "");
   }
 
   async function updateInquiry(id: string) {
@@ -661,10 +670,6 @@ export function AdminConsole() {
             </Link>
             <p className="admin-kicker">Clinic operations</p>
             <h1>Manage therapist approvals, messages, and bookings.</h1>
-            <p>
-              Sign in with the Supabase Auth admin account. Therapist profiles
-              remain hidden until admin approval publishes them to the website.
-            </p>
             <div className="admin-feature-list">
               <span>Password login</span>
               <span>Therapist approval</span>
@@ -796,10 +801,25 @@ export function AdminConsole() {
           <article className="admin-panel wide" id="create-therapist">
             <div className="admin-panel-head">
               <div>
-                <span>User management</span>
-                <h2>Create therapist profile</h2>
+                <span>Account and profile</span>
+                <h2>Create therapist login</h2>
               </div>
             </div>
+            <div className="workflow-strip" aria-label="Therapist onboarding steps">
+              <div><span>01</span><strong>Set login</strong><small>Email and temporary password</small></div>
+              <div><span>02</span><strong>Add profile</strong><small>Details and device photo</small></div>
+              <div><span>03</span><strong>Share portal</strong><small>/therapist/login</small></div>
+            </div>
+            {lastCreatedTherapist ? (
+              <div className="credential-success">
+                <div>
+                  <span>Therapist account ready</span>
+                  <strong>{lastCreatedTherapist.email}</strong>
+                  <small>Share the temporary password separately. It cannot be viewed again.</small>
+                </div>
+                <Link href={lastCreatedTherapist.loginUrl}>Open therapist sign in</Link>
+              </div>
+            ) : null}
             <form
               className="admin-form-grid"
               onSubmit={(event) => {
@@ -810,14 +830,16 @@ export function AdminConsole() {
               <label>
                 Full name
                 <input
+                  required
                   value={therapistForm.fullName}
                   onChange={(event) => updateTherapistField("fullName", event.target.value)}
                   placeholder="Therapist full name"
                 />
               </label>
               <label>
-                Login email
+                Therapist login email
                 <input
+                  required
                   type="email"
                   value={therapistForm.email}
                   onChange={(event) => updateTherapistField("email", event.target.value)}
@@ -827,11 +849,15 @@ export function AdminConsole() {
               <label>
                 Temporary password
                 <input
+                  autoComplete="new-password"
+                  minLength={8}
+                  required
                   value={therapistForm.password}
                   onChange={(event) => updateTherapistField("password", event.target.value)}
-                  placeholder="Set only if creating login"
+                  placeholder="At least 8 characters"
                   type="password"
                 />
+                <small>The therapist uses this once at /therapist/login.</small>
               </label>
               <label>
                 Title
@@ -883,18 +909,16 @@ export function AdminConsole() {
                   placeholder="Anxiety, depression, relationships"
                 />
               </label>
-              <label>
-                Photo URL
-                <input
-                  value={therapistForm.profileImageUrl}
-                  onChange={(event) => updateTherapistField("profileImageUrl", event.target.value)}
-                  placeholder="Upload through Supabase Storage below"
-                />
-              </label>
-              <label>
-                Upload photo
+              <label className="wide-field image-upload-field">
+                <span>Profile photo from device</span>
+                {therapistForm.profileImageUrl ? (
+                  <img src={therapistForm.profileImageUrl} alt="New therapist profile preview" />
+                ) : (
+                  <span className="upload-placeholder">JPG, PNG or WebP / maximum 5 MB</span>
+                )}
                 <input
                   accept="image/jpeg,image/png,image/webp"
+                  disabled={uploading}
                   onChange={(event) => {
                     const file = event.target.files?.[0];
                     if (!file) return;
@@ -906,6 +930,7 @@ export function AdminConsole() {
                   }}
                   type="file"
                 />
+                <strong>{uploading ? "Uploading photo..." : "Choose photo from device"}</strong>
               </label>
               <label className="wide-field">
                 Bio
@@ -915,7 +940,10 @@ export function AdminConsole() {
                   placeholder="Short professional bio for admin review"
                 />
               </label>
-              <button disabled={saving || !therapistForm.fullName} type="submit">
+              <button
+                disabled={saving || uploading || !therapistForm.fullName || !therapistForm.email || therapistForm.password.length < 8}
+                type="submit"
+              >
                 {saving ? "Saving..." : "Create pending profile"}
               </button>
             </form>

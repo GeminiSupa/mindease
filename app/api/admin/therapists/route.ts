@@ -55,39 +55,41 @@ export async function POST(request: Request) {
     return json({ error: "Therapist name is required." }, 400);
   }
 
-  if ((email && !password) || (!email && password)) {
-    return json({ error: "Provide both therapist email and temporary password, or leave both blank." }, 400);
+  if (!email || !password) {
+    return json({ error: "Therapist login email and temporary password are required." }, 400);
+  }
+
+  if (password.length < 8) {
+    return json({ error: "Temporary password must be at least 8 characters." }, 400);
   }
 
   let userId = "";
   try {
-    if (email && password) {
-      userId = await createTherapistAuthUser(email, password, fullName);
+    userId = await createTherapistAuthUser(email, password, fullName);
 
-      const profileResponse = await serviceFetch("/rest/v1/profiles", {
-        method: "POST",
-        headers: { prefer: "resolution=merge-duplicates" },
-        body: JSON.stringify({
-          id: userId,
-          full_name: fullName,
-          email,
-          role: "therapist",
-        }),
-      });
+    const profileResponse = await serviceFetch("/rest/v1/profiles", {
+      method: "POST",
+      headers: { prefer: "resolution=merge-duplicates" },
+      body: JSON.stringify({
+        id: userId,
+        full_name: fullName,
+        email,
+        role: "therapist",
+      }),
+    });
 
-      if (!profileResponse.ok) {
-        const result = await profileResponse.json();
-        throw new Error(result?.message ?? "Therapist login was created, but profile setup failed.");
-      }
-
-      await writeAuditLog({
-        actorId: admin.id,
-        action: "therapist_credentials_created",
-        subjectTable: "profiles",
-        subjectId: userId,
-        details: { email, fullName },
-      });
+    if (!profileResponse.ok) {
+      const result = await profileResponse.json();
+      throw new Error(result?.message ?? "Therapist login was created, but profile setup failed.");
     }
+
+    await writeAuditLog({
+      actorId: admin.id,
+      action: "therapist_credentials_created",
+      subjectTable: "profiles",
+      subjectId: userId,
+      details: { email, fullName },
+    });
 
     const baseSlug = slugify(fullName) || crypto.randomUUID();
     const profileImageUrl =
@@ -147,7 +149,8 @@ export async function POST(request: Request) {
     return json(
       {
         therapist,
-        credentialsCreated: Boolean(userId),
+        credentialsCreated: true,
+        loginUrl: "/therapist/login",
       },
       201,
     );

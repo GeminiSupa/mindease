@@ -95,3 +95,22 @@ test("rejects unauthenticated public contact setting updates", async () => {
   assert.equal(response.status, 403);
   assert.match(await response.text(), /Admin access required/i);
 });
+
+test("surfaces therapist credentials, dashboard access, availability, and device uploads", async () => {
+  const [admin, therapistDashboard, therapistRoute, uploadRoute] = await Promise.all([
+    readFile(new URL("../app/admin/AdminConsole.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/therapist/dashboard/page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/api/admin/therapists/route.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/api/uploads/route.ts", import.meta.url), "utf8"),
+  ]);
+
+  assert.doesNotMatch(admin, /Sign in with the Supabase Auth admin account/);
+  assert.match(admin, /Create therapist login/);
+  assert.match(admin, /Therapist login email/);
+  assert.match(admin, /Choose photo from device/);
+  assert.match(admin, /Open therapist sign in/);
+  assert.match(therapistDashboard, /Submit availability/);
+  assert.match(therapistDashboard, /Profile photo from device/);
+  assert.match(therapistRoute, /loginUrl:\s*"\/therapist\/login"/);
+  assert.match(uploadRoute, /Image storage is not configured/);
+});

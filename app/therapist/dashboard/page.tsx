@@ -354,20 +354,24 @@ export default function TherapistDashboard() {
                 Availability note
                 <input value={form.availabilityStatus} onChange={(event) => updateField("availabilityStatus", event.target.value)} />
               </label>
-              <label className="wide-field">
-                Profile photo URL
-                <input value={form.profileImageUrl} onChange={(event) => updateField("profileImageUrl", event.target.value)} />
-              </label>
-              <label className="wide-field">
-                Upload profile photo
+              <label className="wide-field image-upload-field">
+                <span>Profile photo from device</span>
+                {form.profileImageUrl ? (
+                  <img src={form.profileImageUrl} alt={`${therapist?.full_name ?? "Therapist"} profile preview`} />
+                ) : (
+                  <span className="upload-placeholder">JPG, PNG or WebP / maximum 5 MB</span>
+                )}
                 <input
                   accept="image/jpeg,image/png,image/webp"
+                  disabled={saving}
                   onChange={(event) => {
                     const file = event.target.files?.[0];
                     if (file) void uploadProfilePhoto(file);
                   }}
                   type="file"
                 />
+                <strong>{saving ? "Uploading or saving..." : "Choose photo from device"}</strong>
+                <small>After upload, submit the profile edits below. The new photo goes live only after admin approval.</small>
               </label>
               <label className="wide-field">
                 Bio
