@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import HelpChat from "./components/HelpChat";
+import { getPublicContactSettings } from "./site-settings";
 
 export const metadata: Metadata = {
   title: "MindEase Online Clinic",
@@ -18,14 +20,19 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const contactSettings = await getPublicContactSettings();
+
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        {children}
+        <HelpChat whatsappNumber={contactSettings.whatsappNumber} />
+      </body>
     </html>
   );
 }
