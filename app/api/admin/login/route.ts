@@ -1,3 +1,11 @@
+import { cookies } from "next/headers";
+import {
+  ADMIN_ACCESS_COOKIE,
+  ADMIN_REFRESH_COOKIE,
+  getSupabaseUser,
+  isMindEaseAdmin,
+} from "../auth";
+
 const SUPABASE_URL =
   process.env.SUPABASE_URL ??
   process.env.NEXT_PUBLIC_SUPABASE_URL ??
@@ -64,5 +72,35 @@ export async function POST(request: Request) {
     );
   }
 
-  return json(body);
+  const accessToken = typeof body?.access_token === "string" ? body.access_token : "";
+  const refreshToken = typeof body?.refresh_token === "string" ? body.refresh_token : "";
+  const user = accessToken ? await getSupabaseUser(accessToken) : null;
+
+  if (!user || !(await isMindEaseAdmin(user))) {
+    return json({ error: "This account does not have MindEase admin access." }, 403);
+  }
+
+  const cookieStore = await cookies();
+  const secure = process.env.NODE_ENV === "production";
+  cookieStore.set(ADMIN_ACCESS_COOKIE, accessToken, {
+    httpOnly: true,
+    maxAge: Number(body?.expires_in) || 3600,
+    path: "/",
+    sameSite: "lax",
+    secure,
+  });
+  if (refreshToken) {
+    cookieStore.set(ADMIN_REFRESH_COOKIE, refreshToken, {
+      httpOnly: true,
+      maxAge: 60 * 60 * 24 * 30,
+      path: "/",
+      sameSite: "lax",
+      secure,
+    });
+  }
+
+  return json({
+    expires_at: body?.expires_at,
+    user: { id: user.id, email: user.email },
+  });
 }

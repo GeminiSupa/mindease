@@ -19,6 +19,7 @@ export async function POST(request: Request) {
   const name = String(formData.get("name") ?? "").trim();
   const contact = String(formData.get("contact") ?? "").trim();
   const message = String(formData.get("message") ?? "").trim();
+  const topic = String(formData.get("topic") ?? "Website contact form").trim().slice(0, 120);
 
   if (!name || !contact || !message || !SUPABASE_ANON_KEY) {
     return redirectHome(request, "error");
@@ -39,7 +40,7 @@ export async function POST(request: Request) {
       name,
       email: isEmail ? contact : null,
       phone: isEmail ? null : contact,
-      topic: "Website contact form",
+      topic: topic || "Website contact form",
       message,
       source: "website",
       status: "open",

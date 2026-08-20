@@ -1,8 +1,5 @@
 import { NextResponse } from "next/server";
-import { getDb } from "../../../db";
-import { leads } from "../../../db/schema";
 import { cookies } from "next/headers";
-import { v4 as uuidv4 } from "uuid";
 
 export const runtime = "edge";
 
@@ -23,7 +20,7 @@ export async function POST(req: Request) {
     cookieStore.set('lead_captured', 'true', { path: '/', maxAge: 60 * 60 * 24 * 365 });
 
     return NextResponse.json({ success: true });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

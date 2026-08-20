@@ -31,9 +31,9 @@ const services = [
 
 const journey = [
   ["Search", "Choose your concern, language, time, and therapist preference."],
-  ["Register", "Create a secure profile, verify email, and complete consent."],
-  ["Pay", "Confirm the slot with online payment and receive a receipt."],
-  ["Join", "Get email reminders, calendar invite, and the session link."],
+  ["Request", "Send your contact details and preferred session time privately."],
+  ["Confirm", "A care coordinator confirms the therapist, fee, and available slot."],
+  ["Join", "Receive the confirmed session details and join your online appointment."],
 ];
 
 
@@ -82,8 +82,28 @@ async function getApprovedTherapists() {
   }
 }
 
-export default async function Home() {
+type HomeProps = {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+};
+
+function firstParam(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+export default async function Home({ searchParams }: HomeProps) {
   const therapists = await getApprovedTherapists();
+  const params = (await searchParams) ?? {};
+  const contactStatus = firstParam(params.contact);
+  const concern = firstParam(params.concern);
+  const session = firstParam(params.session);
+  const time = firstParam(params.time);
+  const careRequest = [
+    concern ? `Concern: ${concern}` : "",
+    session ? `Preferred session: ${session}` : "",
+    time ? `Best time: ${time}` : "",
+  ]
+    .filter(Boolean)
+    .join("\n");
 
   return (
     <main>
@@ -105,31 +125,32 @@ export default async function Home() {
           </a>
 
           <div className="nav-links">
-            <a href="#therapists">Therapists</a>
+            {therapists.length > 0 ? <a href="#therapists">Therapists</a> : null}
             <a href="#services">Services</a>
             <a href="#pricing">Pricing</a>
             <a href="#contact">Contact</a>
-            <a href="/admin">Admin</a>
           </div>
 
-          <a className="nav-cta" href="#booking">Book session</a>
+          <a className="nav-cta" href="#booking">Request session</a>
         </nav>
 
         <div className="hero-layout">
           <div className="hero-copy">
             <p className="eyebrow">Qualified clinical psychologists online</p>
-            <h1>Online therapy in Pakistan, booked in minutes.</h1>
+            <h1>Request online therapy with confidence.</h1>
             <p className="hero-lede">
-              MindEase Online Clinic helps clients compare experienced therapists,
-              register securely, pay online, and schedule confidential video sessions
-              without waiting on manual follow-ups.
+              MindEase Online Clinic helps clients compare experienced therapists and
+              send a private care request. A coordinator then confirms the right
+              clinician, fee, and available online session time.
             </p>
             <div className="hero-actions">
-              <a className="primary-btn" href="#booking">Book your first session</a>
-              <a className="ghost-btn" href="#therapists">View therapists</a>
+              <a className="primary-btn" href="#booking">Request your first session</a>
+              <a className="ghost-btn" href={therapists.length > 0 ? "#therapists" : "#services"}>
+                {therapists.length > 0 ? "View therapists" : "Explore services"}
+              </a>
             </div>
             <div className="trust-row" aria-label="MindEase trust highlights">
-              <span>Verified CVs</span>
+              <span>Carefully reviewed</span>
               <span>Private intake</span>
               <span>Flexible timings</span>
             </div>
@@ -139,12 +160,12 @@ export default async function Home() {
             <div className="widget-head">
               <div>
                 <span>Find care</span>
-                <strong>Check availability</strong>
+                <strong>Tell us what you need</strong>
               </div>
-              <p>Avg. response under 2 hours</p>
+              <p>Private and confidential</p>
             </div>
 
-            <form className="search-form" aria-label="Quick booking form">
+            <form className="search-form" aria-label="Quick care request" action="/#contact" method="get">
               <label>
                 I need help with
                 <select name="concern" defaultValue="Anxiety & panic">
@@ -174,11 +195,11 @@ export default async function Home() {
                   <option>Weekend</option>
                 </select>
               </label>
-              <button type="button">Show available therapists</button>
+              <button type="submit">Continue to contact</button>
             </form>
 
             <div className="quick-slots" aria-label="Available slots">
-              <span>Live slots appear after admin approval</span>
+              <span>Our care team will confirm the best therapist and available time.</span>
             </div>
           </aside>
 
@@ -191,9 +212,9 @@ export default async function Home() {
               priority
             />
             <div className="clinician-badge">
-              <span>Provider profile preview</span>
-              <strong>Admin-approved therapists</strong>
-              <p>Only reviewed profiles are published on the website.</p>
+              <span>Professional online care</span>
+              <strong>Qualified clinical support</strong>
+              <p>Thoughtful therapist matching in a private, supportive setting.</p>
             </div>
           </aside>
         </div>
@@ -201,20 +222,20 @@ export default async function Home() {
 
       <section className="metrics-band" aria-label="Clinic highlights">
         <div>
-          <strong>Review</strong>
-          <span>therapist profiles</span>
+          <strong>Qualified</strong>
+          <span>clinical professionals</span>
         </div>
         <div>
-          <strong>Approve</strong>
-          <span>qualified providers</span>
+          <strong>Private</strong>
+          <span>confidential sessions</span>
         </div>
         <div>
-          <strong>Publish</strong>
-          <span>live website cards</span>
+          <strong>Flexible</strong>
+          <span>online appointments</span>
         </div>
         <div>
-          <strong>Track</strong>
-          <span>messages and requests</span>
+          <strong>Personal</strong>
+          <span>care matching</span>
         </div>
       </section>
 
@@ -223,7 +244,7 @@ export default async function Home() {
           <span>Your Journey</span>
           <h2>Clear steps to start your healing process.</h2>
           <p>
-            Our simple process makes it easy to get the care you need. Choose your concern, select a therapist, and securely book your first session in minutes.
+            Choose your concern and preferred time, then send a private request. Our care coordinator will confirm the right therapist, fee, and available session.
           </p>
         </div>
         <div className="journey-grid">
@@ -255,18 +276,18 @@ export default async function Home() {
           <div className="proof-list">
             <span>Confidential online consultation</span>
             <span>Clinical assessment and therapy</span>
-            <span>Admin dashboard for requests and payments</span>
+            <span>Clear guidance before your first session</span>
           </div>
         </div>
       </section>
 
-      <section className="section" id="therapists">
+      {therapists.length > 0 ? <section className="section" id="therapists">
         <div className="section-heading inline-heading">
           <div>
             <span>Our Therapists</span>
             <h2>Find the right professional for you.</h2>
           </div>
-          <a className="text-link" href="#booking">Check all slots</a>
+          <a className="text-link" href="#booking">Request a match</a>
         </div>
 
         <div className="therapist-grid">
@@ -301,7 +322,7 @@ export default async function Home() {
                 </div>
                 <div>
                   <dt>Next slot</dt>
-                  <dd>{therapist.availability_status || "Contact admin"}</dd>
+                  <dd>{therapist.availability_status || "Contact our care team"}</dd>
                 </div>
               </dl>
 
@@ -311,21 +332,15 @@ export default async function Home() {
                   <strong>
                     {therapist.session_fee
                       ? `${therapist.currency ?? "PKR"} ${therapist.session_fee.toLocaleString("en-PK")}`
-                      : "Ask admin"}
+                      : "Contact for fee"}
                   </strong>
                 </div>
-                <a href="#booking">Book</a>
+                <a href="#booking">Request</a>
               </div>
             </article>
           )})}
         </div>
-        {therapists.length === 0 ? (
-          <div className="empty-state">
-            <strong>No approved therapists are live yet.</strong>
-            <p>Admin-approved therapist profiles from Supabase will appear here automatically.</p>
-          </div>
-        ) : null}
-      </section>
+      </section> : null}
 
       <section className="section soft-section" id="services">
         <div className="section-heading">
@@ -348,8 +363,8 @@ export default async function Home() {
 
       <section className="section pricing-section" id="pricing">
         <div className="section-heading">
-          <span>Pricing & payment</span>
-          <h2>Transparent payment keeps bookings serious.</h2>
+          <span>Session pricing</span>
+          <h2>Clear guidance before you confirm.</h2>
         </div>
         <div className="pricing-grid">
           <article>
@@ -367,7 +382,7 @@ export default async function Home() {
           <article>
             <span>Continuity</span>
             <h3>Follow-up package</h3>
-            <p>Multiple booked sessions with reminders and admin follow-up.</p>
+            <p>Discuss a continuity plan and multiple sessions with the care coordinator.</p>
             <strong>Bundle pricing</strong>
           </article>
         </div>
@@ -378,7 +393,7 @@ export default async function Home() {
       <section className="contact-section" id="contact">
         <div className="contact-copy">
           <span>Contact Us</span>
-          <h2>We're here to help you get started.</h2>
+          <h2>We&apos;re here to help you get started.</h2>
           <p>
             Have questions about our services or need help finding the right therapist? Reach out to our care coordinators for guidance.
           </p>
@@ -388,19 +403,34 @@ export default async function Home() {
           </div>
         </div>
         <form className="contact-form" aria-label="Contact MindEase" action="/api/contact" method="post">
+          {contactStatus === "sent" ? (
+            <p className="contact-status success" role="status">
+              Thank you. Your message has been sent, and our care team will contact you soon.
+            </p>
+          ) : null}
+          {contactStatus === "error" ? (
+            <p className="contact-status error" role="alert">
+              We could not send your message. Please check every field and try again.
+            </p>
+          ) : null}
           <label>
             Full name
-            <input name="name" placeholder="Your name" />
+            <input name="name" autoComplete="name" placeholder="Your name" required />
           </label>
           <label>
             Email or WhatsApp
-            <input name="contact" placeholder="you@example.com" />
+            <input name="contact" autoComplete="email" placeholder="you@example.com or +92..." required />
           </label>
           <label>
             Message
-            <textarea name="message" placeholder="How can our coordinator help?" />
+            <textarea
+              name="message"
+              defaultValue={careRequest}
+              placeholder="How can our coordinator help?"
+              required
+            />
           </label>
-          <button type="button">Send message</button>
+          <button type="submit">Send message</button>
         </form>
       </section>
 
@@ -413,9 +443,9 @@ export default async function Home() {
           </span>
         </a>
         <div className="footer-links">
-          <a href="#booking">Book</a>
-          <a href="#therapists">Therapists</a>
-          <a href="/admin">Admin</a>
+          <a href="#booking">Request care</a>
+          {therapists.length > 0 ? <a href="#therapists">Therapists</a> : null}
+          <a href="#services">Services</a>
         </div>
       </footer>
     </main>

@@ -16,7 +16,8 @@ export default function LeadCaptureModal() {
     // For simplicity, we'll check localStorage here as a fallback or if not using httpOnly.
     const hasCaptured = document.cookie.includes('lead_captured=true');
     if (!hasCaptured) {
-      setIsOpen(true);
+      const timer = window.setTimeout(() => setIsOpen(true), 0);
+      return () => window.clearTimeout(timer);
     }
   }, []);
 

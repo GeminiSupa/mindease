@@ -1,25 +1,10 @@
+import { getAuthorizedAdmin } from "../auth";
+
 const SUPABASE_URL =
   process.env.SUPABASE_URL ??
   process.env.NEXT_PUBLIC_SUPABASE_URL ??
   "https://lhcjubkyyikirliafwfd.supabase.co";
-const SUPABASE_ANON_KEY =
-  process.env.SUPABASE_ANON_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const DEFAULT_ADMIN_USER_IDS = ["1bcf8cbe-9716-4cde-91d8-3cb9f0c4fafe"];
-const ADMIN_USER_IDS = [
-  ...DEFAULT_ADMIN_USER_IDS,
-  ...(process.env.ADMIN_USER_IDS ?? "")
-    .split(",")
-    .map((id) => id.trim())
-    .filter(Boolean),
-];
-
-type SupabaseUser = {
-  id: string;
-  email?: string;
-  app_metadata?: Record<string, unknown>;
-  user_metadata?: Record<string, unknown>;
-};
 
 function json(body: unknown, status = 200) {
   return Response.json(body, {
@@ -38,33 +23,6 @@ function slugify(value: string) {
     .slice(0, 80);
 }
 
-async function getUser(token: string) {
-  if (!SUPABASE_ANON_KEY) return null;
-
-  const response = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
-    headers: {
-      apikey: SUPABASE_ANON_KEY,
-      authorization: `Bearer ${token}`,
-    },
-  });
-
-  if (!response.ok) return null;
-  return (await response.json()) as SupabaseUser;
-}
-
-async function isAdmin(request: Request) {
-  const token = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
-  if (!token) return false;
-
-  const user = await getUser(token);
-  if (!user) return false;
-
-  const metadataRole =
-    user.app_metadata?.role ?? user.user_metadata?.role ?? user.app_metadata?.user_role;
-
-  return metadataRole === "admin" || ADMIN_USER_IDS.includes(user.id);
-}
-
 function serviceHeaders(extra?: Record<string, string>) {
   return {
     apikey: SUPABASE_SERVICE_ROLE_KEY ?? "",
@@ -79,7 +37,7 @@ export async function POST(request: Request) {
     return json({ error: "SUPABASE_SERVICE_ROLE_KEY is required to create therapists." }, 500);
   }
 
-  if (!(await isAdmin(request))) {
+  if (!(await getAuthorizedAdmin(request))) {
     return json({ error: "Admin access required." }, 403);
   }
 
@@ -137,16 +95,21 @@ export async function PATCH(request: Request) {
     return json({ error: "SUPABASE_SERVICE_ROLE_KEY is required to update therapists." }, 500);
   }
 
-  if (!(await isAdmin(request))) {
+  const admin = await getAuthorizedAdmin(request);
+  if (!admin) {
     return json({ error: "Admin access required." }, 403);
   }
 
   const body = await request.json();
   const id = typeof body.id === "string" ? body.id : "";
   const action = typeof body.action === "string" ? body.action : "";
+  const reason = typeof body.reason === "string" ? body.reason.trim() : "";
 
   if (!id || !["approve", "reject", "hide"].includes(action)) {
     return json({ error: "Valid therapist id and action are required." }, 400);
+  }
+  if (action === "reject" && !reason) {
+    return json({ error: "A rejection reason is required." }, 400);
   }
 
   const update =
@@ -156,19 +119,28 @@ export async function PATCH(request: Request) {
           is_active: true,
           availability_status: "Available",
           approved_at: new Date().toISOString(),
+          approved_by: admin.id,
+          admin_notes: reason || null,
         }
       : action === "hide"
         ? {
             is_active: false,
             availability_status: "Hidden by admin",
+            admin_notes: reason || null,
           }
         : {
             approval_status: "rejected",
             is_active: false,
             availability_status: "Rejected by admin",
+            admin_notes: reason,
           };
 
-  const response = await fetch(`${SUPABASE_URL}/rest/v1/therapists?id=eq.${encodeURIComponent(id)}`, {
+  const stateFilter =
+    action === "hide"
+      ? "approval_status=eq.approved&is_active=eq.true"
+      : "approval_status=eq.pending";
+
+  const response = await fetch(`${SUPABASE_URL}/rest/v1/therapists?id=eq.${encodeURIComponent(id)}&${stateFilter}`, {
     method: "PATCH",
     headers: serviceHeaders({ prefer: "return=representation" }),
     body: JSON.stringify(update),
@@ -179,5 +151,22 @@ export async function PATCH(request: Request) {
     return json({ error: result?.message ?? "Could not update therapist profile." }, response.status);
   }
 
-  return json({ therapist: Array.isArray(result) ? result[0] : result });
+  const therapist = Array.isArray(result) ? result[0] : result;
+  if (!therapist) {
+    return json({ error: "The therapist profile changed or this action is no longer allowed. Refresh and try again." }, 409);
+  }
+
+  await fetch(`${SUPABASE_URL}/rest/v1/admin_audit_logs`, {
+    method: "POST",
+    headers: serviceHeaders({ prefer: "return=minimal" }),
+    body: JSON.stringify({
+      actor_id: admin.id,
+      action: `therapist.${action}`,
+      entity_table: "therapists",
+      entity_id: id,
+      metadata: { reason: reason || null },
+    }),
+  }).catch(() => undefined);
+
+  return json({ therapist });
 }
