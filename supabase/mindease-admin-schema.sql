@@ -201,6 +201,39 @@ create table if not exists public.contact_messages (
   source text not null default 'website',
   status public.message_status not null default 'open',
   assigned_to uuid references auth.users(id) on delete set null,
+  suggested_therapist_id uuid references public.therapists(id) on delete set null,
+  coordinator_note text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+alter table public.contact_messages
+  add column if not exists suggested_therapist_id uuid references public.therapists(id) on delete set null,
+  add column if not exists coordinator_note text;
+
+create table if not exists public.therapist_profile_change_requests (
+  id uuid primary key default gen_random_uuid(),
+  therapist_id uuid not null references public.therapists(id) on delete cascade,
+  user_id uuid references auth.users(id) on delete set null,
+  requested_changes jsonb not null default '{}'::jsonb,
+  status text not null default 'pending' check (status in ('pending', 'approved', 'declined')),
+  admin_note text,
+  reviewed_by uuid references auth.users(id) on delete set null,
+  reviewed_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.blog_posts (
+  id uuid primary key default gen_random_uuid(),
+  slug text not null unique,
+  title text not null,
+  excerpt text,
+  body text,
+  image_url text,
+  status text not null default 'draft' check (status in ('draft', 'published')),
+  published_at timestamptz,
+  author_id uuid references auth.users(id) on delete set null,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -269,6 +302,16 @@ create trigger touch_contact_messages_updated_at
 before update on public.contact_messages
 for each row execute function public.touch_updated_at();
 
+drop trigger if exists touch_therapist_profile_change_requests_updated_at on public.therapist_profile_change_requests;
+create trigger touch_therapist_profile_change_requests_updated_at
+before update on public.therapist_profile_change_requests
+for each row execute function public.touch_updated_at();
+
+drop trigger if exists touch_blog_posts_updated_at on public.blog_posts;
+create trigger touch_blog_posts_updated_at
+before update on public.blog_posts
+for each row execute function public.touch_updated_at();
+
 create or replace function public.is_mindease_admin()
 returns boolean
 language sql
@@ -299,11 +342,7 @@ as $$
   and exists (
     select 1 from public.therapists
     where therapists.id = target_therapist_id
-      and therapists.slug = (
-        select lower(regexp_replace(coalesce(full_name, ''), '[^a-zA-Z0-9]+', '-', 'g'))
-        from public.profiles
-        where profiles.id = auth.uid()
-      )
+      and therapists.user_id = auth.uid()
   );
 $$;
 
@@ -320,6 +359,8 @@ alter table public.contact_messages enable row level security;
 alter table public.reviews enable row level security;
 alter table public.notification_queue enable row level security;
 alter table public.admin_audit_logs enable row level security;
+alter table public.therapist_profile_change_requests enable row level security;
+alter table public.blog_posts enable row level security;
 
 drop policy if exists "profiles_select_own_or_admin" on public.profiles;
 create policy "profiles_select_own_or_admin"
@@ -386,6 +427,12 @@ create policy "availability_admin_write"
 on public.availability_slots for all
 using (public.is_mindease_admin())
 with check (public.is_mindease_admin());
+
+drop policy if exists "availability_therapist_write_own" on public.availability_slots;
+create policy "availability_therapist_write_own"
+on public.availability_slots for all
+using (public.is_assigned_therapist(therapist_id))
+with check (public.is_assigned_therapist(therapist_id));
 
 drop policy if exists "intake_client_or_admin_read" on public.intake_forms;
 create policy "intake_client_or_admin_read"
@@ -458,6 +505,33 @@ on public.contact_messages for update
 using (public.is_mindease_admin())
 with check (public.is_mindease_admin());
 
+drop policy if exists "therapist_change_requests_admin_read" on public.therapist_profile_change_requests;
+create policy "therapist_change_requests_admin_read"
+on public.therapist_profile_change_requests for select
+using (public.is_mindease_admin() or user_id = auth.uid());
+
+drop policy if exists "therapist_change_requests_own_insert" on public.therapist_profile_change_requests;
+create policy "therapist_change_requests_own_insert"
+on public.therapist_profile_change_requests for insert
+with check (user_id = auth.uid() and public.is_assigned_therapist(therapist_id));
+
+drop policy if exists "therapist_change_requests_admin_update" on public.therapist_profile_change_requests;
+create policy "therapist_change_requests_admin_update"
+on public.therapist_profile_change_requests for update
+using (public.is_mindease_admin())
+with check (public.is_mindease_admin());
+
+drop policy if exists "blog_posts_public_read" on public.blog_posts;
+create policy "blog_posts_public_read"
+on public.blog_posts for select
+using (status = 'published' or public.is_mindease_admin());
+
+drop policy if exists "blog_posts_admin_write" on public.blog_posts;
+create policy "blog_posts_admin_write"
+on public.blog_posts for all
+using (public.is_mindease_admin())
+with check (public.is_mindease_admin());
+
 drop policy if exists "reviews_public_read" on public.reviews;
 create policy "reviews_public_read"
 on public.reviews for select
@@ -490,6 +564,8 @@ create index if not exists appointments_status_idx on public.appointments(status
 create index if not exists payments_appointment_idx on public.payments(appointment_id);
 create index if not exists contact_messages_status_idx on public.contact_messages(status, created_at desc);
 create index if not exists notification_queue_due_idx on public.notification_queue(status, scheduled_for);
+create index if not exists therapist_change_requests_status_idx on public.therapist_profile_change_requests(status, created_at desc);
+create index if not exists blog_posts_status_published_idx on public.blog_posts(status, published_at desc);
 
 insert into public.services (slug, name, description, default_duration_minutes, default_price, sort_order)
 values

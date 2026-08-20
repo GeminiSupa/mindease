@@ -1,33 +1,19 @@
 import {
-  getRequestAdminToken,
-  getSupabaseUser,
-  isMindEaseAdmin,
+  getRows,
+  getUser,
+  json,
+  money,
+  requireAdmin,
+  SUPABASE_SERVICE_ROLE_KEY,
   type SupabaseUser,
-} from "../auth";
-
-const SUPABASE_URL =
-  process.env.SUPABASE_URL ??
-  process.env.NEXT_PUBLIC_SUPABASE_URL ??
-  "https://lhcjubkyyikirliafwfd.supabase.co";
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-type RecordLike = Record<string, unknown>;
-
-type AdminTherapist = {
-  id: string;
-  name: string;
-  role: string;
-  focus: string;
-  status: string;
-  approvalStatus: string;
-  isActive: boolean;
-  photo?: string;
-  qualifications?: string;
-  email?: string;
-};
+  value,
+} from "../../_utils/mindease";
 
 type AdminOverview = {
-  user: { email?: string; role: "admin" };
+  user: {
+    email?: string;
+    role: "admin";
+  };
   stats: {
     appointmentsToday: number;
     pendingRequests: number;
@@ -42,99 +28,96 @@ type AdminOverview = {
     therapist: string;
     time: string;
     status: string;
+    lifecycleStage: string;
+    confirmationStatus: string;
+    paymentReference: string;
+    paymentInstructions: string;
     amount: string;
-    contact: string;
   }>;
-  therapists: AdminTherapist[];
-  pendingTherapists: AdminTherapist[];
+  therapists: Array<{
+    id: string;
+    name: string;
+    role: string;
+    focus: string;
+    status: string;
+    approvalStatus: string;
+    isActive: boolean;
+    photo?: string;
+  }>;
+  pendingTherapists: Array<{
+    id: string;
+    name: string;
+    role: string;
+    focus: string;
+    status: string;
+    approvalStatus: string;
+    isActive: boolean;
+    photo?: string;
+  }>;
   messages: Array<{
     id: string;
     name: string;
     topic: string;
-    message: string;
     status: string;
     contact: string;
     createdAt: string;
+    assignedTo?: string;
+    suggestedTherapistId?: string;
+    suggestedTherapistName?: string;
+    coordinatorNote?: string;
+    appointmentId?: string;
   }>;
-  updatedAt: string;
+  pendingProfileChanges: Array<{
+    id: string;
+    therapistId: string;
+    therapistName: string;
+    status: string;
+    createdAt: string;
+    changes: Record<string, unknown>;
+  }>;
+  blogPosts: Array<{
+    id: string;
+    title: string;
+    slug: string;
+    status: string;
+    excerpt: string;
+    imageUrl: string;
+    publishedAt: string;
+  }>;
+  availabilitySlots: Array<{
+    id: string;
+    therapistId: string;
+    therapistName: string;
+    startsAt: string;
+    endsAt: string;
+    slotType: string;
+    approvalStatus: string;
+    isBooked: boolean;
+  }>;
+  auditLogs: Array<{
+    id: string;
+    actorId: string;
+    action: string;
+    subject: string;
+    createdAt: string;
+  }>;
+  contactSettings: {
+    whatsappNumber: string;
+    displayPhone: string;
+    contactEmail: string;
+    emailIsPlaceholder: boolean;
+  };
+  setupSteps: string[];
 };
 
-function json(body: unknown, status = 200) {
-  return Response.json(body, {
-    status,
-    headers: { "cache-control": "no-store" },
-  });
-}
-
-function serviceHeaders(extra?: Record<string, string>) {
-  return {
-    apikey: SUPABASE_SERVICE_ROLE_KEY ?? "",
-    authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY ?? ""}`,
-    accept: "application/json",
-    ...extra,
-  };
-}
-
-async function getRows(table: string, query: string) {
-  const response = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${query}`, {
-    headers: serviceHeaders(),
-    cache: "no-store",
-  });
-
-  if (!response.ok) {
-    const body = await response.text();
-    throw new Error(`${table}: ${body || response.statusText}`);
-  }
-
-  return (await response.json()) as RecordLike[];
-}
-
-async function getCount(table: string, filters: string) {
-  const query = filters ? `select=id&${filters}` : "select=id";
-  const response = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${query}`, {
-    headers: serviceHeaders({ prefer: "count=exact", range: "0-0" }),
-    cache: "no-store",
-  });
-
-  if (!response.ok) {
-    const body = await response.text();
-    throw new Error(`${table} count: ${body || response.statusText}`);
-  }
-
-  const range = response.headers.get("content-range") ?? "";
-  const total = Number(range.split("/")[1]);
-  return Number.isFinite(total) ? total : 0;
-}
-
-function value(row: RecordLike, keys: string[], fallback = "") {
-  for (const key of keys) {
-    const next = row[key];
-    if (typeof next === "string" && next.trim()) return next;
-    if (typeof next === "number") return String(next);
-  }
-  return fallback;
-}
-
-function money(amount: unknown) {
-  const numeric = typeof amount === "number" ? amount : Number(amount);
-  return `PKR ${(Number.isFinite(numeric) ? numeric : 0).toLocaleString("en-PK")}`;
-}
-
-function pakistanPeriod(now = new Date()) {
-  const offsetMs = 5 * 60 * 60 * 1000;
-  const local = new Date(now.getTime() + offsetMs);
-  const year = local.getUTCFullYear();
-  const month = local.getUTCMonth();
-  const day = local.getUTCDate();
-  const dayStart = new Date(Date.UTC(year, month, day) - offsetMs);
-  const nextDay = new Date(Date.UTC(year, month, day + 1) - offsetMs);
-  const monthStart = new Date(Date.UTC(year, month, 1) - offsetMs);
-  return { dayStart, nextDay, monthStart };
-}
+const setupSteps: string[] = [];
 
 function emptyOverview(user: SupabaseUser): AdminOverview {
   return {
-    user: { email: user.email, role: "admin" },
+    user: {
+      email: user.email,
+      role: "admin",
+    },
     stats: {
       appointmentsToday: 0,
       pendingRequests: 0,
@@ -147,120 +130,209 @@ function emptyOverview(user: SupabaseUser): AdminOverview {
     therapists: [],
     pendingTherapists: [],
     messages: [],
-    updatedAt: new Date().toISOString(),
+    pendingProfileChanges: [],
+    blogPosts: [],
+    availabilitySlots: [],
+    auditLogs: [],
+    contactSettings: {
+      whatsappNumber: "923001234567",
+      displayPhone: "+92 300 1234567",
+      contactEmail: "hello@mindease.example",
+      emailIsPlaceholder: true,
+    },
+    setupSteps,
   };
 }
 
 export async function GET(request: Request) {
-  const token = getRequestAdminToken(request);
-  if (!token) return json({ error: "Missing admin session." }, 401);
+  const token = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
 
-  const user = await getSupabaseUser(token);
-  if (!user) return json({ error: "Your admin session has expired. Please sign in again." }, 401);
-  if (!(await isMindEaseAdmin(user))) {
-    return json({ error: "This account does not have MindEase admin access." }, 403);
-  }
-  if (!SUPABASE_SERVICE_ROLE_KEY) {
-    return json(
-      { ...emptyOverview(user), error: "Clinic data service is not configured." },
-      503,
-    );
+  if (!token) {
+    return json({ error: "Missing admin session.", setupSteps }, 401);
   }
 
-  const { dayStart, nextDay, monthStart } = pakistanPeriod();
-  const dayFilter = `scheduled_at=gte.${dayStart.toISOString()}&scheduled_at=lt.${nextDay.toISOString()}`;
+  const user = await getUser(token);
+  if (!user) {
+    return json({ error: "Your admin session has expired. Please sign in again.", setupSteps }, 401);
+  }
 
-  try {
-    const [
-      appointmentRows,
-      therapistRows,
-      paymentRows,
-      messageRows,
-      appointmentsToday,
-      pendingRequests,
-      activeTherapistsCount,
-      pendingTherapistsCount,
-      openMessages,
-    ] = await Promise.all([
-      getRows("appointments", "select=*&order=created_at.desc&limit=50"),
-      getRows("therapists", "select=*&order=created_at.desc&limit=200"),
-      getRows(
-        "payments",
-        `select=amount,status,paid_at&status=eq.paid&paid_at=gte.${monthStart.toISOString()}&limit=1000`,
-      ),
-      getRows("contact_messages", "select=*&order=created_at.desc&limit=100"),
-      getCount("appointments", dayFilter),
-      getCount("appointments", "status=in.(requested,payment_pending,reschedule_requested)"),
-      getCount("therapists", "approval_status=eq.approved&is_active=eq.true"),
-      getCount("therapists", "approval_status=eq.pending"),
-      getCount("contact_messages", "status=in.(open,in_progress)"),
-    ]);
-
-    const appointments = appointmentRows.map((row, index) => ({
-      id: value(row, ["id", "appointment_id"], `A-${index + 1}`),
-      client: value(row, ["client_name", "patient_name", "name"], "Client"),
-      therapist: value(row, ["therapist_name", "doctor_name", "provider_name"], "Unassigned"),
-      time: value(row, ["scheduled_at", "appointment_time", "time"], "Not scheduled"),
-      status: value(row, ["status"], "requested"),
-      amount: money(row.amount ?? row.fee ?? row.price),
-      contact: value(row, ["client_email", "client_phone"], ""),
-    }));
-
-    const therapistProfiles = therapistRows.map((row) => ({
-      id: value(row, ["id"]),
-      name: value(row, ["full_name", "name"], "Therapist"),
-      role: value(row, ["title", "role"], "Clinical Psychologist"),
-      focus: value(row, ["specialization", "focus", "specialty"], "Therapy and assessment"),
-      status: value(row, ["availability_status", "status"], "Unavailable"),
-      approvalStatus: value(row, ["approval_status"], "pending"),
-      isActive: row.is_active === true,
-      photo: value(row, ["profile_image_url", "photo_url"]),
-      qualifications: value(row, ["qualifications"]),
-      email: value(row, ["email"]),
-    }));
-
-    const messages = messageRows.map((row) => ({
-      id: value(row, ["id"]),
-      name: value(row, ["name", "full_name", "client_name"], "Website visitor"),
-      topic: value(row, ["topic", "subject"], "Contact request"),
-      message: value(row, ["message"], "No message supplied."),
-      status: value(row, ["status"], "open"),
-      contact: value(row, ["email", "phone"], ""),
-      createdAt: value(row, ["created_at"], ""),
-    }));
-
-    const paidThisMonth = paymentRows.reduce((sum, row) => {
-      const amount = typeof row.amount === "number" ? row.amount : Number(row.amount);
-      return sum + (Number.isFinite(amount) ? amount : 0);
-    }, 0);
-
-    return json({
-      user: { email: user.email, role: "admin" },
-      stats: {
-        appointmentsToday,
-        pendingRequests,
-        activeTherapists: activeTherapistsCount,
-        pendingTherapists: pendingTherapistsCount,
-        openMessages,
-        paidThisMonth: money(paidThisMonth),
-      },
-      appointments,
-      therapists: therapistProfiles.filter(
-        (therapist) => therapist.approvalStatus === "approved" && therapist.isActive,
-      ),
-      pendingTherapists: therapistProfiles.filter(
-        (therapist) => therapist.approvalStatus === "pending",
-      ),
-      messages,
-      updatedAt: new Date().toISOString(),
-    } satisfies AdminOverview);
-  } catch {
+  const admin = await requireAdmin(request);
+  if (!admin || admin.id !== user.id) {
     return json(
       {
-        ...emptyOverview(user),
-        error: "Live clinic data could not be loaded. No totals have been estimated.",
+        error: "Signed in, but this account is not marked as a MindEase admin yet.",
+        setupSteps,
+        user: {
+          email: user.email,
+          role: "not_admin",
+        },
       },
-      502,
+      403,
     );
   }
+
+  if (!SUPABASE_SERVICE_ROLE_KEY) {
+    return json(emptyOverview(user));
+  }
+
+  const [appointmentsRows, therapistRows, paymentRows, messageRows, changeRows, blogRows, slotRows, auditRows, settingsRows] =
+    await Promise.all([
+      getRows("appointments", "select=*&order=scheduled_at.asc&limit=20"),
+      getRows("therapists", "select=*&order=created_at.desc&limit=50"),
+      getRows("payments", "select=*&order=created_at.desc&limit=50"),
+      getRows("contact_messages", "select=*&order=created_at.desc&limit=20"),
+      getRows("therapist_profile_change_requests", "select=*&order=created_at.desc&limit=30"),
+      getRows("blog_posts", "select=*&order=created_at.desc&limit=20"),
+      getRows("availability_slots", "select=*&order=starts_at.asc&limit=50"),
+      getRows("admin_audit_logs", "select=*&order=created_at.desc&limit=30"),
+      getRows("site_settings", "id=eq.clinic&select=*&limit=1"),
+    ]);
+
+  const today = new Date().toISOString().slice(0, 10);
+  const appointments = appointmentsRows.map((row, index) => ({
+    id: value(row, ["id", "appointment_id"], `A-${index + 1}`),
+    client: value(row, ["client_name", "patient_name", "name"], "Client"),
+    therapist: value(row, ["therapist_name", "doctor_name", "provider_name"], "Therapist"),
+    time: value(row, ["scheduled_at", "appointment_time", "time"], "Not scheduled"),
+    status: value(row, ["status", "payment_status"], "Pending"),
+    lifecycleStage: value(row, ["lifecycle_stage"], "inquiry_received"),
+    confirmationStatus: value(row, ["client_confirmation_status"], "pending"),
+    paymentReference: value(row, ["payment_reference"], ""),
+    paymentInstructions: value(row, ["payment_instructions"], ""),
+    amount: money(row.amount ?? row.fee ?? row.price),
+  }));
+
+  const therapists = therapistRows.map((row) => ({
+    id: value(row, ["id"]),
+    name: value(row, ["name", "full_name"], "Therapist"),
+    role: value(row, ["role", "title"], "Clinical Psychologist"),
+    focus: value(row, ["focus", "specialty", "specialization"], "Therapy and assessment"),
+    status: value(row, ["status", "availability_status"], "Available"),
+    approvalStatus: value(row, ["approval_status"], "approved"),
+    isActive: row.is_active === true,
+    photo: value(row, ["profile_image_url", "photo_url"]),
+  }));
+  const activeTherapists = therapists.filter((therapist) => therapist.isActive);
+  const pendingTherapists = therapists.filter(
+    (therapist) => therapist.approvalStatus !== "approved" || !therapist.isActive,
+  );
+  const therapistById = new Map(therapists.map((therapist) => [therapist.id, therapist]));
+
+  const messages = messageRows.map((row) => ({
+    id: value(row, ["id"]),
+    name: value(row, ["name", "full_name", "client_name"], "Website visitor"),
+    topic: value(row, ["topic", "subject", "message"], "Contact request"),
+    status: value(row, ["status"], "Open"),
+    contact: value(row, ["email", "phone"], ""),
+    createdAt: value(row, ["created_at"], ""),
+    assignedTo: value(row, ["assigned_to"], ""),
+    suggestedTherapistId: value(row, ["suggested_therapist_id"], ""),
+    suggestedTherapistName:
+      therapistById.get(value(row, ["suggested_therapist_id"], ""))?.name ?? "",
+    coordinatorNote: value(row, ["coordinator_note"], ""),
+    appointmentId: value(row, ["appointment_id"], ""),
+  }));
+
+  const pendingProfileChanges = changeRows.map((row) => {
+    const therapistId = value(row, ["therapist_id"], "");
+    return {
+      id: value(row, ["id"], ""),
+      therapistId,
+      therapistName: therapistById.get(therapistId)?.name ?? "Therapist",
+      status: value(row, ["status"], "pending"),
+      createdAt: value(row, ["created_at"], ""),
+      changes:
+        row.requested_changes && typeof row.requested_changes === "object"
+          ? (row.requested_changes as Record<string, unknown>)
+          : {},
+    };
+  });
+
+  const blogPosts = blogRows.map((row) => ({
+    id: value(row, ["id"], ""),
+    title: value(row, ["title"], "Untitled post"),
+    slug: value(row, ["slug"], ""),
+    status: value(row, ["status"], "draft"),
+    excerpt: value(row, ["excerpt"], ""),
+    imageUrl: value(row, ["image_url"], ""),
+    publishedAt: value(row, ["published_at"], ""),
+  }));
+
+  const availabilitySlots = slotRows.map((row) => {
+    const therapistId = value(row, ["therapist_id"], "");
+    return {
+      id: value(row, ["id"], ""),
+      therapistId,
+      therapistName: therapistById.get(therapistId)?.name ?? "Therapist",
+      startsAt: value(row, ["starts_at"], ""),
+      endsAt: value(row, ["ends_at"], ""),
+      slotType: value(row, ["slot_type"], "available"),
+      approvalStatus: value(row, ["approval_status"], "approved"),
+      isBooked: row.is_booked === true,
+    };
+  });
+
+  const auditLogs = auditRows.map((row) => ({
+    id: value(row, ["id"], ""),
+    actorId: value(row, ["actor_id"], ""),
+    action: value(row, ["action"], ""),
+    subject:
+      value(row, ["subject_table", "entity_table"], "") +
+      (value(row, ["subject_id", "entity_id"], "") ? `:${value(row, ["subject_id", "entity_id"], "")}` : ""),
+    createdAt: value(row, ["created_at"], ""),
+  }));
+
+  const settingsRow = settingsRows[0];
+  const contactSettings = {
+    whatsappNumber: settingsRow
+      ? value(settingsRow, ["whatsapp_number"], "923001234567")
+      : "923001234567",
+    displayPhone: settingsRow
+      ? value(settingsRow, ["display_phone"], "+92 300 1234567")
+      : "+92 300 1234567",
+    contactEmail: settingsRow
+      ? value(settingsRow, ["contact_email"], "hello@mindease.example")
+      : "hello@mindease.example",
+    emailIsPlaceholder: settingsRow ? settingsRow.email_is_placeholder !== false : true,
+  };
+
+  const paidThisMonth = paymentRows
+    .filter((row) => value(row, ["status"], "paid").toLowerCase() !== "failed")
+    .reduce((sum, row) => {
+      const amount = row.amount;
+      return sum + (typeof amount === "number" ? amount : Number(amount) || 0);
+    }, 0);
+
+  return json({
+    user: {
+      email: user.email,
+      role: "admin",
+    },
+    stats: {
+      appointmentsToday: appointmentsRows.filter((row) =>
+        value(row, ["scheduled_at", "appointment_date"]).startsWith(today),
+      ).length,
+      pendingRequests: appointmentsRows.filter((row) =>
+        ["pending", "requested", "payment pending", "needs review"].includes(
+          value(row, ["status"], "pending").toLowerCase(),
+        ),
+      ).length,
+      activeTherapists: activeTherapists.length,
+      pendingTherapists:
+        pendingTherapists.length +
+        pendingProfileChanges.filter((change) => change.status === "pending").length,
+      openMessages: messages.filter((message) => message.status.toLowerCase() === "open").length,
+      paidThisMonth: money(paidThisMonth),
+    },
+    appointments,
+    therapists: activeTherapists,
+    pendingTherapists,
+    messages,
+    pendingProfileChanges,
+    blogPosts,
+    availabilitySlots,
+    auditLogs,
+    contactSettings,
+    setupSteps,
+  });
 }

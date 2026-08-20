@@ -1,35 +1,39 @@
-import { getAuthorizedAdmin } from "../auth";
+import {
+  json,
+  requireAdmin,
+  serviceFetch,
+  serviceHeaders,
+  slugify,
+  SUPABASE_SERVICE_ROLE_KEY,
+  SUPABASE_URL,
+  writeAuditLog,
+} from "../../_utils/mindease";
 
-const SUPABASE_URL =
-  process.env.SUPABASE_URL ??
-  process.env.NEXT_PUBLIC_SUPABASE_URL ??
-  "https://lhcjubkyyikirliafwfd.supabase.co";
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+type AuthUserResponse = { id?: string; user?: { id?: string }; message?: string };
 
-function json(body: unknown, status = 200) {
-  return Response.json(body, {
-    status,
-    headers: {
-      "cache-control": "no-store",
-    },
+async function createTherapistAuthUser(email: string, password: string, fullName: string) {
+  const response = await fetch(`${SUPABASE_URL}/auth/v1/admin/users`, {
+    method: "POST",
+    headers: serviceHeaders(),
+    body: JSON.stringify({
+      email,
+      password,
+      email_confirm: true,
+      user_metadata: {
+        full_name: fullName,
+      },
+      app_metadata: {
+        role: "therapist",
+      },
+    }),
   });
-}
+  const result = (await response.json()) as AuthUserResponse;
 
-function slugify(value: string) {
-  return value
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "")
-    .slice(0, 80);
-}
+  if (!response.ok) {
+    throw new Error(result?.message ?? "Could not create therapist login.");
+  }
 
-function serviceHeaders(extra?: Record<string, string>) {
-  return {
-    apikey: SUPABASE_SERVICE_ROLE_KEY ?? "",
-    authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY ?? ""}`,
-    "content-type": "application/json",
-    ...extra,
-  };
+  return result.user?.id ?? result.id ?? "";
 }
 
 export async function POST(request: Request) {
@@ -37,57 +41,122 @@ export async function POST(request: Request) {
     return json({ error: "SUPABASE_SERVICE_ROLE_KEY is required to create therapists." }, 500);
   }
 
-  if (!(await getAuthorizedAdmin(request))) {
+  const admin = await requireAdmin(request);
+  if (!admin) {
     return json({ error: "Admin access required." }, 403);
   }
 
   const body = await request.json();
   const fullName = typeof body.fullName === "string" ? body.fullName.trim() : "";
+  const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
+  const password = typeof body.password === "string" ? body.password : "";
 
   if (!fullName) {
     return json({ error: "Therapist name is required." }, 400);
   }
 
-  const payload = {
-    slug: slugify(fullName) || crypto.randomUUID(),
-    full_name: fullName,
-    title:
-      typeof body.title === "string" && body.title.trim()
-        ? body.title.trim()
-        : "Clinical Psychologist",
-    qualifications:
-      typeof body.qualifications === "string" ? body.qualifications.trim() : "",
-    specialization:
-      typeof body.specialization === "string" ? body.specialization.trim() : "",
-    bio: typeof body.bio === "string" ? body.bio.trim() : "",
-    profile_image_url:
-      typeof body.profileImageUrl === "string" ? body.profileImageUrl.trim() : "",
-    years_experience: Number(body.yearsExperience) || 0,
-    session_fee: Number(body.sessionFee) || 0,
-    languages:
-      typeof body.languages === "string"
-        ? body.languages
-            .split(",")
-            .map((item: string) => item.trim())
-            .filter(Boolean)
-        : ["Urdu", "English"],
-    is_active: false,
-    approval_status: "pending",
-    availability_status: "Pending admin approval",
-  };
-
-  const response = await fetch(`${SUPABASE_URL}/rest/v1/therapists`, {
-    method: "POST",
-    headers: serviceHeaders({ prefer: "return=representation" }),
-    body: JSON.stringify(payload),
-  });
-  const result = await response.json();
-
-  if (!response.ok) {
-    return json({ error: result?.message ?? "Could not create therapist profile." }, response.status);
+  if (!email || !password) {
+    return json({ error: "Therapist login email and temporary password are required." }, 400);
   }
 
-  return json({ therapist: Array.isArray(result) ? result[0] : result }, 201);
+  if (password.length < 8) {
+    return json({ error: "Temporary password must be at least 8 characters." }, 400);
+  }
+
+  let userId = "";
+  try {
+    userId = await createTherapistAuthUser(email, password, fullName);
+
+    const profileResponse = await serviceFetch("/rest/v1/profiles", {
+      method: "POST",
+      headers: { prefer: "resolution=merge-duplicates" },
+      body: JSON.stringify({
+        id: userId,
+        full_name: fullName,
+        email,
+        role: "therapist",
+      }),
+    });
+
+    if (!profileResponse.ok) {
+      const result = await profileResponse.json();
+      throw new Error(result?.message ?? "Therapist login was created, but profile setup failed.");
+    }
+
+    await writeAuditLog({
+      actorId: admin.id,
+      action: "therapist_credentials_created",
+      subjectTable: "profiles",
+      subjectId: userId,
+      details: { email, fullName },
+    });
+
+    const baseSlug = slugify(fullName) || crypto.randomUUID();
+    const profileImageUrl =
+      typeof body.profileImageUrl === "string" &&
+      body.profileImageUrl.includes("/storage/v1/object/public/mindease-media/therapists/")
+        ? body.profileImageUrl.trim()
+        : "";
+
+    const payload = {
+      user_id: userId || null,
+      slug: userId ? `${baseSlug}-${userId.slice(0, 6)}` : `${baseSlug}-${crypto.randomUUID().slice(0, 6)}`,
+      full_name: fullName,
+      title:
+        typeof body.title === "string" && body.title.trim()
+          ? body.title.trim()
+          : "Clinical Psychologist",
+      qualifications:
+        typeof body.qualifications === "string" ? body.qualifications.trim() : "",
+      specialization:
+        typeof body.specialization === "string" ? body.specialization.trim() : "",
+      bio: typeof body.bio === "string" ? body.bio.trim() : "",
+      profile_image_url: profileImageUrl,
+      years_experience: Number(body.yearsExperience) || 0,
+      session_fee: Number(body.sessionFee) || 0,
+      languages:
+        typeof body.languages === "string"
+          ? body.languages
+              .split(",")
+              .map((item: string) => item.trim())
+              .filter(Boolean)
+          : ["Urdu", "English"],
+      is_active: false,
+      approval_status: "pending",
+      availability_status: "Pending admin approval",
+    };
+
+    const response = await serviceFetch("/rest/v1/therapists", {
+      method: "POST",
+      headers: { prefer: "return=representation" },
+      body: JSON.stringify(payload),
+    });
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result?.message ?? "Could not create therapist profile.");
+    }
+
+    const therapist = Array.isArray(result) ? result[0] : result;
+    await writeAuditLog({
+      actorId: admin.id,
+      action: "therapist_profile_created",
+      subjectTable: "therapists",
+      subjectId: therapist?.id,
+      details: { credentialsCreated: Boolean(userId), fullName },
+    });
+
+    return json(
+      {
+        therapist,
+        credentialsCreated: true,
+        loginUrl: "/therapist/login",
+      },
+      201,
+    );
+  } catch (error) {
+    return json({ error: error instanceof Error ? error.message : "Could not create therapist." }, 500);
+  }
 }
 
 export async function PATCH(request: Request) {
@@ -95,7 +164,7 @@ export async function PATCH(request: Request) {
     return json({ error: "SUPABASE_SERVICE_ROLE_KEY is required to update therapists." }, 500);
   }
 
-  const admin = await getAuthorizedAdmin(request);
+  const admin = await requireAdmin(request);
   if (!admin) {
     return json({ error: "Admin access required." }, 403);
   }
@@ -103,13 +172,9 @@ export async function PATCH(request: Request) {
   const body = await request.json();
   const id = typeof body.id === "string" ? body.id : "";
   const action = typeof body.action === "string" ? body.action : "";
-  const reason = typeof body.reason === "string" ? body.reason.trim() : "";
 
   if (!id || !["approve", "reject", "hide"].includes(action)) {
     return json({ error: "Valid therapist id and action are required." }, 400);
-  }
-  if (action === "reject" && !reason) {
-    return json({ error: "A rejection reason is required." }, 400);
   }
 
   const update =
@@ -120,29 +185,21 @@ export async function PATCH(request: Request) {
           availability_status: "Available",
           approved_at: new Date().toISOString(),
           approved_by: admin.id,
-          admin_notes: reason || null,
         }
       : action === "hide"
         ? {
             is_active: false,
             availability_status: "Hidden by admin",
-            admin_notes: reason || null,
           }
         : {
             approval_status: "rejected",
             is_active: false,
             availability_status: "Rejected by admin",
-            admin_notes: reason,
           };
 
-  const stateFilter =
-    action === "hide"
-      ? "approval_status=eq.approved&is_active=eq.true"
-      : "approval_status=eq.pending";
-
-  const response = await fetch(`${SUPABASE_URL}/rest/v1/therapists?id=eq.${encodeURIComponent(id)}&${stateFilter}`, {
+  const response = await serviceFetch(`/rest/v1/therapists?id=eq.${encodeURIComponent(id)}`, {
     method: "PATCH",
-    headers: serviceHeaders({ prefer: "return=representation" }),
+    headers: { prefer: "return=representation" },
     body: JSON.stringify(update),
   });
   const result = await response.json();
@@ -151,22 +208,13 @@ export async function PATCH(request: Request) {
     return json({ error: result?.message ?? "Could not update therapist profile." }, response.status);
   }
 
-  const therapist = Array.isArray(result) ? result[0] : result;
-  if (!therapist) {
-    return json({ error: "The therapist profile changed or this action is no longer allowed. Refresh and try again." }, 409);
-  }
+  await writeAuditLog({
+    actorId: admin.id,
+    action: `therapist_${action}`,
+    subjectTable: "therapists",
+    subjectId: id,
+    details: update,
+  });
 
-  await fetch(`${SUPABASE_URL}/rest/v1/admin_audit_logs`, {
-    method: "POST",
-    headers: serviceHeaders({ prefer: "return=minimal" }),
-    body: JSON.stringify({
-      actor_id: admin.id,
-      action: `therapist.${action}`,
-      entity_table: "therapists",
-      entity_id: id,
-      metadata: { reason: reason || null },
-    }),
-  }).catch(() => undefined);
-
-  return json({ therapist });
+  return json({ therapist: Array.isArray(result) ? result[0] : result });
 }
