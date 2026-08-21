@@ -80,6 +80,38 @@ export async function getRows(table: string, query: string) {
   return (await response.json()) as RecordLike[];
 }
 
+export async function getRowsResult(table: string, query: string): Promise<{
+  rows: RecordLike[];
+  error?: string;
+}> {
+  if (!SUPABASE_SERVICE_ROLE_KEY) {
+    return { rows: [], error: "The server database key is not configured." };
+  }
+
+  try {
+    const response = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${query}`, {
+      headers: {
+        apikey: SUPABASE_SERVICE_ROLE_KEY,
+        authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+        accept: "application/json",
+      },
+      cache: "no-store",
+    });
+
+    if (!response.ok) {
+      const body = (await response.json().catch(() => null)) as { message?: string } | null;
+      return {
+        rows: [],
+        error: body?.message ?? `The ${table} table could not be read (${response.status}).`,
+      };
+    }
+
+    return { rows: (await response.json()) as RecordLike[] };
+  } catch {
+    return { rows: [], error: `The ${table} table could not be reached.` };
+  }
+}
+
 export async function serviceFetch(path: string, init: RequestInit = {}) {
   return fetch(`${SUPABASE_URL}${path}`, {
     ...init,

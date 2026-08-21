@@ -4,6 +4,7 @@ const SUPABASE_URL =
   "https://lhcjubkyyikirliafwfd.supabase.co";
 const SUPABASE_ANON_KEY =
   process.env.SUPABASE_ANON_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 export type PublicContactSettings = {
   whatsappNumber: string;
@@ -27,7 +28,12 @@ type SettingsRow = {
 };
 
 export async function getPublicContactSettings(): Promise<PublicContactSettings> {
-  if (!SUPABASE_ANON_KEY) return defaultContactSettings;
+  // This module is only imported by server components. Prefer the server-only
+  // key so a missing public grant cannot make a successful admin update look
+  // like it was ignored. The anon key remains a safe fallback for local/demo
+  // builds where no service key is configured.
+  const readKey = SUPABASE_SERVICE_ROLE_KEY ?? SUPABASE_ANON_KEY;
+  if (!readKey) return defaultContactSettings;
 
   const query = new URLSearchParams({
     id: "eq.clinic",
@@ -38,8 +44,8 @@ export async function getPublicContactSettings(): Promise<PublicContactSettings>
   try {
     const response = await fetch(`${SUPABASE_URL}/rest/v1/site_settings?${query}`, {
       headers: {
-        apikey: SUPABASE_ANON_KEY,
-        authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+        apikey: readKey,
+        authorization: `Bearer ${readKey}`,
       },
       cache: "no-store",
     });

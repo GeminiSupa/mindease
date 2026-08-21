@@ -1,5 +1,6 @@
 import {
   getRows,
+  getRowsResult,
   getUser,
   json,
   money,
@@ -107,6 +108,7 @@ type AdminOverview = {
     contactEmail: string;
     emailIsPlaceholder: boolean;
   };
+  contactSettingsError?: string;
   setupSteps: string[];
 };
 
@@ -175,7 +177,7 @@ export async function GET(request: Request) {
     return json(emptyOverview(user));
   }
 
-  const [appointmentsRows, therapistRows, paymentRows, messageRows, changeRows, blogRows, slotRows, auditRows, settingsRows] =
+  const [appointmentsRows, therapistRows, paymentRows, messageRows, changeRows, blogRows, slotRows, auditRows, settingsResult] =
     await Promise.all([
       getRows("appointments", "select=*&order=scheduled_at.asc&limit=20"),
       getRows("therapists", "select=*&order=created_at.desc&limit=50"),
@@ -185,8 +187,10 @@ export async function GET(request: Request) {
       getRows("blog_posts", "select=*&order=created_at.desc&limit=20"),
       getRows("availability_slots", "select=*&order=starts_at.asc&limit=50"),
       getRows("admin_audit_logs", "select=*&order=created_at.desc&limit=30"),
-      getRows("site_settings", "id=eq.clinic&select=*&limit=1"),
+      getRowsResult("site_settings", "id=eq.clinic&select=*&limit=1"),
     ]);
+
+  const settingsRows = settingsResult.rows;
 
   const today = new Date().toISOString().slice(0, 10);
   const appointments = appointmentsRows.map((row, index) => ({
@@ -333,6 +337,9 @@ export async function GET(request: Request) {
     availabilitySlots,
     auditLogs,
     contactSettings,
+    contactSettingsError:
+      settingsResult.error ??
+      (settingsRow ? undefined : "No live contact settings were found. Run the site settings SQL migration."),
     setupSteps,
   });
 }

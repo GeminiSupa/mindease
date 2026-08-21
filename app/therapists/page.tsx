@@ -8,7 +8,12 @@ const SUPABASE_URL =
   "https://lhcjubkyyikirliafwfd.supabase.co";
 const SUPABASE_ANON_KEY =
   process.env.SUPABASE_ANON_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const PUBLIC_READ_KEY = SUPABASE_SERVICE_ROLE_KEY ?? SUPABASE_ANON_KEY;
 const DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === "true";
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 type LiveTherapist = {
   id: string;
@@ -89,7 +94,7 @@ function splitFocus(value?: string) {
 }
 
 async function getApprovedTherapists() {
-  if (!SUPABASE_ANON_KEY) return DEMO_MODE ? fallbackTherapists : [];
+  if (!PUBLIC_READ_KEY) return DEMO_MODE ? fallbackTherapists : [];
 
   const query = new URLSearchParams({
     select:
@@ -103,10 +108,10 @@ async function getApprovedTherapists() {
   try {
     const response = await fetch(`${SUPABASE_URL}/rest/v1/therapists?${query}`, {
       headers: {
-        apikey: SUPABASE_ANON_KEY,
-        authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+        apikey: PUBLIC_READ_KEY,
+        authorization: `Bearer ${PUBLIC_READ_KEY}`,
       },
-      next: { revalidate: 60 },
+      cache: "no-store",
     });
 
     if (!response.ok) return DEMO_MODE ? fallbackTherapists : [];

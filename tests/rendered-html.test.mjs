@@ -62,19 +62,28 @@ test("removes starter preview code and metadata", async () => {
   await assert.rejects(access(new URL("app/_sites-preview", templateRoot)));
 });
 
-test("includes protected admin-managed public contact settings", async () => {
-  const [page, directory, admin, route, migration] = await Promise.all([
+test("includes protected, immediately refreshed admin-managed public content", async () => {
+  const [page, directory, layout, settings, admin, route, migration] = await Promise.all([
     readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/therapists/page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/layout.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/site-settings.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/admin/AdminConsole.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/api/admin/site-settings/route.ts", import.meta.url), "utf8"),
     readFile(new URL("../supabase/mindease-site-settings.sql", import.meta.url), "utf8"),
   ]);
 
   assert.match(page, /getPublicContactSettings/);
+  assert.match(page, /dynamic = "force-dynamic"/);
+  assert.doesNotMatch(page, /next:\s*\{\s*revalidate/);
   assert.match(directory, /getPublicContactSettings/);
+  assert.match(directory, /dynamic = "force-dynamic"/);
+  assert.match(layout, /dynamic = "force-dynamic"/);
+  assert.match(settings, /SUPABASE_SERVICE_ROLE_KEY \?\? SUPABASE_ANON_KEY/);
   assert.match(admin, /Publish contact settings/);
+  assert.match(admin, /Published and verified/);
   assert.match(route, /requireAdmin/);
+  assert.match(route, /readPersistedSettings/);
   assert.match(route, /site_contact_settings_updated/);
   assert.match(migration, /site_settings_public_read/);
   assert.match(migration, /grant select \(/);

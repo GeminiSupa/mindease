@@ -113,6 +113,7 @@ type Overview = {
     createdAt: string;
   }>;
   contactSettings?: ContactSettingsForm;
+  contactSettingsError?: string;
   setupSteps?: string[];
 };
 
@@ -644,14 +645,22 @@ export function AdminConsole() {
         },
         body: JSON.stringify(contactSettings),
       });
-      const body = await response.json();
+      const body = (await response.json()) as { error?: string; settings?: ContactSettingsForm };
 
       if (!response.ok) {
         throw new Error(body?.error ?? "Could not update public contact settings.");
       }
 
-      setNotice("Public WhatsApp, phone, and email settings updated.");
-      await loadOverview();
+      const verifiedSettings = body.settings ?? contactSettings;
+      setContactSettings(verifiedSettings);
+      setOverview((current) => ({
+        ...current,
+        contactSettings: verifiedSettings,
+        contactSettingsError: undefined,
+      }));
+      setNotice(
+        `Published and verified: WhatsApp ${verifiedSettings.whatsappNumber}, ${verifiedSettings.contactEmail}.`,
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not update public contact settings.");
     } finally {
@@ -1256,6 +1265,9 @@ export function AdminConsole() {
               </div>
             </div>
             <form className="admin-form-grid" onSubmit={saveContactSettings}>
+              {overview.contactSettingsError ? (
+                <p className="admin-error wide-field">{overview.contactSettingsError}</p>
+              ) : null}
               <label>
                 WhatsApp number
                 <input

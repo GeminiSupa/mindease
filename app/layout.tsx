@@ -3,6 +3,9 @@ import "./globals.css";
 import HelpChat from "./components/HelpChat";
 import { getPublicContactSettings } from "./site-settings";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export const metadata: Metadata = {
   title: "MindEase Online Clinic",
   description:
