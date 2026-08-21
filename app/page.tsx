@@ -85,10 +85,10 @@ const services = [
 ];
 
 const journey = [
-  ["Reach out", "Message us on WhatsApp or send a private inquiry with your concern and preferred timing."],
-  ["Get matched", "The coordinator checks therapist focus, language, fee, and availability before suggesting options."],
-  ["Confirm slot", "Choose the therapist and slot that fits, then receive payment and session instructions."],
-  ["Continue care", "Follow-ups, rescheduling, and availability changes stay coordinated through the clinic workflow."],
+  ["Tell us what you need", "Share your concern, preferred language, and timing privately."],
+  ["Meet your matches", "Compare suitable therapists, their approach, fee, and availability."],
+  ["Choose a session", "Pick the person and time that feel right. We will confirm the details."],
+  ["Continue with support", "Keep follow-ups and schedule changes simple through one care contact."],
 ];
 
 const fallbackTherapists: LiveTherapist[] = [
@@ -242,7 +242,7 @@ export default async function Home() {
   const callHref = phoneHref(contactSettings.displayPhone);
 
   return (
-    <main>
+    <main className="landing-page">
       <section className="hero-shell therapy-hero" id="top">
         <nav className="site-nav" aria-label="Primary navigation">
           <a className="brand" href="#top" aria-label="MindEase Online Clinic home">
@@ -263,10 +263,8 @@ export default async function Home() {
           <div className="nav-links">
             <a href="/therapists">Therapists</a>
             <a href="/self-tests">Self-checks</a>
-            <a href="#services">Care areas</a>
-            <a href="#blog">Blog</a>
+            <a href="#services">How we help</a>
             <a href="#contact">Contact</a>
-            <a href="/admin">Admin</a>
           </div>
 
           <a className="nav-cta" href={whatsappHref}>WhatsApp</a>
@@ -274,30 +272,30 @@ export default async function Home() {
 
         <div className="hero-layout">
           <div className="hero-copy">
-            <p className="eyebrow">Confidential online therapy coordination</p>
+            <p className="eyebrow">Online therapy, made more human</p>
             <h1>Find a therapist who fits your concern, language, and schedule.</h1>
             <p className="hero-lede">
-              MindEase helps clients in Pakistan compare qualified practitioners, ask questions privately,
-              and get matched with a suitable therapist before booking an online session.
+              Share what you need once. We will help you compare qualified therapists in Pakistan and choose
+              a comfortable next step.
             </p>
             <div className="hero-actions">
               <a className="primary-btn" href={whatsappHref}>Message on WhatsApp</a>
               <a className="ghost-btn" href="/therapists">View therapist directory</a>
             </div>
             <div className="trust-row" aria-label="MindEase trust highlights">
-              <span>Admin-reviewed profiles</span>
-              <span>Private intake</span>
-              <span>Temporary email only</span>
+              <span>Reviewed profiles</span>
+              <span>Private matching</span>
+              <span>Urdu &amp; English</span>
             </div>
           </div>
 
           <aside className="booking-widget" id="booking" aria-label="Find a therapist">
             <div className="widget-head">
               <div>
-                <span>Care coordinator</span>
-                <strong>Request a therapist match</strong>
+                <span>Start privately</span>
+                <strong>Request your therapist match</strong>
               </div>
-              <p>WhatsApp is the fastest contact route</p>
+              <p>Usually easiest on WhatsApp</p>
             </div>
 
             <form className="search-form" aria-label="Quick booking form" action="/api/contact" method="post">
@@ -320,23 +318,18 @@ export default async function Home() {
                   <option>Other</option>
                 </select>
               </label>
-              <label>
-                Preferred time
-                <input name="preferredTime" placeholder="Evening, weekend, or flexible" />
-              </label>
               <label className="wide-field">
-                What would you like help with?
+                How can we help?
                 <textarea
                   name="message"
-                  placeholder="Share your concern, preferred language, timing, and therapist preference."
+                  placeholder="A few words about your concern and preferred timing"
                   required
                 />
               </label>
               <label className="wide-field consent-check">
                 <input name="consent" type="checkbox" required />
                 <span>
-                  I understand MindEase is not an emergency service. This form is for clinic coordination,
-                  and my contact details may be used to respond to this inquiry.
+                  I agree to be contacted about this inquiry. MindEase is not an emergency service.
                 </span>
               </label>
               <button type="submit">Send private inquiry</button>
@@ -359,9 +352,9 @@ export default async function Home() {
               alt="Therapist consultation in a calm office setting"
             />
             <div className="clinician-badge">
-              <span>Matching first</span>
-              <strong>Therapist unavailable?</strong>
-              <p>Admin can suggest alternatives based on focus areas, language, fee, and open slots.</p>
+              <span>Thoughtful matching</span>
+              <strong>One message. Clear options.</strong>
+              <p>We compare focus, language, fee, and open slots for you.</p>
             </div>
           </aside>
         </div>
@@ -369,30 +362,29 @@ export default async function Home() {
 
       <section className="metrics-band" aria-label="Clinic workflow highlights">
         <div>
-          <strong>Review</strong>
-          <span>therapist profile changes</span>
+          <strong>100%</strong>
+          <span>online sessions</span>
         </div>
         <div>
-          <strong>Assign</strong>
-          <span>inquiries to available care</span>
+          <strong>1:1</strong>
+          <span>private matching</span>
         </div>
         <div>
-          <strong>Publish</strong>
-          <span>blog and directory content</span>
+          <strong>2+</strong>
+          <span>language options</span>
         </div>
         <div>
-          <strong>Protect</strong>
-          <span>privacy and consent expectations</span>
+          <strong>Human</strong>
+          <span>care coordination</span>
         </div>
       </section>
 
       <section className="section intro-section">
         <div className="section-heading">
           <span>Your Journey</span>
-          <h2>A clearer way to start therapy without guessing alone.</h2>
+          <h2>From first message to first session.</h2>
           <p>
-            The clinic coordinator helps turn an uncertain first message into a practical next step,
-            while therapist profiles and public content stay controlled by admin approval.
+            A simple, supported process—especially if you are unsure where to begin.
           </p>
         </div>
         <div className="journey-grid">
@@ -410,7 +402,7 @@ export default async function Home() {
         <div className="section-heading inline-heading">
           <div>
             <span>Therapist Directory</span>
-            <h2>Compare practitioners before you inquire.</h2>
+            <h2>Find someone you can talk to.</h2>
           </div>
           <a className="text-link" href="/therapists">Open full directory</a>
         </div>
@@ -481,9 +473,9 @@ export default async function Home() {
       <section className="section soft-section" id="services">
         <div className="section-heading">
           <span>Care areas</span>
-          <h2>Support for common therapy goals.</h2>
+          <h2>Start with what feels hardest today.</h2>
           <p>
-            These are starting points for matching, not labels. A therapist will help clarify what is actually happening and what kind of support is appropriate.
+            Choose a starting point. Your therapist can help make sense of the rest.
           </p>
         </div>
         <div className="service-grid">
@@ -509,10 +501,10 @@ export default async function Home() {
       <section className="section self-check-band">
         <div className="section-heading">
           <span>Informational self-checks</span>
-          <h2>Explore patterns before you contact the clinic.</h2>
+          <h2>Not ready to talk yet?</h2>
           <p>
-            Quick assessments cover relationship adjustment, personality style, quality of life, sleep quality,
-            and stress. Results are immediate, non-diagnostic, and not saved to the database.
+            Use a quick, private self-check to understand your patterns. Results are immediate, non-diagnostic,
+            and not saved.
           </p>
         </div>
         <a className="primary-btn" href="/self-tests">Open self-checks</a>
@@ -552,12 +544,12 @@ export default async function Home() {
       <section className="contact-section" id="contact">
         <div className="contact-copy">
           <span>Contact Us</span>
-          <h2>Start with a private message.</h2>
+          <h2>Your next step can be small.</h2>
           <p>
-            WhatsApp is the primary contact method. Email availability is maintained by the clinic admin.
+            Send a short message. A care coordinator will help with matching, fees, and available times.
             {contactSettings.emailIsPlaceholder
-              ? " The displayed email is temporary and should not be treated as a configured inbox yet."
-              : " You can also contact the clinic through the published email address."}
+              ? " WhatsApp is currently the best way to reach us."
+              : " You can also reach us by email."}
           </p>
           <div className="contact-cta-stack">
             <a className="primary-btn" href={whatsappHref}>WhatsApp {contactSettings.displayPhone}</a>
@@ -571,10 +563,8 @@ export default async function Home() {
             )}
           </div>
           <div className="policy-note">
-            MindEase is not an emergency service. If someone is in immediate danger in Pakistan,
-            they should contact local emergency services, go to the nearest hospital emergency department,
-            or ask a trusted person nearby for urgent support. Specific emergency numbers can vary by city
-            and provider, so verify local options before relying on them.
+            <strong>Need urgent help?</strong> MindEase is not an emergency service. If someone is in immediate
+            danger, contact local emergency services or go to the nearest hospital emergency department.
           </div>
         </div>
         <form className="contact-form" aria-label="Contact MindEase" action="/api/contact" method="post">
