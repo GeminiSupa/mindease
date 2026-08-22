@@ -1,6 +1,24 @@
 import Image from "next/image";
 import Link from "next/link";
+import type { Metadata } from "next";
 import { getPublicContactSettings } from "../site-settings";
+import TherapistDirectory, { type TherapistProfile } from "./TherapistDirectory";
+
+export const metadata: Metadata = {
+  title: "Find a Therapist | MindEase",
+  description: "Browse verified MindEase therapists by focus area and language, then ask our coordinator to help you choose.",
+  openGraph: {
+    title: "Find someone you can feel comfortable talking to | MindEase",
+    description: "Browse verified therapists, compare fit, and ask for a personal match.",
+    images: [{ url: "/therapists-og.png", width: 1200, height: 630 }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Find a therapist | MindEase",
+    description: "Verified therapist profiles and personal matching support.",
+    images: ["/therapists-og.png"],
+  },
+};
 
 const SUPABASE_URL =
   process.env.SUPABASE_URL ??
@@ -15,20 +33,7 @@ const DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === "true";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-type LiveTherapist = {
-  id: string;
-  full_name: string;
-  title: string;
-  qualifications?: string;
-  years_experience?: number;
-  bio?: string;
-  specialization?: string;
-  languages?: string[];
-  session_fee?: number;
-  currency?: string;
-  availability_status?: string;
-  profile_image_url?: string;
-};
+type LiveTherapist = TherapistProfile;
 
 const fallbackTherapists: LiveTherapist[] = [
   {
@@ -77,22 +82,6 @@ const fallbackTherapists: LiveTherapist[] = [
   },
 ];
 
-function initials(name: string) {
-  return name
-    .split(" ")
-    .map((part) => part[0])
-    .slice(0, 2)
-    .join("");
-}
-
-function splitFocus(value?: string) {
-  return (value ?? "")
-    .split(",")
-    .map((item) => item.trim())
-    .filter(Boolean)
-    .slice(0, 4);
-}
-
 async function getApprovedTherapists() {
   if (!PUBLIC_READ_KEY) return DEMO_MODE ? fallbackTherapists : [];
 
@@ -132,7 +121,7 @@ export default async function TherapistsPage() {
   )}`;
 
   return (
-    <main>
+    <main className="directory-page">
       <section className="directory-hero">
         <nav className="site-nav" aria-label="Therapist directory navigation">
           <Link className="brand" href="/">
@@ -147,78 +136,58 @@ export default async function TherapistsPage() {
             <Link href="/self-tests">Self-checks</Link>
             <Link href="/therapist/login">Therapist portal</Link>
           </div>
-          <a className="nav-cta" href={whatsappHref}>Ask for match</a>
+          <a className="nav-cta" href={whatsappHref} target="_blank" rel="noreferrer">Get matched</a>
         </nav>
-        <div className="directory-copy">
-          <span className="eyebrow">Admin-approved profiles</span>
-          <h1>Choose with context, then confirm availability with the coordinator.</h1>
-          <p>
-            Public cards show live approved therapist information. If a preferred therapist is not available,
-            the admin workflow can suggest alternatives before a booking is confirmed.
-          </p>
+        <div className="directory-hero-layout">
+          <div className="directory-copy">
+            <span className="eyebrow">Verified online therapists</span>
+            <h1>Find someone you can feel comfortable talking to.</h1>
+            <p>
+              Browse by the things that matter to you. Compare experience, focus areas, language, and fee—then ask
+              our care coordinator to confirm the right fit.
+            </p>
+            <div className="directory-hero-actions">
+              <a className="directory-primary" href="#browse">Browse therapists</a>
+              <a className="directory-secondary" href={whatsappHref} target="_blank" rel="noreferrer">Help me choose</a>
+            </div>
+            <div className="directory-trust" aria-label="Directory assurances">
+              <span><i aria-hidden="true" /> Admin-reviewed profiles</span>
+              <span><i aria-hidden="true" /> Private inquiry</span>
+              <span><i aria-hidden="true" /> No booking pressure</span>
+            </div>
+          </div>
+          <aside className="directory-match-card" aria-label="How therapist matching works">
+            <div className="directory-match-head">
+              <span>Not sure where to begin?</span>
+              <strong>A better match starts with a few simple details.</strong>
+            </div>
+            <ol>
+              <li><span>1</span><div><strong>Browse at your pace</strong><small>Use filters or open any full profile.</small></div></li>
+              <li><span>2</span><div><strong>Tell us what matters</strong><small>Share only what you feel comfortable sharing.</small></div></li>
+              <li><span>3</span><div><strong>Confirm the fit</strong><small>We check availability before you decide.</small></div></li>
+            </ol>
+            <a href={whatsappHref} target="_blank" rel="noreferrer">Ask the care coordinator <span aria-hidden="true">→</span></a>
+          </aside>
         </div>
       </section>
 
-      <section className="section">
-        <div className="therapist-grid directory-grid">
-          {therapists.map((therapist) => {
-            const focus = splitFocus(therapist.specialization);
-            return (
-              <article className="therapist-card directory-card" key={therapist.id}>
-                <div className="therapist-top">
-                  {therapist.profile_image_url ? (
-                    <img className="therapist-photo" src={therapist.profile_image_url} alt={therapist.full_name} />
-                  ) : (
-                    <div className="avatar" aria-hidden="true">{initials(therapist.full_name)}</div>
-                  )}
-                  <div>
-                    <h3>{therapist.full_name}</h3>
-                    <p>{therapist.title}</p>
-                    <small>{therapist.qualifications}</small>
-                  </div>
-                </div>
-                <p>{therapist.bio}</p>
-                <div className="pill-row">
-                  {(focus.length ? focus : ["Online therapy"]).map((item) => (
-                    <span key={item}>{item}</span>
-                  ))}
-                </div>
-                <dl className="therapist-meta">
-                  <div>
-                    <dt>Experience</dt>
-                    <dd>{therapist.years_experience ? `${therapist.years_experience}+ years` : "Reviewed profile"}</dd>
-                  </div>
-                  <div>
-                    <dt>Languages</dt>
-                    <dd>{therapist.languages?.join(", ") || "Urdu, English"}</dd>
-                  </div>
-                  <div>
-                    <dt>Availability</dt>
-                    <dd>{therapist.availability_status || "Ask coordinator"}</dd>
-                  </div>
-                </dl>
-                <div className="card-footer">
-                  <div>
-                    <span>Session fee</span>
-                    <strong>
-                      {therapist.session_fee
-                        ? `${therapist.currency ?? "PKR"} ${therapist.session_fee.toLocaleString("en-PK")}`
-                        : "Ask admin"}
-                    </strong>
-                  </div>
-                  <a href={whatsappHref}>Ask about fit</a>
-                </div>
-              </article>
-            );
-          })}
-        </div>
-        {therapists.length === 0 ? (
+      {therapists.length ? (
+        <TherapistDirectory therapists={therapists} whatsappNumber={contactSettings.whatsappNumber} />
+      ) : (
+        <section className="directory-workspace">
           <div className="empty-state">
             <strong>No approved therapists are live yet.</strong>
-            <p>Admin-approved therapist profiles will appear here after Supabase is configured.</p>
+            <p>Ask the care coordinator for the latest available options.</p>
+            <a className="directory-primary" href={whatsappHref}>Ask for a match</a>
           </div>
-        ) : null}
-      </section>
+        </section>
+      )}
+
+      <a className="directory-floating-match" href={whatsappHref} target="_blank" rel="noreferrer">
+        <span aria-hidden="true">✦</span>
+        <span><small>Not sure who to choose?</small><strong>Get a personal match</strong></span>
+        <b aria-hidden="true">→</b>
+      </a>
     </main>
   );
 }
