@@ -54,3 +54,7 @@ values (
   true
 )
 on conflict (id) do nothing;
+
+-- Ensure PostgREST sees the new table immediately instead of waiting for its
+-- schema cache to refresh on its own.
+notify pgrst, 'reload schema';

@@ -16,6 +16,20 @@ npm run dev
 npm run build
 ```
 
+## Supabase Setup
+
+Run the SQL files in the Supabase SQL Editor for the project configured by
+`SUPABASE_URL`, in this order:
+
+1. `supabase/mindease-admin-schema.sql`
+2. `supabase/mindease-production-upgrade.sql`
+3. `supabase/mindease-site-settings.sql`
+4. `supabase/grant-saeed-admin.sql`
+
+The site settings migration creates and seeds `public.site_settings`, then
+reloads the PostgREST schema cache so the admin settings screen can use it
+immediately.
+
 This starter does not use `wrangler.jsonc`.
 
 ## Included Shape
