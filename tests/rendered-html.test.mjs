@@ -118,8 +118,11 @@ test("surfaces therapist credentials, dashboard access, availability, and device
   assert.match(admin, /Therapist login email/);
   assert.match(admin, /Choose photo from device/);
   assert.match(admin, /Open therapist sign in/);
+  assert.match(admin, /Edit profile/);
+  assert.match(admin, /Save profile changes/);
   assert.match(therapistDashboard, /Submit availability/);
   assert.match(therapistDashboard, /Profile photo from device/);
   assert.match(therapistRoute, /loginUrl:\s*"\/therapist\/login"/);
+  assert.match(therapistRoute, /action === "edit"/);
   assert.match(uploadRoute, /Image storage is not configured/);
 });

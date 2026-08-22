@@ -44,6 +44,12 @@ type AdminOverview = {
     approvalStatus: string;
     isActive: boolean;
     photo?: string;
+    qualifications: string;
+    languages: string[];
+    yearsExperience: number;
+    sessionFee: number;
+    currency: string;
+    bio: string;
   }>;
   pendingTherapists: Array<{
     id: string;
@@ -54,6 +60,12 @@ type AdminOverview = {
     approvalStatus: string;
     isActive: boolean;
     photo?: string;
+    qualifications: string;
+    languages: string[];
+    yearsExperience: number;
+    sessionFee: number;
+    currency: string;
+    bio: string;
   }>;
   messages: Array<{
     id: string;
@@ -215,6 +227,17 @@ export async function GET(request: Request) {
     approvalStatus: value(row, ["approval_status"], "approved"),
     isActive: row.is_active === true,
     photo: value(row, ["profile_image_url", "photo_url"]),
+    qualifications: value(row, ["qualifications"], ""),
+    languages: Array.isArray(row.languages)
+      ? row.languages.filter((language): language is string => typeof language === "string")
+      : value(row, ["languages"], "Urdu, English")
+          .split(",")
+          .map((language) => language.trim())
+          .filter(Boolean),
+    yearsExperience: Number(row.years_experience) || 0,
+    sessionFee: Number(row.session_fee) || 0,
+    currency: value(row, ["currency"], "PKR"),
+    bio: value(row, ["bio"], ""),
   }));
   const activeTherapists = therapists.filter((therapist) => therapist.isActive);
   const pendingTherapists = therapists.filter(

@@ -23,6 +23,12 @@ type AdminTherapist = {
   approvalStatus: string;
   isActive: boolean;
   photo?: string;
+  qualifications: string;
+  languages: string[];
+  yearsExperience: number;
+  sessionFee: number;
+  currency: string;
+  bio: string;
 };
 
 type ContactSettingsForm = {
@@ -157,6 +163,32 @@ type TherapistForm = {
   bio: string;
 };
 
+type TherapistEditForm = {
+  fullName: string;
+  title: string;
+  qualifications: string;
+  specialization: string;
+  languages: string;
+  yearsExperience: string;
+  sessionFee: string;
+  profileImageUrl: string;
+  bio: string;
+  availabilityStatus: string;
+};
+
+const blankTherapistEditForm: TherapistEditForm = {
+  fullName: "",
+  title: "",
+  qualifications: "",
+  specialization: "",
+  languages: "Urdu, English",
+  yearsExperience: "",
+  sessionFee: "",
+  profileImageUrl: "",
+  bio: "",
+  availabilityStatus: "Available",
+};
+
 const blankTherapistForm: TherapistForm = {
   fullName: "",
   email: "",
@@ -208,6 +240,8 @@ export function AdminConsole() {
   const [saving, setSaving] = useState(false);
   const [overview, setOverview] = useState<Overview>(emptyOverview);
   const [therapistForm, setTherapistForm] = useState<TherapistForm>(blankTherapistForm);
+  const [editingTherapistId, setEditingTherapistId] = useState<string | null>(null);
+  const [therapistEditForm, setTherapistEditForm] = useState<TherapistEditForm>(blankTherapistEditForm);
   const [blogForm, setBlogForm] = useState<BlogForm>(blankBlogForm);
   const [contactSettings, setContactSettings] = useState<ContactSettingsForm>(defaultContactSettings);
   const [uploading, setUploading] = useState(false);
@@ -343,6 +377,66 @@ export function AdminConsole() {
     }
   }
 
+  function startTherapistEdit(therapist: AdminTherapist) {
+    setEditingTherapistId(therapist.id);
+    setTherapistEditForm({
+      fullName: therapist.name,
+      title: therapist.role,
+      qualifications: therapist.qualifications,
+      specialization: therapist.focus,
+      languages: therapist.languages.join(", "),
+      yearsExperience: therapist.yearsExperience ? String(therapist.yearsExperience) : "",
+      sessionFee: therapist.sessionFee ? String(therapist.sessionFee) : "",
+      profileImageUrl: therapist.photo ?? "",
+      bio: therapist.bio,
+      availabilityStatus: therapist.status,
+    });
+    setError("");
+    setNotice("");
+  }
+
+  function cancelTherapistEdit() {
+    setEditingTherapistId(null);
+    setTherapistEditForm(blankTherapistEditForm);
+  }
+
+  function updateTherapistEditField(field: keyof TherapistEditForm, value: string) {
+    setTherapistEditForm((current) => ({ ...current, [field]: value }));
+  }
+
+  async function saveTherapistProfile(id: string) {
+    if (!session?.access_token) return;
+
+    setSaving(true);
+    setError("");
+    setNotice("");
+
+    try {
+      const response = await fetch("/api/admin/therapists", {
+        method: "PATCH",
+        headers: {
+          authorization: `Bearer ${session.access_token}`,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({ id, action: "edit", ...therapistEditForm }),
+      });
+      const body = await response.json();
+
+      if (!response.ok) {
+        throw new Error(body?.error ?? "Could not save therapist profile.");
+      }
+
+      setEditingTherapistId(null);
+      setTherapistEditForm(blankTherapistEditForm);
+      setNotice("Therapist profile saved. Public details have been refreshed.");
+      await loadOverview();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not save therapist profile.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
   useEffect(() => {
     if (!session?.access_token) return;
     const timer = window.setTimeout(() => {
@@ -424,6 +518,138 @@ export function AdminConsole() {
     } finally {
       setUploading(false);
     }
+  }
+
+  function renderTherapistEditor(therapist: AdminTherapist) {
+    if (editingTherapistId !== therapist.id) return null;
+
+    return (
+      <form
+        className="admin-form-grid admin-therapist-editor"
+        onSubmit={(event) => {
+          event.preventDefault();
+          void saveTherapistProfile(therapist.id);
+        }}
+      >
+        <div className="admin-editor-heading wide-field">
+          <div>
+            <span>Editing profile</span>
+            <strong>Update the public therapist details</strong>
+          </div>
+          <button className="admin-editor-close" onClick={cancelTherapistEdit} type="button">
+            Close
+          </button>
+        </div>
+        <label>
+          Full name
+          <input
+            required
+            value={therapistEditForm.fullName}
+            onChange={(event) => updateTherapistEditField("fullName", event.target.value)}
+          />
+        </label>
+        <label>
+          Professional title
+          <input
+            required
+            value={therapistEditForm.title}
+            onChange={(event) => updateTherapistEditField("title", event.target.value)}
+          />
+        </label>
+        <label>
+          Qualifications
+          <input
+            value={therapistEditForm.qualifications}
+            onChange={(event) => updateTherapistEditField("qualifications", event.target.value)}
+            placeholder="MS Clinical Psychology"
+          />
+        </label>
+        <label>
+          Languages
+          <input
+            value={therapistEditForm.languages}
+            onChange={(event) => updateTherapistEditField("languages", event.target.value)}
+            placeholder="Urdu, English"
+          />
+        </label>
+        <label>
+          Experience years
+          <input
+            inputMode="numeric"
+            min="0"
+            max="80"
+            type="number"
+            value={therapistEditForm.yearsExperience}
+            onChange={(event) => updateTherapistEditField("yearsExperience", event.target.value)}
+          />
+        </label>
+        <label>
+          Session fee (PKR)
+          <input
+            inputMode="numeric"
+            min="0"
+            type="number"
+            value={therapistEditForm.sessionFee}
+            onChange={(event) => updateTherapistEditField("sessionFee", event.target.value)}
+          />
+        </label>
+        <label>
+          Availability label
+          <input
+            value={therapistEditForm.availabilityStatus}
+            onChange={(event) => updateTherapistEditField("availabilityStatus", event.target.value)}
+            placeholder="Available evenings"
+          />
+        </label>
+        <label>
+          Focus areas
+          <input
+            value={therapistEditForm.specialization}
+            onChange={(event) => updateTherapistEditField("specialization", event.target.value)}
+            placeholder="Anxiety, depression, relationships"
+          />
+        </label>
+        <label className="wide-field image-upload-field">
+          <span>Profile photo</span>
+          {therapistEditForm.profileImageUrl ? (
+            <img src={therapistEditForm.profileImageUrl} alt={`${therapistEditForm.fullName} profile preview`} />
+          ) : (
+            <span className="upload-placeholder">JPG, PNG or WebP / maximum 5 MB</span>
+          )}
+          <input
+            accept="image/jpeg,image/png,image/webp"
+            disabled={uploading}
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              if (!file) return;
+              void uploadImage(file, "therapist-photo", therapist.id)
+                .then((url) => {
+                  if (url) updateTherapistEditField("profileImageUrl", url);
+                })
+                .catch((err) => setError(err instanceof Error ? err.message : "Upload failed."));
+            }}
+            type="file"
+          />
+          <strong>{uploading ? "Uploading photo..." : "Replace photo from device"}</strong>
+        </label>
+        <label className="wide-field">
+          Professional bio
+          <textarea
+            value={therapistEditForm.bio}
+            onChange={(event) => updateTherapistEditField("bio", event.target.value)}
+            placeholder="Short professional bio shown on the public profile"
+          />
+        </label>
+        <div className="admin-editor-actions wide-field">
+          <button disabled={saving || uploading || !therapistEditForm.fullName.trim() || !therapistEditForm.title.trim()} type="submit">
+            {saving ? "Saving changes..." : "Save profile changes"}
+          </button>
+          <button className="admin-secondary-action" disabled={saving} onClick={cancelTherapistEdit} type="button">
+            Cancel
+          </button>
+        </div>
+      </form>
+    );
   }
 
   async function updateInquiry(id: string) {
@@ -967,12 +1193,15 @@ export function AdminConsole() {
             </div>
             <div className="admin-list">
               {pendingTherapists.map((therapist) => (
-                <div key={therapist.id}>
+                <div className="admin-therapist-record" key={therapist.id}>
                   <strong>{therapist.name}</strong>
                   <p>{therapist.role}</p>
                   <small>{therapist.focus}</small>
                   <em>{therapist.approvalStatus}</em>
                   <div className="admin-actions">
+                    <button disabled={saving} onClick={() => startTherapistEdit(therapist)} type="button">
+                      Edit profile
+                    </button>
                     <button disabled={saving} onClick={() => void updateTherapist(therapist.id, "approve")} type="button">
                       Approve live
                     </button>
@@ -980,6 +1209,7 @@ export function AdminConsole() {
                       Reject
                     </button>
                   </div>
+                  {renderTherapistEditor(therapist)}
                 </div>
               ))}
               {pendingTherapists.length === 0 ? (
@@ -1090,7 +1320,7 @@ export function AdminConsole() {
             </div>
           </article>
 
-          <article className="admin-panel" id="therapists">
+          <article className="admin-panel wide" id="therapists">
             <div className="admin-panel-head">
               <div>
                 <span>Live website</span>
@@ -1099,16 +1329,20 @@ export function AdminConsole() {
             </div>
             <div className="admin-list">
               {therapists.map((therapist) => (
-                <div key={therapist.id}>
+                <div className="admin-therapist-record" key={therapist.id}>
                   <strong>{therapist.name}</strong>
                   <p>{therapist.role}</p>
                   <small>{therapist.focus}</small>
                   <em>{therapist.status}</em>
                   <div className="admin-actions">
+                    <button disabled={saving} onClick={() => startTherapistEdit(therapist)} type="button">
+                      Edit profile
+                    </button>
                     <button disabled={saving} onClick={() => void updateTherapist(therapist.id, "hide")} type="button">
                       Hide from site
                     </button>
                   </div>
+                  {renderTherapistEditor(therapist)}
                 </div>
               ))}
               {therapists.length === 0 ? (

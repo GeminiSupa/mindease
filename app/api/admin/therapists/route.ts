@@ -11,6 +11,10 @@ import {
 
 type AuthUserResponse = { id?: string; user?: { id?: string }; message?: string };
 
+function trimmedText(value: unknown, maxLength: number) {
+  return typeof value === "string" ? value.trim().slice(0, maxLength) : "";
+}
+
 async function createTherapistAuthUser(email: string, password: string, fullName: string) {
   const response = await fetch(`${SUPABASE_URL}/auth/v1/admin/users`, {
     method: "POST",
@@ -173,12 +177,56 @@ export async function PATCH(request: Request) {
   const id = typeof body.id === "string" ? body.id : "";
   const action = typeof body.action === "string" ? body.action : "";
 
-  if (!id || !["approve", "reject", "hide"].includes(action)) {
+  if (!id || !["approve", "reject", "hide", "edit"].includes(action)) {
     return json({ error: "Valid therapist id and action are required." }, 400);
   }
 
-  const update =
-    action === "approve"
+  let update: Record<string, unknown>;
+
+  if (action === "edit") {
+    const fullName = trimmedText(body.fullName, 120);
+    const title = trimmedText(body.title, 120);
+    const yearsExperience = Number(body.yearsExperience || 0);
+    const sessionFee = Number(body.sessionFee || 0);
+    const profileImageUrl = trimmedText(body.profileImageUrl, 2000);
+
+    if (!fullName || !title) {
+      return json({ error: "Therapist name and professional title are required." }, 400);
+    }
+
+    if (!Number.isFinite(yearsExperience) || yearsExperience < 0 || yearsExperience > 80) {
+      return json({ error: "Experience must be between 0 and 80 years." }, 400);
+    }
+
+    if (!Number.isFinite(sessionFee) || sessionFee < 0 || sessionFee > 1000000) {
+      return json({ error: "Session fee must be between 0 and 1,000,000." }, 400);
+    }
+
+    if (profileImageUrl && !profileImageUrl.startsWith("https://") && !profileImageUrl.startsWith("/")) {
+      return json({ error: "Profile image must use a secure URL or a site image path." }, 400);
+    }
+
+    const languages = trimmedText(body.languages, 300)
+      .split(",")
+      .map((language) => language.trim().slice(0, 40))
+      .filter(Boolean)
+      .slice(0, 8);
+
+    update = {
+      full_name: fullName,
+      title,
+      qualifications: trimmedText(body.qualifications, 300),
+      specialization: trimmedText(body.specialization, 500),
+      languages: languages.length ? languages : ["Urdu", "English"],
+      years_experience: Math.round(yearsExperience),
+      session_fee: sessionFee,
+      profile_image_url: profileImageUrl,
+      bio: trimmedText(body.bio, 2000),
+      availability_status: trimmedText(body.availabilityStatus, 120) || "Available",
+    };
+  } else {
+    update =
+      action === "approve"
       ? {
           approval_status: "approved",
           is_active: true,
@@ -192,10 +240,11 @@ export async function PATCH(request: Request) {
             availability_status: "Hidden by admin",
           }
         : {
-            approval_status: "rejected",
-            is_active: false,
-            availability_status: "Rejected by admin",
-          };
+          approval_status: "rejected",
+          is_active: false,
+          availability_status: "Rejected by admin",
+        };
+  }
 
   const response = await serviceFetch(`/rest/v1/therapists?id=eq.${encodeURIComponent(id)}`, {
     method: "PATCH",
