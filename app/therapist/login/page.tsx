@@ -59,15 +59,15 @@ export default function TherapistLogin() {
             <span>MindEase Therapist Portal</span>
           </Link>
           <p className="admin-kicker">Therapist access</p>
-          <h1>Maintain your public profile without publishing changes directly.</h1>
+          <h1>Manage your profile and availability in one place.</h1>
           <p>
-            Use credentials created by the admin. Profile updates are submitted for approval,
-            while availability slots can be added for coordinator review and booking workflows.
+            Update your professional details, share available times, and view assigned appointments.
+            Profile changes are reviewed before they appear publicly.
           </p>
           <div className="admin-feature-list">
-            <span>Profile approval queue</span>
-            <span>Availability slots</span>
-            <span>Appointment overview</span>
+            <span>Update your profile</span>
+            <span>Share available times</span>
+            <span>View appointments</span>
           </div>
         </div>
 
@@ -75,7 +75,7 @@ export default function TherapistLogin() {
           <div>
             <span>Secure login</span>
             <h2>Therapist sign in</h2>
-            <p>Enter the email and temporary password provided by MindEase admin.</p>
+            <p>Use the email and password provided by MindEase.</p>
           </div>
           <label>
             Email

@@ -339,7 +339,7 @@ export default async function Home() {
               <a href={whatsappHref}>WhatsApp {contactSettings.displayPhone}</a>
               <a href={callHref}>Call {contactSettings.displayPhone}</a>
               {contactSettings.emailIsPlaceholder ? (
-                <span>{contactSettings.contactEmail} temporary placeholder</span>
+                <span>Email contact coming soon</span>
               ) : (
                 <a href={`mailto:${contactSettings.contactEmail}`}>Email {contactSettings.contactEmail}</a>
               )}
@@ -464,8 +464,8 @@ export default async function Home() {
         </div>
         {featuredTherapists.length === 0 ? (
           <div className="empty-state">
-            <strong>No approved therapists are live yet.</strong>
-            <p>Approved Supabase therapist profiles will appear here. Demo cards require NEXT_PUBLIC_DEMO_MODE=true.</p>
+            <strong>No therapist profiles are available right now.</strong>
+            <p>Message the care coordinator and we will help you find a suitable option.</p>
           </div>
         ) : null}
       </section>
@@ -513,10 +513,9 @@ export default async function Home() {
       <section className="section" id="blog">
         <div className="section-heading inline-heading">
           <div>
-            <span>Clinic CMS</span>
+            <span>Wellbeing journal</span>
             <h2>Latest wellbeing reads.</h2>
           </div>
-          <a className="text-link" href="/admin">Manage posts in admin</a>
         </div>
         <div className="blog-grid">
           {posts.map((post) => (
@@ -535,8 +534,8 @@ export default async function Home() {
         </div>
         {posts.length === 0 ? (
           <div className="empty-state">
-            <strong>No published posts yet.</strong>
-            <p>Published CMS posts with controlled uploaded images will appear here.</p>
+            <strong>New articles are coming soon.</strong>
+            <p>Explore a self-check or contact the care coordinator in the meantime.</p>
           </div>
         ) : null}
       </section>
@@ -555,7 +554,7 @@ export default async function Home() {
             <a className="primary-btn" href={whatsappHref}>WhatsApp {contactSettings.displayPhone}</a>
             <a className="ghost-btn" href={callHref}>Call {contactSettings.displayPhone}</a>
             {contactSettings.emailIsPlaceholder ? (
-              <span>{contactSettings.contactEmail} temporary placeholder</span>
+              <span>Email contact coming soon</span>
             ) : (
               <a className="ghost-btn" href={`mailto:${contactSettings.contactEmail}`}>
                 Email {contactSettings.contactEmail}
@@ -619,7 +618,6 @@ export default async function Home() {
           <a href="/therapists">Therapists</a>
           <a href="/self-tests">Self-checks</a>
           <a href="/therapist/login">Therapist portal</a>
-          <a href="/admin">Admin</a>
         </div>
       </footer>
     </main>

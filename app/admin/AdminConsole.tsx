@@ -213,6 +213,29 @@ const blankBlogForm: BlogForm = {
   status: "draft",
 };
 
+const profileFieldNames: Record<string, string> = {
+  title: "Professional title",
+  qualifications: "Qualifications",
+  bio: "Professional bio",
+  specialization: "Focus areas",
+  languages: "Languages",
+  profile_image_url: "Profile photo",
+  session_fee: "Session fee",
+  availability_status: "Availability",
+};
+
+function friendlyLabel(value: string) {
+  const spaced = value.replace(/_/g, " ").trim();
+  return spaced ? `${spaced.charAt(0).toUpperCase()}${spaced.slice(1)}` : "Not set";
+}
+
+function displayProfileChange(value: unknown) {
+  if (Array.isArray(value)) return value.join(", ");
+  if (typeof value === "boolean") return value ? "Yes" : "No";
+  if (value === null || value === undefined || value === "") return "Not set";
+  return String(value);
+}
+
 export function AdminConsole() {
   const [session, setSession] = useState<AdminSession | null>(() => {
     if (typeof window === "undefined") return null;
@@ -259,7 +282,7 @@ export function AdminConsole() {
 
     if (!response.ok) {
       setOverview({ ...emptyOverview, setupSteps: body.setupSteps ?? emptyOverview.setupSteps });
-      setError(body.error ?? "Admin access or Supabase data is not configured yet.");
+      setError(body.error ?? "The clinic dashboard could not load. Please sign in again or check the site connection.");
       return;
     }
 
@@ -806,7 +829,7 @@ export function AdminConsole() {
         throw new Error(body?.error ?? "Could not update appointment.");
       }
 
-      setNotice("Appointment lifecycle updated. Notification record queued only; no external message was sent.");
+      setNotice("Appointment updated. No message was sent to the client automatically.");
       await loadOverview();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not update appointment.");
@@ -898,9 +921,9 @@ export function AdminConsole() {
             <p className="admin-kicker">Clinic operations</p>
             <h1>Manage therapist approvals, messages, and bookings.</h1>
             <div className="admin-feature-list">
-              <span>Password login</span>
-              <span>Therapist approval</span>
-              <span>Live contact messages</span>
+              <span>Secure sign in</span>
+              <span>Review therapist profiles</span>
+              <span>Manage messages and bookings</span>
             </div>
           </div>
 
@@ -914,7 +937,7 @@ export function AdminConsole() {
             <div>
               <span>Secure login</span>
               <h2>Admin sign in</h2>
-              <p>Use the confirmed Supabase Auth email and password.</p>
+              <p>Use your MindEase admin email and password.</p>
             </div>
             <label>
               Email
@@ -986,15 +1009,12 @@ export function AdminConsole() {
             <span>Welcome back</span>
             <h1>{firstName}</h1>
           </div>
-          <div className="admin-search" aria-label="Search placeholder">
-            Search clients, therapists, messages
-          </div>
         </header>
 
         {error ? (
           <section className="admin-warning">
             <strong>{error}</strong>
-            <p>No demo data is shown. Configure Supabase tables to show live clinic records.</p>
+            <p>Some clinic information could not load. Check the site connection and try again.</p>
           </section>
         ) : null}
         {notice ? <p className="admin-notice inline">{notice}</p> : null}
@@ -1033,7 +1053,7 @@ export function AdminConsole() {
             <div className="workflow-strip" aria-label="Therapist onboarding steps">
               <div><span>01</span><strong>Set login</strong><small>Email and temporary password</small></div>
               <div><span>02</span><strong>Add profile</strong><small>Details and device photo</small></div>
-              <div><span>03</span><strong>Share portal</strong><small>/therapist/login</small></div>
+              <div><span>03</span><strong>Share sign-in</strong><small>Send the secure sign-in page</small></div>
             </div>
             {lastCreatedTherapist ? (
               <div className="credential-success">
@@ -1082,7 +1102,7 @@ export function AdminConsole() {
                   placeholder="At least 8 characters"
                   type="password"
                 />
-                <small>The therapist uses this once at /therapist/login.</small>
+                <small>Share this temporary password with the therapist privately.</small>
               </label>
               <label>
                 Title
@@ -1225,8 +1245,15 @@ export function AdminConsole() {
                   <div key={change.id}>
                     <strong>{change.therapistName}</strong>
                     <p>{change.createdAt ? new Date(change.createdAt).toLocaleString("en-GB") : "Submitted"}</p>
-                    <small>{Object.keys(change.changes).join(", ") || "No field summary"}</small>
-                    <pre className="admin-json-preview">{JSON.stringify(change.changes, null, 2)}</pre>
+                    <small>{Object.keys(change.changes).length} profile field(s) changed</small>
+                    <div className="admin-change-summary">
+                      {Object.entries(change.changes).map(([field, value]) => (
+                        <div key={field}>
+                          <span>{profileFieldNames[field] ?? friendlyLabel(field)}</span>
+                          <strong>{displayProfileChange(value)}</strong>
+                        </div>
+                      ))}
+                    </div>
                     <div className="admin-actions">
                       <button disabled={saving} onClick={() => void reviewProfileChange(change.id, "approve")} type="button">
                         Approve and publish
@@ -1262,7 +1289,7 @@ export function AdminConsole() {
                   <p>
                     {appointment.time}
                     <br />
-                    {appointment.lifecycleStage} / {appointment.confirmationStatus}
+                    {friendlyLabel(appointment.lifecycleStage)} · {friendlyLabel(appointment.confirmationStatus)}
                   </p>
                   <em>{appointment.status}</em>
                   <b>{appointment.amount}</b>
@@ -1303,8 +1330,8 @@ export function AdminConsole() {
               ))}
               {appointments.length === 0 ? (
                 <div className="empty-state compact">
-                  <strong>No live appointments yet.</strong>
-                  <p>Booking requests from Supabase will appear here.</p>
+                  <strong>No appointment requests yet.</strong>
+                  <p>New booking requests will appear here.</p>
                 </div>
               ) : null}
             </div>
@@ -1423,7 +1450,7 @@ export function AdminConsole() {
                     <textarea
                       value={messageDrafts[message.id]?.paymentInstructions ?? ""}
                       onChange={(event) => updateMessageDraft(message.id, "paymentInstructions", event.target.value)}
-                      placeholder="Manual placeholder only. Do not enter real payment gateway credentials here."
+                      placeholder="Add the payment steps the coordinator should send."
                     />
                   </label>
                   <div className="admin-actions">
@@ -1543,7 +1570,7 @@ export function AdminConsole() {
           <article className="admin-panel wide" id="blog">
             <div className="admin-panel-head">
               <div>
-                <span>CMS</span>
+                <span>Blog</span>
                 <h2>Create and publish blog posts</h2>
               </div>
             </div>
@@ -1564,16 +1591,9 @@ export function AdminConsole() {
                   placeholder="therapy-matching"
                 />
               </label>
+              <input type="hidden" value={blogForm.imageUrl} readOnly />
               <label>
-                Image URL
-                <input
-                  value={blogForm.imageUrl}
-                  onChange={(event) => updateBlogField("imageUrl", event.target.value)}
-                  placeholder="Upload through Supabase Storage below"
-                />
-              </label>
-              <label>
-                Upload image
+                Featured image
                 <input
                   accept="image/jpeg,image/png,image/webp"
                   onChange={(event) => {
@@ -1587,6 +1607,7 @@ export function AdminConsole() {
                   }}
                   type="file"
                 />
+                <small>{blogForm.imageUrl ? "Image ready" : "Choose a JPG, PNG, or WebP image."}</small>
               </label>
               <label>
                 Status
@@ -1611,7 +1632,7 @@ export function AdminConsole() {
                 <textarea
                   value={blogForm.body}
                   onChange={(event) => updateBlogField("body", event.target.value)}
-                  placeholder="Article body for the CMS record."
+                  placeholder="Write the article here."
                 />
               </label>
               <button disabled={saving || !blogForm.title} type="submit">
@@ -1637,7 +1658,7 @@ export function AdminConsole() {
               ))}
               {blogPosts.length === 0 ? (
                 <div className="empty-state compact">
-                  <strong>No CMS posts yet.</strong>
+                  <strong>No blog posts yet.</strong>
                   <p>Create a draft or published wellbeing post with a relevant image.</p>
                 </div>
               ) : null}

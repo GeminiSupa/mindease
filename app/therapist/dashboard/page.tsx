@@ -76,6 +76,22 @@ const blankForm: ProfileForm = {
   availabilityStatus: "Available",
 };
 
+const profileFieldNames: Record<string, string> = {
+  title: "Professional title",
+  qualifications: "Qualifications",
+  bio: "Professional bio",
+  specialization: "Focus areas",
+  languages: "Languages",
+  profile_image_url: "Profile photo",
+  session_fee: "Session fee",
+  availability_status: "Availability",
+};
+
+function friendlyLabel(value: string) {
+  const spaced = value.replace(/_/g, " ").trim();
+  return spaced ? `${spaced.charAt(0).toUpperCase()}${spaced.slice(1)}` : "Not set";
+}
+
 export default function TherapistDashboard() {
   const [session, setSession] = useState<TherapistSession | null>(null);
   const [dashboard, setDashboard] = useState<DashboardData>({});
@@ -290,8 +306,10 @@ export default function TherapistDashboard() {
             <span>Therapist dashboard</span>
             <h1>{therapist?.full_name ?? session?.user?.email ?? "Therapist"}</h1>
           </div>
-          <div className="admin-search">
-            Public status: {therapist?.approval_status ?? "pending"} / {therapist?.is_active ? "live" : "hidden"}
+          <div className="admin-status-card">
+            <span>Public profile</span>
+            <strong>{therapist?.is_active ? "Live" : "Hidden"}</strong>
+            <small>{friendlyLabel(therapist?.approval_status ?? "pending")}</small>
           </div>
         </header>
 
@@ -302,7 +320,7 @@ export default function TherapistDashboard() {
           <article>
             <span>Upcoming</span>
             <strong>{appointments.length}</strong>
-            <p>appointment records</p>
+            <p>scheduled sessions</p>
           </article>
           <article>
             <span>Open slots</span>
@@ -312,7 +330,7 @@ export default function TherapistDashboard() {
           <article>
             <span>Pending edits</span>
             <strong>{changeRequests.filter((request) => request.status === "pending").length}</strong>
-            <p>admin review</p>
+            <p>waiting for review</p>
           </article>
           <article>
             <span>Profile</span>
@@ -326,7 +344,7 @@ export default function TherapistDashboard() {
             <div className="admin-panel-head">
               <div>
                 <span>Public profile</span>
-                <h2>Submit profile edits for admin approval</h2>
+                <h2>Update your public profile</h2>
               </div>
             </div>
             <form className="admin-form-grid" onSubmit={submitChanges}>
@@ -424,8 +442,8 @@ export default function TherapistDashboard() {
                 <div key={slot.id}>
                   <strong>{slot.startsAt ? new Date(slot.startsAt).toLocaleString("en-GB") : "Slot"}</strong>
                   <p>{slot.endsAt ? `Ends ${new Date(slot.endsAt).toLocaleString("en-GB")}` : "No end time"}</p>
-                  <small>{slot.slotType} {slot.recurrenceRule ? `/ ${slot.recurrenceRule}` : ""}</small>
-                  <em>{slot.approvalStatus} / {slot.isBooked ? "booked" : "open"}</em>
+                  <small>{friendlyLabel(slot.slotType)}{slot.recurrenceRule && slot.recurrenceRule !== "none" ? ` · ${friendlyLabel(slot.recurrenceRule)}` : ""}</small>
+                  <em>{friendlyLabel(slot.approvalStatus)} · {slot.isBooked ? "Booked" : "Open"}</em>
                 </div>
               ))}
             </div>
@@ -466,9 +484,13 @@ export default function TherapistDashboard() {
             <div className="admin-list">
               {changeRequests.map((request) => (
                 <div key={request.id}>
-                  <strong>{request.status}</strong>
+                  <strong>{friendlyLabel(request.status)}</strong>
                   <p>{request.createdAt ? new Date(request.createdAt).toLocaleString("en-GB") : "Submitted"}</p>
-                  <small>{Object.keys(request.requestedChanges ?? {}).join(", ") || "No field summary"}</small>
+                  <small>
+                    {Object.keys(request.requestedChanges ?? {})
+                      .map((field) => profileFieldNames[field] ?? friendlyLabel(field))
+                      .join(", ") || "No changes listed"}
+                  </small>
                   {request.adminNote ? <small>{request.adminNote}</small> : null}
                 </div>
               ))}

@@ -33,7 +33,7 @@ function AppointmentConfirmContent() {
 
       setNotice(
         action === "confirm"
-          ? "Your therapist match is confirmed. Payment is still manual/configuration-dependent; wait for clinic instructions before sending funds."
+          ? "Your therapist match is confirmed. Please wait for the clinic's payment and session instructions."
           : "Your response has been recorded. The coordinator can suggest another therapist if needed.",
       );
     } catch (err) {
@@ -54,8 +54,8 @@ function AppointmentConfirmContent() {
           <p className="admin-kicker">Client confirmation</p>
           <h1>Confirm or decline your suggested therapist match.</h1>
           <p>
-            This confirmation updates the clinic record only. No payment provider, email sender, or WhatsApp
-            service is connected unless MindEase configures those integrations separately.
+            Let the care coordinator know whether this match works for you. Wait for a clinic message before
+            sending any payment.
           </p>
           <div className="policy-note">
             MindEase is not emergency support. If there is immediate danger, contact local emergency services,
@@ -67,7 +67,7 @@ function AppointmentConfirmContent() {
           <div>
             <span>Appointment response</span>
             <h2>Review your decision</h2>
-            <p>Use the same link from the coordinator message. Invalid or expired links will be rejected.</p>
+            <p>Choose one option below. If the link has expired, contact the coordinator for a new one.</p>
           </div>
           {!token ? <p className="admin-error">Missing confirmation token.</p> : null}
           {error ? <p className="admin-error">{error}</p> : null}

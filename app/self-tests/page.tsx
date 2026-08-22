@@ -226,7 +226,7 @@ export default function SelfTestsPage() {
   }
 
   return (
-    <main>
+    <main className="test-page">
       <section className="test-hero">
         <nav className="site-nav" aria-label="Self-check navigation">
           <Link className="brand" href="/">
