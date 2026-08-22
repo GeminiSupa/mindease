@@ -111,13 +111,6 @@ type Overview = {
     approvalStatus: string;
     isBooked: boolean;
   }>;
-  auditLogs?: Array<{
-    id: string;
-    actorId: string;
-    action: string;
-    subject: string;
-    createdAt: string;
-  }>;
   contactSettings?: ContactSettingsForm;
   contactSettingsError?: string;
   setupSteps?: string[];
@@ -139,7 +132,6 @@ const emptyOverview: Overview = {
   pendingProfileChanges: [],
   blogPosts: [],
   availabilitySlots: [],
-  auditLogs: [],
   contactSettings: defaultContactSettings,
   setupSteps: [
     "Create therapist profiles from this admin panel.",
@@ -964,7 +956,6 @@ export function AdminConsole() {
   const pendingProfileChanges = overview.pendingProfileChanges ?? [];
   const blogPosts = overview.blogPosts ?? [];
   const availabilitySlots = overview.availabilitySlots ?? [];
-  const auditLogs = overview.auditLogs ?? [];
 
   return (
     <main className="admin-shell">
@@ -983,7 +974,6 @@ export function AdminConsole() {
           <a href="#availability">Availability</a>
           <a href="#site-settings">Site contact</a>
           <a href="#blog">Blog</a>
-          <a href="#audit">Audit</a>
         </nav>
         <button onClick={signOut} type="button">
           Sign out
@@ -1653,32 +1643,6 @@ export function AdminConsole() {
               ) : null}
             </div>
           </article>
-
-          <article className="admin-panel wide" id="audit">
-            <div className="admin-panel-head">
-              <div>
-                <span>Audit trail</span>
-                <h2>Recent admin and therapist actions</h2>
-              </div>
-            </div>
-            <div className="admin-list">
-              {auditLogs.map((log) => (
-                <div key={log.id}>
-                  <strong>{log.action}</strong>
-                  <p>{log.subject || "No subject"}</p>
-                  <small>{log.createdAt ? new Date(log.createdAt).toLocaleString("en-GB") : "No timestamp"}</small>
-                  <em>{log.actorId || "system"}</em>
-                </div>
-              ))}
-              {auditLogs.length === 0 ? (
-                <div className="empty-state compact">
-                  <strong>No audit records yet.</strong>
-                  <p>Approvals, assignments, uploads, CMS changes and appointment updates will be recorded here.</p>
-                </div>
-              ) : null}
-            </div>
-          </article>
-
 
         </section>
       </section>
