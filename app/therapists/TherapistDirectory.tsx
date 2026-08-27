@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 
 export type TherapistProfile = {
@@ -75,6 +75,8 @@ export default function TherapistDirectory({
   const [language, setLanguage] = useState("all");
   const [focus, setFocus] = useState("all");
   const [activeId, setActiveId] = useState<string | null>(null);
+  const modalRef = useRef<HTMLElement>(null);
+  const lastFocusedElement = useRef<HTMLButtonElement | null>(null);
 
   const activeTherapist = therapists.find((therapist) => therapist.id === activeId) ?? null;
 
@@ -114,14 +116,35 @@ export default function TherapistDirectory({
 
   useEffect(() => {
     if (!activeTherapist) return;
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setActiveId(null);
+    modalRef.current?.focus();
+    const handleDialogKeys = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setActiveId(null);
+        return;
+      }
+      if (event.key !== "Tab" || !modalRef.current) return;
+      const focusable = Array.from(
+        modalRef.current.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ),
+      );
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
     };
-    document.addEventListener("keydown", closeOnEscape);
+    document.addEventListener("keydown", handleDialogKeys);
     document.body.style.overflow = "hidden";
     return () => {
-      document.removeEventListener("keydown", closeOnEscape);
+      document.removeEventListener("keydown", handleDialogKeys);
       document.body.style.overflow = "";
+      lastFocusedElement.current?.focus();
     };
   }, [activeTherapist]);
 
@@ -129,7 +152,10 @@ export default function TherapistDirectory({
     const message = therapist
       ? `Hello MindEase, I would like to ask whether ${therapist.full_name} may be a good fit for me.`
       : "Hello MindEase, I would like help choosing a therapist.";
-    return `https://wa.me/${whatsappNumber.replace(/\D/g, "")}?text=${encodeURIComponent(message)}`;
+    const number = whatsappNumber.replace(/\D/g, "");
+    return /^\d{8,15}$/.test(number)
+      ? `https://wa.me/${number}?text=${encodeURIComponent(message)}`
+      : "/#contact";
   };
 
   const hasFilters = query || language !== "all" || focus !== "all";
@@ -232,7 +258,13 @@ export default function TherapistDirectory({
                 </dl>
 
                 <div className="directory-profile-actions">
-                  <button type="button" onClick={() => setActiveId(therapist.id)}>
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      lastFocusedElement.current = event.currentTarget;
+                      setActiveId(therapist.id);
+                    }}
+                  >
                     View full profile <span aria-hidden="true">↗</span>
                   </button>
                   <a href={buildWhatsAppHref(therapist)} target="_blank" rel="noreferrer">
@@ -268,6 +300,8 @@ export default function TherapistDirectory({
             role="dialog"
             aria-modal="true"
             aria-labelledby="profile-modal-title"
+            ref={modalRef}
+            tabIndex={-1}
           >
             <button className="profile-modal-close" type="button" onClick={() => setActiveId(null)} aria-label="Close profile">
               ×

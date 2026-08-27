@@ -226,7 +226,7 @@ export default function SelfTestsPage() {
   }
 
   return (
-    <main className="test-page">
+    <main className="test-page" id="main-content">
       <section className="test-hero">
         <nav className="site-nav" aria-label="Self-check navigation">
           <Link className="brand" href="/">
@@ -257,9 +257,13 @@ export default function SelfTestsPage() {
             </div>
           </div>
           <div className="test-hero-media">
-            <img
+            <Image
               src="https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&q=85&w=900&h=700"
               alt="A person taking a quiet reflective pause"
+              width={900}
+              height={700}
+              priority
+              unoptimized
             />
             <div><strong>{assessments.length} guided checks</strong><span>Choose the one that fits today.</span></div>
           </div>
@@ -294,7 +298,7 @@ export default function SelfTestsPage() {
               <span>{active.category} / {active.concept}</span>
               <h2>{active.title}</h2>
             </div>
-            <button onClick={resetActive} type="button">Reset</button>
+            <button disabled={completed === 0} onClick={resetActive} type="button">Reset</button>
           </div>
           <p>{active.description}</p>
 
@@ -306,8 +310,8 @@ export default function SelfTestsPage() {
           <div className="question-list">
             {active.questions.map((question, index) => (
               <div className="question-card" key={question}>
-                <div className="question-copy"><span>{String(index + 1).padStart(2, "0")}</span><strong>{question}</strong></div>
-                <div className="answer-row">
+                <div className="question-copy"><span>{String(index + 1).padStart(2, "0")}</span><strong id={`${active.id}-question-${index}`}>{question}</strong></div>
+                <div className="answer-row" role="group" aria-labelledby={`${active.id}-question-${index}`}>
                   {scale.map((label, value) => (
                     <button
                       className={activeAnswers[index] === value ? "selected" : ""}
@@ -324,7 +328,7 @@ export default function SelfTestsPage() {
             ))}
           </div>
 
-          <div className={`result-box ${result ? "complete" : ""}`} aria-live="polite">
+          <div className={`result-box ${result ? "complete" : ""}`} role="status" aria-live="polite">
             {result ? (
               <>
                 <span>{result.label}</span>
@@ -349,6 +353,15 @@ export default function SelfTestsPage() {
           </p>
         </article>
       </section>
+      <footer className="simple-footer" aria-label="MindEase links">
+        <strong>MindEase Online Clinic</strong>
+        <nav>
+          <Link href="/">Home</Link>
+          <Link href="/therapists">Therapists</Link>
+          <Link href="/#contact">Contact</Link>
+          <Link href="/therapist/login">Therapist portal</Link>
+        </nav>
+      </footer>
     </main>
   );
 }

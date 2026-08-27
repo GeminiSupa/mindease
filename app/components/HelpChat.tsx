@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 
 type HelpTopic = "match" | "booking" | "checks" | "privacy" | "urgent";
@@ -31,8 +31,24 @@ const topicContent: Record<HelpTopic, { title: string; body: string }> = {
 export default function HelpChat({ whatsappNumber }: { whatsappNumber: string }) {
   const pathname = usePathname();
   const panelId = useId();
+  const titleId = useId();
   const [isOpen, setIsOpen] = useState(false);
   const [topic, setTopic] = useState<HelpTopic | null>(null);
+  const panelRef = useRef<HTMLElement>(null);
+  const launcherRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    panelRef.current?.focus();
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsOpen(false);
+        launcherRef.current?.focus();
+      }
+    };
+    document.addEventListener("keydown", closeOnEscape);
+    return () => document.removeEventListener("keydown", closeOnEscape);
+  }, [isOpen]);
 
   if (
     pathname.startsWith("/admin") ||
@@ -42,26 +58,40 @@ export default function HelpChat({ whatsappNumber }: { whatsappNumber: string })
     return null;
   }
 
-  const whatsappHref = `https://wa.me/${whatsappNumber.replace(/\D/g, "")}?text=${encodeURIComponent(
-    "Hello MindEase, I would like help finding the right therapist.",
-  )}`;
+  const normalizedNumber = whatsappNumber.replace(/\D/g, "");
+  const hasWhatsApp = /^\d{8,15}$/.test(normalizedNumber);
+  const whatsappHref = hasWhatsApp
+    ? `https://wa.me/${normalizedNumber}?text=${encodeURIComponent(
+        "Hello MindEase, I would like help finding the right therapist.",
+      )}`
+    : "/#contact";
   const activeTopic = topic ? topicContent[topic] : null;
 
   return (
     <aside className="help-chat" aria-label="MindEase help assistant">
       {isOpen ? (
-        <section className="help-chat-panel" id={panelId} aria-live="polite">
+        <section
+          className="help-chat-panel"
+          id={panelId}
+          role="dialog"
+          aria-labelledby={titleId}
+          ref={panelRef}
+          tabIndex={-1}
+        >
           <header className="help-chat-head">
             <div className="help-chat-brand" aria-hidden="true">ME</div>
             <div>
-              <strong>MindEase help</strong>
+              <strong id={titleId}>MindEase help</strong>
               <span>Automated guidance</span>
             </div>
             <button
               className="help-chat-close"
               type="button"
               aria-label="Close help assistant"
-              onClick={() => setIsOpen(false)}
+              onClick={() => {
+                setIsOpen(false);
+                window.requestAnimationFrame(() => launcherRef.current?.focus());
+              }}
             >
               &times;
             </button>
@@ -94,8 +124,8 @@ export default function HelpChat({ whatsappNumber }: { whatsappNumber: string })
           </div>
 
           <footer className="help-chat-footer">
-            <a href={whatsappHref} target="_blank" rel="noreferrer">
-              Continue on WhatsApp
+            <a href={whatsappHref}>
+              {hasWhatsApp ? "Continue on WhatsApp" : "Contact MindEase"}
             </a>
             <small>Replies depend on coordinator availability</small>
           </footer>
@@ -105,8 +135,10 @@ export default function HelpChat({ whatsappNumber }: { whatsappNumber: string })
       <button
         className="help-chat-launcher"
         type="button"
+        aria-label="Open MindEase help assistant"
         aria-expanded={isOpen}
         aria-controls={panelId}
+        ref={launcherRef}
         onClick={() => setIsOpen((open) => !open)}
       >
         <span className="help-chat-icon" aria-hidden="true"><i /><i /><i /></span>

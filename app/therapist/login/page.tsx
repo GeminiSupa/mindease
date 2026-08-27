@@ -41,7 +41,6 @@ export default function TherapistLogin() {
         throw new Error(body.error ?? "Login failed.");
       }
 
-      window.localStorage.setItem("mindease-therapist-session", JSON.stringify(body));
       router.push("/therapist/dashboard");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed.");
@@ -51,7 +50,7 @@ export default function TherapistLogin() {
   }
 
   return (
-    <main className="admin-page">
+    <main className="admin-page" id="main-content">
       <section className="admin-login therapist-login">
         <div className="admin-login-copy">
           <Link className="admin-mini-brand" href="/">
@@ -99,7 +98,7 @@ export default function TherapistLogin() {
               value={password}
             />
           </label>
-          {error ? <p className="admin-error">{error}</p> : null}
+          {error ? <p className="admin-error" role="alert">{error}</p> : null}
           <button disabled={loading || !email || !password} type="submit">
             {loading ? "Signing in..." : "Sign in"}
           </button>

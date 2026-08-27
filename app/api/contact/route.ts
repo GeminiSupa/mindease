@@ -50,7 +50,7 @@ export async function POST(request: Request) {
   const preferredTime = trimLimit(formData.get("preferredTime"), 120);
   const consentAccepted = formData.get("consent") === "on" || formData.get("consent") === "true";
 
-  if (!name || !contact || !message || !SUPABASE_ANON_KEY || !consentAccepted) {
+  if (!name || !contact || !message || (!SUPABASE_ANON_KEY && !SUPABASE_SERVICE_ROLE_KEY) || !consentAccepted) {
     return redirectHome(request, "error");
   }
 

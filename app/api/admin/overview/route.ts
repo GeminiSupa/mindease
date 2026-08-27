@@ -1,7 +1,6 @@
 import {
   getRows,
   getRowsResult,
-  getUser,
   json,
   money,
   requireAdmin,
@@ -149,9 +148,9 @@ function emptyOverview(user: SupabaseUser): AdminOverview {
     availabilitySlots: [],
     auditLogs: [],
     contactSettings: {
-      whatsappNumber: "923001234567",
-      displayPhone: "+92 300 1234567",
-      contactEmail: "hello@mindease.example",
+      whatsappNumber: "",
+      displayPhone: "",
+      contactEmail: "",
       emailIsPlaceholder: true,
     },
     setupSteps,
@@ -159,31 +158,17 @@ function emptyOverview(user: SupabaseUser): AdminOverview {
 }
 
 export async function GET(request: Request) {
-  const token = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
-
-  if (!token) {
-    return json({ error: "Missing admin session.", setupSteps }, 401);
-  }
-
-  const user = await getUser(token);
-  if (!user) {
-    return json({ error: "Your admin session has expired. Please sign in again.", setupSteps }, 401);
-  }
-
   const admin = await requireAdmin(request);
-  if (!admin || admin.id !== user.id) {
+  if (!admin) {
     return json(
       {
-        error: "Signed in, but this account is not marked as a MindEase admin yet.",
+        error: "Your admin session is missing, expired, or not authorized.",
         setupSteps,
-        user: {
-          email: user.email,
-          role: "not_admin",
-        },
       },
-      403,
+      401,
     );
   }
+  const user = admin;
 
   if (!SUPABASE_SERVICE_ROLE_KEY) {
     return json(emptyOverview(user));
@@ -312,14 +297,14 @@ export async function GET(request: Request) {
   const settingsRow = settingsRows[0];
   const contactSettings = {
     whatsappNumber: settingsRow
-      ? value(settingsRow, ["whatsapp_number"], "923001234567")
-      : "923001234567",
+      ? value(settingsRow, ["whatsapp_number"], "")
+      : "",
     displayPhone: settingsRow
-      ? value(settingsRow, ["display_phone"], "+92 300 1234567")
-      : "+92 300 1234567",
+      ? value(settingsRow, ["display_phone"], "")
+      : "",
     contactEmail: settingsRow
-      ? value(settingsRow, ["contact_email"], "hello@mindease.example")
-      : "hello@mindease.example",
+      ? value(settingsRow, ["contact_email"], "")
+      : "",
     emailIsPlaceholder: settingsRow ? settingsRow.email_is_placeholder !== false : true,
   };
 

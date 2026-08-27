@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 
 type AdminSession = {
-  access_token: string;
+  access_token?: string;
   refresh_token?: string;
   expires_at?: number;
   user?: {
@@ -13,6 +13,13 @@ type AdminSession = {
     email?: string;
   };
 };
+
+function apiHeaders(accessToken?: string, json = false) {
+  return {
+    ...(accessToken ? { authorization: `Bearer ${accessToken}` } : {}),
+    ...(json ? { "content-type": "application/json" } : {}),
+  };
+}
 
 type AdminTherapist = {
   id: string;
@@ -39,9 +46,9 @@ type ContactSettingsForm = {
 };
 
 const defaultContactSettings: ContactSettingsForm = {
-  whatsappNumber: "923001234567",
-  displayPhone: "+92 300 1234567",
-  contactEmail: "hello@mindease.example",
+  whatsappNumber: "",
+  displayPhone: "",
+  contactEmail: "",
   emailIsPlaceholder: true,
 };
 
@@ -236,19 +243,13 @@ function displayProfileChange(value: unknown) {
   return String(value);
 }
 
-export function AdminConsole() {
-  const [session, setSession] = useState<AdminSession | null>(() => {
-    if (typeof window === "undefined") return null;
+function confirmAction(message: string, action: () => void) {
+  if (window.confirm(message)) action();
+}
 
-    try {
-      const raw = window.localStorage.getItem("mindease-admin-session");
-      if (!raw) return null;
-      const stored = JSON.parse(raw) as AdminSession;
-      return stored.access_token ? stored : null;
-    } catch {
-      return null;
-    }
-  });
+export function AdminConsole() {
+  const [session, setSession] = useState<AdminSession | null>(null);
+  const [checkingSession, setCheckingSession] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -271,12 +272,8 @@ export function AdminConsole() {
   }, [session?.user?.email]);
 
   const loadOverview = useCallback(async (accessToken = session?.access_token) => {
-    if (!accessToken) return;
-
     const response = await fetch("/api/admin/overview", {
-      headers: {
-        authorization: `Bearer ${accessToken}`,
-      },
+      headers: apiHeaders(accessToken),
     });
     const body = (await response.json()) as Overview & { error?: string };
 
@@ -290,6 +287,18 @@ export function AdminConsole() {
     setOverview(body);
     setContactSettings(body.contactSettings ?? defaultContactSettings);
   }, [session?.access_token]);
+
+  useEffect(() => {
+    void fetch("/api/admin/session", { cache: "no-store" })
+      .then(async (response) => {
+        if (!response.ok) return null;
+        return (await response.json()) as { user?: AdminSession["user"] };
+      })
+      .then((body) => {
+        if (body?.user) setSession({ user: body.user });
+      })
+      .finally(() => setCheckingSession(false));
+  }, []);
 
   async function signIn() {
     setLoading(true);
@@ -312,10 +321,6 @@ export function AdminConsole() {
 
       const nextSession = body as AdminSession;
       setSession(nextSession);
-      window.localStorage.setItem(
-        "mindease-admin-session",
-        JSON.stringify(nextSession),
-      );
       setNotice("Signed in.");
       await loadOverview(nextSession.access_token);
     } catch (err) {
@@ -326,7 +331,7 @@ export function AdminConsole() {
   }
 
   async function createTherapist() {
-    if (!session?.access_token) return;
+    if (!session) return;
 
     setSaving(true);
     setError("");
@@ -335,10 +340,7 @@ export function AdminConsole() {
     try {
       const response = await fetch("/api/admin/therapists", {
         method: "POST",
-        headers: {
-          authorization: `Bearer ${session.access_token}`,
-          "content-type": "application/json",
-        },
+        headers: apiHeaders(session.access_token, true),
         body: JSON.stringify(therapistForm),
       });
       const body = await response.json();
@@ -362,7 +364,7 @@ export function AdminConsole() {
   }
 
   async function updateTherapist(id: string, action: "approve" | "reject" | "hide") {
-    if (!session?.access_token) return;
+    if (!session) return;
 
     setSaving(true);
     setError("");
@@ -371,10 +373,7 @@ export function AdminConsole() {
     try {
       const response = await fetch("/api/admin/therapists", {
         method: "PATCH",
-        headers: {
-          authorization: `Bearer ${session.access_token}`,
-          "content-type": "application/json",
-        },
+        headers: apiHeaders(session.access_token, true),
         body: JSON.stringify({ id, action }),
       });
       const body = await response.json();
@@ -420,7 +419,7 @@ export function AdminConsole() {
   }
 
   async function saveTherapistProfile(id: string) {
-    if (!session?.access_token) return;
+    if (!session) return;
 
     setSaving(true);
     setError("");
@@ -429,10 +428,7 @@ export function AdminConsole() {
     try {
       const response = await fetch("/api/admin/therapists", {
         method: "PATCH",
-        headers: {
-          authorization: `Bearer ${session.access_token}`,
-          "content-type": "application/json",
-        },
+        headers: apiHeaders(session.access_token, true),
         body: JSON.stringify({ id, action: "edit", ...therapistEditForm }),
       });
       const body = await response.json();
@@ -453,20 +449,20 @@ export function AdminConsole() {
   }
 
   useEffect(() => {
-    if (!session?.access_token) return;
+    if (!session) return;
     const timer = window.setTimeout(() => {
       void loadOverview(session.access_token);
     }, 0);
 
     return () => window.clearTimeout(timer);
-  }, [loadOverview, session?.access_token]);
+  }, [loadOverview, session]);
 
   function signOut() {
+    void fetch("/api/admin/logout", { method: "POST" });
     setSession(null);
     setOverview(emptyOverview);
     setError("");
     setNotice("");
-    window.localStorage.removeItem("mindease-admin-session");
   }
 
   function updateTherapistField(field: keyof TherapistForm, value: string) {
@@ -507,7 +503,7 @@ export function AdminConsole() {
   }
 
   async function uploadImage(file: File, purpose: "therapist-photo" | "blog-image", therapistId = "") {
-    if (!session?.access_token) return "";
+    if (!session) return "";
 
     setUploading(true);
     try {
@@ -518,9 +514,7 @@ export function AdminConsole() {
 
       const response = await fetch("/api/uploads", {
         method: "POST",
-        headers: {
-          authorization: `Bearer ${session.access_token}`,
-        },
+        headers: apiHeaders(session.access_token),
         body: formData,
       });
       const body = await response.json();
@@ -627,7 +621,13 @@ export function AdminConsole() {
         <label className="wide-field image-upload-field">
           <span>Profile photo</span>
           {therapistEditForm.profileImageUrl ? (
-            <img src={therapistEditForm.profileImageUrl} alt={`${therapistEditForm.fullName} profile preview`} />
+            <Image
+              src={therapistEditForm.profileImageUrl}
+              alt={`${therapistEditForm.fullName} profile preview`}
+              width={124}
+              height={124}
+              unoptimized
+            />
           ) : (
             <span className="upload-placeholder">JPG, PNG or WebP / maximum 5 MB</span>
           )}
@@ -668,7 +668,7 @@ export function AdminConsole() {
   }
 
   async function updateInquiry(id: string) {
-    if (!session?.access_token) return;
+    if (!session) return;
 
     const draft = messageDrafts[id] ?? { therapistId: "", note: "", status: "in_progress" };
     setSaving(true);
@@ -678,10 +678,7 @@ export function AdminConsole() {
     try {
       const response = await fetch("/api/admin/inquiries", {
         method: "PATCH",
-        headers: {
-          authorization: `Bearer ${session.access_token}`,
-          "content-type": "application/json",
-        },
+        headers: apiHeaders(session.access_token, true),
         body: JSON.stringify({
           id,
           status: draft.status || "in_progress",
@@ -707,7 +704,7 @@ export function AdminConsole() {
   }
 
   async function reviewProfileChange(id: string, action: "approve" | "decline") {
-    if (!session?.access_token) return;
+    if (!session) return;
 
     setSaving(true);
     setError("");
@@ -716,10 +713,7 @@ export function AdminConsole() {
     try {
       const response = await fetch("/api/admin/profile-change-requests", {
         method: "PATCH",
-        headers: {
-          authorization: `Bearer ${session.access_token}`,
-          "content-type": "application/json",
-        },
+        headers: apiHeaders(session.access_token, true),
         body: JSON.stringify({ id, action }),
       });
       const body = await response.json();
@@ -739,7 +733,7 @@ export function AdminConsole() {
 
   async function saveBlogPost(event: React.FormEvent) {
     event.preventDefault();
-    if (!session?.access_token) return;
+    if (!session) return;
 
     setSaving(true);
     setError("");
@@ -748,10 +742,7 @@ export function AdminConsole() {
     try {
       const response = await fetch("/api/admin/blog-posts", {
         method: "POST",
-        headers: {
-          authorization: `Bearer ${session.access_token}`,
-          "content-type": "application/json",
-        },
+        headers: apiHeaders(session.access_token, true),
         body: JSON.stringify(blogForm),
       });
       const body = await response.json();
@@ -771,7 +762,7 @@ export function AdminConsole() {
   }
 
   async function updateBlogPost(id: string, action: "publish" | "draft") {
-    if (!session?.access_token) return;
+    if (!session) return;
 
     setSaving(true);
     setError("");
@@ -780,10 +771,7 @@ export function AdminConsole() {
     try {
       const response = await fetch("/api/admin/blog-posts", {
         method: "PATCH",
-        headers: {
-          authorization: `Bearer ${session.access_token}`,
-          "content-type": "application/json",
-        },
+        headers: apiHeaders(session.access_token, true),
         body: JSON.stringify({ id, action }),
       });
       const body = await response.json();
@@ -802,7 +790,7 @@ export function AdminConsole() {
   }
 
   async function updateAppointment(id: string, action: "mark_payment_pending" | "record_payment" | "confirm_session" | "complete" | "cancel") {
-    if (!session?.access_token) return;
+    if (!session) return;
 
     const draft = appointmentDrafts[id] ?? { paymentReference: "", adminNotes: "" };
     setSaving(true);
@@ -812,10 +800,7 @@ export function AdminConsole() {
     try {
       const response = await fetch("/api/admin/appointments", {
         method: "PATCH",
-        headers: {
-          authorization: `Bearer ${session.access_token}`,
-          "content-type": "application/json",
-        },
+        headers: apiHeaders(session.access_token, true),
         body: JSON.stringify({
           id,
           action,
@@ -839,7 +824,7 @@ export function AdminConsole() {
   }
 
   async function reviewAvailability(id: string, action: "approve" | "decline", override = false) {
-    if (!session?.access_token) return;
+    if (!session) return;
 
     setSaving(true);
     setError("");
@@ -848,10 +833,7 @@ export function AdminConsole() {
     try {
       const response = await fetch("/api/admin/availability", {
         method: "PATCH",
-        headers: {
-          authorization: `Bearer ${session.access_token}`,
-          "content-type": "application/json",
-        },
+        headers: apiHeaders(session.access_token, true),
         body: JSON.stringify({ id, action, override }),
       });
       const body = await response.json();
@@ -871,7 +853,7 @@ export function AdminConsole() {
 
   async function saveContactSettings(event: React.FormEvent) {
     event.preventDefault();
-    if (!session?.access_token) return;
+    if (!session) return;
 
     setSaving(true);
     setError("");
@@ -880,10 +862,7 @@ export function AdminConsole() {
     try {
       const response = await fetch("/api/admin/site-settings", {
         method: "PATCH",
-        headers: {
-          authorization: `Bearer ${session.access_token}`,
-          "content-type": "application/json",
-        },
+        headers: apiHeaders(session.access_token, true),
         body: JSON.stringify(contactSettings),
       });
       const body = (await response.json()) as { error?: string; settings?: ContactSettingsForm };
@@ -900,7 +879,9 @@ export function AdminConsole() {
         contactSettingsError: undefined,
       }));
       setNotice(
-        `Published and verified: WhatsApp ${verifiedSettings.whatsappNumber}, ${verifiedSettings.contactEmail}.`,
+        `Published and verified: WhatsApp ${verifiedSettings.whatsappNumber}${
+          verifiedSettings.contactEmail ? `, ${verifiedSettings.contactEmail}` : ""
+        }.`,
       );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not update public contact settings.");
@@ -909,9 +890,19 @@ export function AdminConsole() {
     }
   }
 
+  if (checkingSession) {
+    return (
+      <main className="admin-page" id="main-content">
+        <section className="admin-login" aria-live="polite">
+          <p className="admin-kicker">Checking secure admin session…</p>
+        </section>
+      </main>
+    );
+  }
+
   if (!session) {
     return (
-      <main className="admin-page">
+      <main className="admin-page" id="main-content">
         <section className="admin-login">
           <div className="admin-login-copy">
             <Link className="admin-mini-brand" href="/">
@@ -960,8 +951,8 @@ export function AdminConsole() {
                 value={password}
               />
             </label>
-            {error ? <p className="admin-error">{error}</p> : null}
-            {notice ? <p className="admin-notice">{notice}</p> : null}
+            {error ? <p className="admin-error" role="alert">{error}</p> : null}
+            {notice ? <p className="admin-notice" role="status">{notice}</p> : null}
             <button disabled={loading || !email || !password} type="submit">
               {loading ? "Signing in..." : "Sign in"}
             </button>
@@ -981,7 +972,7 @@ export function AdminConsole() {
   const availabilitySlots = overview.availabilitySlots ?? [];
 
   return (
-    <main className="admin-shell">
+    <main className="admin-shell" id="main-content" aria-busy={saving}>
       <aside className="admin-sidebar">
         <Link className="admin-mini-brand" href="/">
           <Image src="/brand/mindease-app-icon.png" alt="" width={44} height={44} />
@@ -1012,12 +1003,12 @@ export function AdminConsole() {
         </header>
 
         {error ? (
-          <section className="admin-warning">
+          <section className="admin-warning" role="alert">
             <strong>{error}</strong>
             <p>Some clinic information could not load. Check the site connection and try again.</p>
           </section>
         ) : null}
-        {notice ? <p className="admin-notice inline">{notice}</p> : null}
+        {notice ? <p className="admin-notice inline" role="status">{notice}</p> : null}
 
         <section className="admin-kpis" aria-label="Clinic metrics">
           <article>
@@ -1157,7 +1148,13 @@ export function AdminConsole() {
               <label className="wide-field image-upload-field">
                 <span>Profile photo from device</span>
                 {therapistForm.profileImageUrl ? (
-                  <img src={therapistForm.profileImageUrl} alt="New therapist profile preview" />
+                  <Image
+                    src={therapistForm.profileImageUrl}
+                    alt="New therapist profile preview"
+                    width={124}
+                    height={124}
+                    unoptimized
+                  />
                 ) : (
                   <span className="upload-placeholder">JPG, PNG or WebP / maximum 5 MB</span>
                 )}
@@ -1212,10 +1209,25 @@ export function AdminConsole() {
                     <button disabled={saving} onClick={() => startTherapistEdit(therapist)} type="button">
                       Edit profile
                     </button>
-                    <button disabled={saving} onClick={() => void updateTherapist(therapist.id, "approve")} type="button">
+                    <button
+                      disabled={saving}
+                      onClick={() => confirmAction(
+                        `Approve and publish ${therapist.name} on the public site?`,
+                        () => void updateTherapist(therapist.id, "approve"),
+                      )}
+                      type="button"
+                    >
                       Approve live
                     </button>
-                    <button disabled={saving} onClick={() => void updateTherapist(therapist.id, "reject")} type="button">
+                    <button
+                      className="danger-link"
+                      disabled={saving}
+                      onClick={() => confirmAction(
+                        `Reject ${therapist.name}? This keeps the profile off the public site.`,
+                        () => void updateTherapist(therapist.id, "reject"),
+                      )}
+                      type="button"
+                    >
                       Reject
                     </button>
                   </div>
@@ -1255,10 +1267,25 @@ export function AdminConsole() {
                       ))}
                     </div>
                     <div className="admin-actions">
-                      <button disabled={saving} onClick={() => void reviewProfileChange(change.id, "approve")} type="button">
+                      <button
+                        disabled={saving}
+                        onClick={() => confirmAction(
+                          `Approve and publish ${change.therapistName}'s pending profile edits?`,
+                          () => void reviewProfileChange(change.id, "approve"),
+                        )}
+                        type="button"
+                      >
                         Approve and publish
                       </button>
-                      <button disabled={saving} onClick={() => void reviewProfileChange(change.id, "decline")} type="button">
+                      <button
+                        className="danger-link"
+                        disabled={saving}
+                        onClick={() => confirmAction(
+                          `Decline the pending profile edits from ${change.therapistName}?`,
+                          () => void reviewProfileChange(change.id, "decline"),
+                        )}
+                        type="button"
+                      >
                         Decline
                       </button>
                     </div>
@@ -1313,16 +1340,38 @@ export function AdminConsole() {
                     <button disabled={saving} onClick={() => void updateAppointment(appointment.id, "mark_payment_pending")} type="button">
                       Payment pending
                     </button>
-                    <button disabled={saving} onClick={() => void updateAppointment(appointment.id, "record_payment")} type="button">
+                    <button
+                      disabled={saving}
+                      onClick={() => confirmAction(
+                        `Record payment for appointment ${appointment.id}? Verify the payment reference first.`,
+                        () => void updateAppointment(appointment.id, "record_payment"),
+                      )}
+                      type="button"
+                    >
                       Record payment
                     </button>
                     <button disabled={saving} onClick={() => void updateAppointment(appointment.id, "confirm_session")} type="button">
                       Confirm session
                     </button>
-                    <button disabled={saving} onClick={() => void updateAppointment(appointment.id, "complete")} type="button">
+                    <button
+                      disabled={saving}
+                      onClick={() => confirmAction(
+                        `Mark appointment ${appointment.id} as complete?`,
+                        () => void updateAppointment(appointment.id, "complete"),
+                      )}
+                      type="button"
+                    >
                       Complete
                     </button>
-                    <button disabled={saving} onClick={() => void updateAppointment(appointment.id, "cancel")} type="button">
+                    <button
+                      className="danger-link"
+                      disabled={saving}
+                      onClick={() => confirmAction(
+                        `Cancel appointment ${appointment.id} for ${appointment.client}?`,
+                        () => void updateAppointment(appointment.id, "cancel"),
+                      )}
+                      type="button"
+                    >
                       Cancel
                     </button>
                   </div>
@@ -1355,7 +1404,15 @@ export function AdminConsole() {
                     <button disabled={saving} onClick={() => startTherapistEdit(therapist)} type="button">
                       Edit profile
                     </button>
-                    <button disabled={saving} onClick={() => void updateTherapist(therapist.id, "hide")} type="button">
+                    <button
+                      className="danger-link"
+                      disabled={saving}
+                      onClick={() => confirmAction(
+                        `Hide ${therapist.name} from the public directory?`,
+                        () => void updateTherapist(therapist.id, "hide"),
+                      )}
+                      type="button"
+                    >
                       Hide from site
                     </button>
                   </div>
@@ -1490,10 +1547,25 @@ export function AdminConsole() {
                     <button disabled={saving} onClick={() => void reviewAvailability(slot.id, "approve")} type="button">
                       Approve
                     </button>
-                    <button disabled={saving} onClick={() => void reviewAvailability(slot.id, "approve", true)} type="button">
+                    <button
+                      disabled={saving}
+                      onClick={() => confirmAction(
+                        `Override conflict checks and approve this slot for ${slot.therapistName}?`,
+                        () => void reviewAvailability(slot.id, "approve", true),
+                      )}
+                      type="button"
+                    >
                       Override approve
                     </button>
-                    <button disabled={saving} onClick={() => void reviewAvailability(slot.id, "decline")} type="button">
+                    <button
+                      className="danger-link"
+                      disabled={saving}
+                      onClick={() => confirmAction(
+                        `Decline this availability submission from ${slot.therapistName}?`,
+                        () => void reviewAvailability(slot.id, "decline"),
+                      )}
+                      type="button"
+                    >
                       Decline
                     </button>
                   </div>
@@ -1559,7 +1631,12 @@ export function AdminConsole() {
                 </span>
               </label>
               <button
-                disabled={saving || !contactSettings.whatsappNumber || !contactSettings.displayPhone || !contactSettings.contactEmail}
+                disabled={
+                  saving ||
+                  !contactSettings.whatsappNumber ||
+                  !contactSettings.displayPhone ||
+                  (!contactSettings.emailIsPlaceholder && !contactSettings.contactEmail)
+                }
                 type="submit"
               >
                 {saving ? "Saving..." : "Publish contact settings"}
@@ -1647,10 +1724,24 @@ export function AdminConsole() {
                   <small>{post.slug}</small>
                   <em>{post.status}</em>
                   <div className="admin-actions">
-                    <button disabled={saving} onClick={() => void updateBlogPost(post.id, "publish")} type="button">
+                    <button
+                      disabled={saving}
+                      onClick={() => confirmAction(
+                        `Publish “${post.title}” on the public website?`,
+                        () => void updateBlogPost(post.id, "publish"),
+                      )}
+                      type="button"
+                    >
                       Publish
                     </button>
-                    <button disabled={saving} onClick={() => void updateBlogPost(post.id, "draft")} type="button">
+                    <button
+                      disabled={saving}
+                      onClick={() => confirmAction(
+                        `Remove “${post.title}” from the public site and move it to drafts?`,
+                        () => void updateBlogPost(post.id, "draft"),
+                      )}
+                      type="button"
+                    >
                       Move to draft
                     </button>
                   </div>

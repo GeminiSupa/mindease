@@ -9,11 +9,14 @@ function AppointmentConfirmContent() {
   const searchParams = useSearchParams();
   const token = searchParams.get("token") ?? "";
   const [loading, setLoading] = useState(false);
+  const [pendingAction, setPendingAction] = useState<"confirm" | "decline" | null>(null);
+  const [completedAction, setCompletedAction] = useState<"confirm" | "decline" | null>(null);
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
 
   async function submit(action: "confirm" | "decline") {
     setLoading(true);
+    setPendingAction(action);
     setNotice("");
     setError("");
 
@@ -36,15 +39,17 @@ function AppointmentConfirmContent() {
           ? "Your therapist match is confirmed. Please wait for the clinic's payment and session instructions."
           : "Your response has been recorded. The coordinator can suggest another therapist if needed.",
       );
+      setCompletedAction(action);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not update appointment.");
     } finally {
       setLoading(false);
+      setPendingAction(null);
     }
   }
 
   return (
-    <main className="admin-page">
+    <main className="admin-page" id="main-content">
       <section className="admin-login">
         <div className="admin-login-copy">
           <Link className="admin-mini-brand" href="/">
@@ -69,19 +74,19 @@ function AppointmentConfirmContent() {
             <h2>Review your decision</h2>
             <p>Choose one option below. If the link has expired, contact the coordinator for a new one.</p>
           </div>
-          {!token ? <p className="admin-error">Missing confirmation token.</p> : null}
-          {error ? <p className="admin-error">{error}</p> : null}
-          {notice ? <p className="admin-notice">{notice}</p> : null}
-          <button disabled={loading || !token} onClick={() => void submit("confirm")} type="button">
-            {loading ? "Saving..." : "Confirm suggested therapist"}
+          {!token ? <p className="admin-error" role="alert">Missing confirmation token.</p> : null}
+          {error ? <p className="admin-error" role="alert">{error}</p> : null}
+          {notice ? <p className="admin-notice" role="status">{notice}</p> : null}
+          <button disabled={loading || !token || completedAction !== null} onClick={() => void submit("confirm")} type="button">
+            {pendingAction === "confirm" ? "Confirming..." : completedAction === "confirm" ? "Therapist confirmed" : "Confirm suggested therapist"}
           </button>
           <button
             className="admin-link-button"
-            disabled={loading || !token}
+            disabled={loading || !token || completedAction !== null}
             onClick={() => void submit("decline")}
             type="button"
           >
-            Decline and request alternatives
+            {pendingAction === "decline" ? "Recording response..." : completedAction === "decline" ? "Alternatives requested" : "Decline and request alternatives"}
           </button>
         </section>
       </section>
@@ -93,7 +98,7 @@ export default function AppointmentConfirmPage() {
   return (
     <Suspense
       fallback={(
-        <main className="admin-page">
+        <main className="admin-page" id="main-content">
           <section className="admin-login">
             <p className="admin-kicker">Loading appointment confirmation</p>
           </section>

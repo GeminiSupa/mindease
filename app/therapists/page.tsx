@@ -116,12 +116,15 @@ export default async function TherapistsPage() {
     getApprovedTherapists(),
     getPublicContactSettings(),
   ]);
-  const whatsappHref = `https://wa.me/${contactSettings.whatsappNumber}?text=${encodeURIComponent(
-    "Hello MindEase, I would like help choosing a therapist.",
-  )}`;
+  const hasWhatsApp = /^\d{8,15}$/.test(contactSettings.whatsappNumber);
+  const contactHref = hasWhatsApp
+    ? `https://wa.me/${contactSettings.whatsappNumber}?text=${encodeURIComponent(
+        "Hello MindEase, I would like help choosing a therapist.",
+      )}`
+    : "/#contact";
 
   return (
-    <main className="directory-page">
+    <main className="directory-page" id="main-content">
       <section className="directory-hero">
         <nav className="site-nav" aria-label="Therapist directory navigation">
           <Link className="brand" href="/">
@@ -136,7 +139,7 @@ export default async function TherapistsPage() {
             <Link href="/self-tests">Self-checks</Link>
             <Link href="/therapist/login">Therapist portal</Link>
           </div>
-          <a className="nav-cta" href={whatsappHref} target="_blank" rel="noreferrer">Get matched</a>
+          <a className="nav-cta" href={contactHref}>{hasWhatsApp ? "Get matched" : "Contact"}</a>
         </nav>
         <div className="directory-hero-layout">
           <div className="directory-copy">
@@ -147,8 +150,10 @@ export default async function TherapistsPage() {
               our care coordinator to confirm the right fit.
             </p>
             <div className="directory-hero-actions">
-              <a className="directory-primary" href="#browse">Browse therapists</a>
-              <a className="directory-secondary" href={whatsappHref} target="_blank" rel="noreferrer">Help me choose</a>
+              <a className="directory-primary" href={therapists.length ? "#browse" : contactHref}>
+                {therapists.length ? "Browse therapists" : hasWhatsApp ? "Ask for a match" : "Contact MindEase"}
+              </a>
+              {therapists.length ? <a className="directory-secondary" href={contactHref}>Help me choose</a> : null}
             </div>
             <div className="directory-trust" aria-label="Directory assurances">
               <span><i aria-hidden="true" /> Admin-reviewed profiles</span>
@@ -166,7 +171,7 @@ export default async function TherapistsPage() {
               <li><span>2</span><div><strong>Tell us what matters</strong><small>Share only what you feel comfortable sharing.</small></div></li>
               <li><span>3</span><div><strong>Confirm the fit</strong><small>We check availability before you decide.</small></div></li>
             </ol>
-            <a href={whatsappHref} target="_blank" rel="noreferrer">Ask the care coordinator <span aria-hidden="true">→</span></a>
+            <a href={contactHref}>Ask the care coordinator <span aria-hidden="true">→</span></a>
           </aside>
         </div>
       </section>
@@ -178,16 +183,25 @@ export default async function TherapistsPage() {
           <div className="empty-state">
             <strong>No approved therapists are live yet.</strong>
             <p>Ask the care coordinator for the latest available options.</p>
-            <a className="directory-primary" href={whatsappHref}>Ask for a match</a>
+            <a className="directory-primary" href={contactHref}>{hasWhatsApp ? "Ask for a match" : "Contact MindEase"}</a>
           </div>
         </section>
       )}
 
-      <a className="directory-floating-match" href={whatsappHref} target="_blank" rel="noreferrer">
+      <a className="directory-floating-match" href={contactHref}>
         <span aria-hidden="true">✦</span>
         <span><small>Not sure who to choose?</small><strong>Get a personal match</strong></span>
         <b aria-hidden="true">→</b>
       </a>
+      <footer className="simple-footer" aria-label="MindEase links">
+        <strong>MindEase Online Clinic</strong>
+        <nav>
+          <Link href="/">Home</Link>
+          <Link href="/self-tests">Self-checks</Link>
+          <Link href="/therapists/join">Join the network</Link>
+          <Link href="/therapist/login">Therapist portal</Link>
+        </nav>
+      </footer>
     </main>
   );
 }

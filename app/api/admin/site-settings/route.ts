@@ -77,7 +77,11 @@ function normalizePayload(body: Record<string, unknown>) {
   if (displayPhone.length < 8 || displayPhone.length > 30) {
     return { error: "Display phone must be between 8 and 30 characters." };
   }
-  if (contactEmail.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail)) {
+  if (
+    contactEmail.length > 254 ||
+    (!emailIsPlaceholder && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail)) ||
+    (contactEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail))
+  ) {
     return { error: "Enter a valid contact email address." };
   }
 

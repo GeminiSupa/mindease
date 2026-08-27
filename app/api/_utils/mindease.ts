@@ -24,6 +24,20 @@ export type SupabaseUser = {
 
 export type RecordLike = Record<string, unknown>;
 
+function cookieValue(request: Request, name: string) {
+  const cookieHeader = request.headers.get("cookie") ?? "";
+  const match = cookieHeader
+    .split(";")
+    .map((item) => item.trim())
+    .find((item) => item.startsWith(`${name}=`));
+  return match ? decodeURIComponent(match.slice(name.length + 1)) : "";
+}
+
+function requestToken(request: Request, cookieName: string) {
+  const bearer = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "").trim();
+  return bearer || cookieValue(request, cookieName);
+}
+
 export function json(body: unknown, status = 200) {
   return Response.json(body, {
     status,
@@ -123,7 +137,7 @@ export async function serviceFetch(path: string, init: RequestInit = {}) {
 }
 
 export async function requireAdmin(request: Request) {
-  const token = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
+  const token = requestToken(request, "mindease-admin-access");
   if (!token) return null;
 
   const user = await getUser(token);
@@ -144,7 +158,7 @@ export async function requireAdmin(request: Request) {
 }
 
 export async function requireTherapist(request: Request) {
-  const token = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
+  const token = requestToken(request, "mindease-therapist-access");
   if (!token) return null;
 
   const user = await getUser(token);

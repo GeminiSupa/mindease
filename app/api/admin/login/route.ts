@@ -64,5 +64,30 @@ export async function POST(request: Request) {
     );
   }
 
+  const cookieStore = await cookies();
+  const cookieOptions = {
+    httpOnly: true,
+    path: "/",
+    sameSite: "lax" as const,
+    secure: process.env.NODE_ENV === "production",
+  };
+  const accessMaxAge = Number(body?.expires_in) || 3600;
+  if (typeof body?.access_token === "string") {
+    cookieStore.set(ADMIN_ACCESS_COOKIE, body.access_token, { ...cookieOptions, maxAge: accessMaxAge });
+    cookieStore.set(THERAPIST_ACCESS_COOKIE, body.access_token, { ...cookieOptions, maxAge: accessMaxAge });
+  }
+  if (typeof body?.refresh_token === "string") {
+    const refreshOptions = { ...cookieOptions, maxAge: 60 * 60 * 24 * 30 };
+    cookieStore.set(ADMIN_REFRESH_COOKIE, body.refresh_token, refreshOptions);
+    cookieStore.set(THERAPIST_REFRESH_COOKIE, body.refresh_token, refreshOptions);
+  }
+
   return json(body);
 }
+import { cookies } from "next/headers";
+import {
+  ADMIN_ACCESS_COOKIE,
+  ADMIN_REFRESH_COOKIE,
+  THERAPIST_ACCESS_COOKIE,
+  THERAPIST_REFRESH_COOKIE,
+} from "../auth";

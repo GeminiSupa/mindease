@@ -8,6 +8,8 @@ const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 export const ADMIN_ACCESS_COOKIE = "mindease-admin-access";
 export const ADMIN_REFRESH_COOKIE = "mindease-admin-refresh";
+export const THERAPIST_ACCESS_COOKIE = "mindease-therapist-access";
+export const THERAPIST_REFRESH_COOKIE = "mindease-therapist-refresh";
 
 const ADMIN_EMAILS = new Set(
   [

@@ -14,9 +14,9 @@ export type PublicContactSettings = {
 };
 
 export const defaultContactSettings: PublicContactSettings = {
-  whatsappNumber: process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? "923001234567",
-  displayPhone: process.env.NEXT_PUBLIC_DISPLAY_PHONE ?? "+92 300 1234567",
-  contactEmail: process.env.NEXT_PUBLIC_CONTACT_EMAIL ?? "hello@mindease.example",
+  whatsappNumber: process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? "",
+  displayPhone: process.env.NEXT_PUBLIC_DISPLAY_PHONE ?? "",
+  contactEmail: process.env.NEXT_PUBLIC_CONTACT_EMAIL ?? "",
   emailIsPlaceholder: process.env.NEXT_PUBLIC_CONTACT_EMAIL_IS_PLACEHOLDER !== "false",
 };
 

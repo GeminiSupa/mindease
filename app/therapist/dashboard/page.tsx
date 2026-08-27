@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 
 type TherapistSession = {
-  access_token: string;
+  access_token?: string;
   user?: {
     email?: string;
   };
@@ -27,6 +27,9 @@ type TherapistProfile = {
 };
 
 type DashboardData = {
+  user?: {
+    email?: string;
+  };
   therapist?: TherapistProfile;
   appointments?: Array<{
     id: string;
@@ -92,6 +95,13 @@ function friendlyLabel(value: string) {
   return spaced ? `${spaced.charAt(0).toUpperCase()}${spaced.slice(1)}` : "Not set";
 }
 
+function apiHeaders(accessToken?: string, json = false) {
+  return {
+    ...(accessToken ? { authorization: `Bearer ${accessToken}` } : {}),
+    ...(json ? { "content-type": "application/json" } : {}),
+  };
+}
+
 export default function TherapistDashboard() {
   const [session, setSession] = useState<TherapistSession | null>(null);
   const [dashboard, setDashboard] = useState<DashboardData>({});
@@ -101,16 +111,15 @@ export default function TherapistDashboard() {
   const [slotType, setSlotType] = useState("available");
   const [recurrenceRule, setRecurrenceRule] = useState("none");
   const [slotNotes, setSlotNotes] = useState("");
+  const [timeZone, setTimeZone] = useState("your local timezone");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
 
-  const loadDashboard = useCallback(async (accessToken: string) => {
+  const loadDashboard = useCallback(async (accessToken?: string) => {
     const response = await fetch("/api/therapist/me", {
-      headers: {
-        authorization: `Bearer ${accessToken}`,
-      },
+      headers: apiHeaders(accessToken),
     });
     const body = (await response.json()) as DashboardData & { error?: string };
 
@@ -132,30 +141,29 @@ export default function TherapistDashboard() {
         availabilityStatus: therapist.availability_status ?? "Available",
       });
     }
+    return body;
   }, []);
 
   useEffect(() => {
     queueMicrotask(() => {
-      try {
-        const raw = window.localStorage.getItem("mindease-therapist-session");
-        if (!raw) {
+      void fetch("/api/therapist/session", { cache: "no-store" })
+        .then(async (response) => {
+          if (!response.ok) throw new Error("Therapist session unavailable.");
+          return loadDashboard();
+        })
+        .then((body) => setSession({ user: body.user }))
+        .catch(() => {
           window.location.href = "/therapist/login";
-          return;
-        }
-        const stored = JSON.parse(raw) as TherapistSession;
-        if (!stored.access_token) {
-          window.location.href = "/therapist/login";
-          return;
-        }
-        setSession(stored);
-        void loadDashboard(stored.access_token)
-          .catch((err) => setError(err instanceof Error ? err.message : "Could not load dashboard."))
-          .finally(() => setLoading(false));
-      } catch {
-        window.location.href = "/therapist/login";
-      }
+        })
+        .finally(() => setLoading(false));
     });
   }, [loadDashboard]);
+
+  useEffect(() => {
+    queueMicrotask(() => {
+      setTimeZone(Intl.DateTimeFormat().resolvedOptions().timeZone || "your local timezone");
+    });
+  }, []);
 
   function updateField(field: keyof ProfileForm, value: string) {
     setForm((current) => ({ ...current, [field]: value }));
@@ -163,7 +171,7 @@ export default function TherapistDashboard() {
 
   async function submitChanges(event: React.FormEvent) {
     event.preventDefault();
-    if (!session?.access_token) return;
+    if (!session) return;
 
     setSaving(true);
     setError("");
@@ -172,10 +180,7 @@ export default function TherapistDashboard() {
     try {
       const response = await fetch("/api/therapist/me", {
         method: "PATCH",
-        headers: {
-          authorization: `Bearer ${session.access_token}`,
-          "content-type": "application/json",
-        },
+        headers: apiHeaders(session.access_token, true),
         body: JSON.stringify(form),
       });
       const body = (await response.json()) as { error?: string };
@@ -195,7 +200,14 @@ export default function TherapistDashboard() {
 
   async function addSlot(event: React.FormEvent) {
     event.preventDefault();
-    if (!session?.access_token) return;
+    if (!session) return;
+
+    const starts = new Date(slotStartsAt);
+    const ends = new Date(slotEndsAt);
+    if (!Number.isFinite(starts.getTime()) || !Number.isFinite(ends.getTime())) {
+      setError("Enter a valid start and end time.");
+      return;
+    }
 
     setSaving(true);
     setError("");
@@ -204,11 +216,15 @@ export default function TherapistDashboard() {
     try {
       const response = await fetch("/api/therapist/me", {
         method: "PATCH",
-        headers: {
-          authorization: `Bearer ${session.access_token}`,
-          "content-type": "application/json",
-        },
-        body: JSON.stringify({ slotStartsAt, slotEndsAt, slotType, recurrenceRule, notes: slotNotes }),
+        headers: apiHeaders(session.access_token, true),
+        body: JSON.stringify({
+          slotStartsAt: starts.toISOString(),
+          slotEndsAt: ends.toISOString(),
+          slotType,
+          recurrenceRule,
+          notes: slotNotes,
+          timeZone,
+        }),
       });
       const body = (await response.json()) as { error?: string };
 
@@ -231,12 +247,13 @@ export default function TherapistDashboard() {
   }
 
   function signOut() {
-    window.localStorage.removeItem("mindease-therapist-session");
-    window.location.href = "/therapist/login";
+    void fetch("/api/admin/logout", { method: "POST" }).finally(() => {
+      window.location.href = "/therapist/login";
+    });
   }
 
   async function uploadProfilePhoto(file: File) {
-    if (!session?.access_token) return;
+    if (!session) return;
 
     setSaving(true);
     setError("");
@@ -248,9 +265,7 @@ export default function TherapistDashboard() {
       formData.set("purpose", "therapist-photo");
       const response = await fetch("/api/uploads", {
         method: "POST",
-        headers: {
-          authorization: `Bearer ${session.access_token}`,
-        },
+        headers: apiHeaders(session.access_token),
         body: formData,
       });
       const body = await response.json();
@@ -270,7 +285,7 @@ export default function TherapistDashboard() {
 
   if (loading) {
     return (
-      <main className="admin-page">
+      <main className="admin-page" id="main-content">
         <section className="admin-login">
           <p className="admin-kicker">Loading therapist dashboard</p>
         </section>
@@ -284,7 +299,7 @@ export default function TherapistDashboard() {
   const changeRequests = dashboard.changeRequests ?? [];
 
   return (
-    <main className="admin-shell therapist-shell">
+    <main className="admin-shell therapist-shell" id="main-content" aria-busy={saving}>
       <aside className="admin-sidebar">
         <Link className="admin-mini-brand" href="/">
           <Image src="/brand/mindease-app-icon.png" alt="" width={44} height={44} />
@@ -313,8 +328,8 @@ export default function TherapistDashboard() {
           </div>
         </header>
 
-        {error ? <p className="admin-error">{error}</p> : null}
-        {notice ? <p className="admin-notice inline">{notice}</p> : null}
+        {error ? <p className="admin-error" role="alert">{error}</p> : null}
+        {notice ? <p className="admin-notice inline" role="status">{notice}</p> : null}
 
         <section className="admin-kpis" aria-label="Therapist metrics">
           <article>
@@ -375,7 +390,13 @@ export default function TherapistDashboard() {
               <label className="wide-field image-upload-field">
                 <span>Profile photo from device</span>
                 {form.profileImageUrl ? (
-                  <img src={form.profileImageUrl} alt={`${therapist?.full_name ?? "Therapist"} profile preview`} />
+                  <Image
+                    src={form.profileImageUrl}
+                    alt={`${therapist?.full_name ?? "Therapist"} profile preview`}
+                    width={124}
+                    height={124}
+                    unoptimized
+                  />
                 ) : (
                   <span className="upload-placeholder">JPG, PNG or WebP / maximum 5 MB</span>
                 )}
@@ -410,6 +431,7 @@ export default function TherapistDashboard() {
               <label>
                 Starts
                 <input type="datetime-local" value={slotStartsAt} onChange={(event) => setSlotStartsAt(event.target.value)} required />
+                <small>Shown in your device timezone: {timeZone}</small>
               </label>
               <label>
                 Ends
@@ -435,7 +457,7 @@ export default function TherapistDashboard() {
                 Notes
                 <input value={slotNotes} onChange={(event) => setSlotNotes(event.target.value)} placeholder="Optional context for admin approval" />
               </label>
-              <button disabled={saving} type="submit">Submit availability</button>
+              <button disabled={saving} type="submit">{saving ? "Submitting..." : "Submit availability"}</button>
             </form>
             <div className="admin-list compact">
               {slots.slice(0, 5).map((slot) => (

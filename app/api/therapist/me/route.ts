@@ -48,6 +48,8 @@ function normalizeProfileChanges(body: Record<string, unknown>) {
 }
 
 function buildSlots(startRaw: string, endRaw: string, recurrence: string): SlotDraft[] {
+  const hasExplicitTimezone = (valueToCheck: string) => /(?:Z|[+-]\d{2}:\d{2})$/i.test(valueToCheck);
+  if (!hasExplicitTimezone(startRaw) || !hasExplicitTimezone(endRaw)) return [];
   const starts = new Date(startRaw);
   const ends = new Date(endRaw);
   if (!Number.isFinite(starts.getTime()) || !Number.isFinite(ends.getTime())) return [];

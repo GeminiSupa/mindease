@@ -6,7 +6,20 @@ import { getPublicContactSettings } from "./site-settings";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
+const configuredSiteUrl =
+  process.env.NEXT_PUBLIC_SITE_URL ??
+  process.env.CF_PAGES_URL ??
+  process.env.VERCEL_PROJECT_PRODUCTION_URL;
+const metadataBase = new URL(
+  configuredSiteUrl
+    ? configuredSiteUrl.startsWith("http")
+      ? configuredSiteUrl
+      : `https://${configuredSiteUrl}`
+    : "http://localhost:3000",
+);
+
 export const metadata: Metadata = {
+  metadataBase,
   title: "MindEase Online Clinic",
   description:
     "Private online therapy sessions with qualified clinical psychologists and experienced therapists.",
@@ -33,6 +46,7 @@ export default async function RootLayout({
   return (
     <html lang="en">
       <body>
+        <a className="skip-link" href="#main-content">Skip to main content</a>
         {children}
         <HelpChat whatsappNumber={contactSettings.whatsappNumber} />
       </body>

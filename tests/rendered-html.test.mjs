@@ -34,10 +34,11 @@ test("server-renders the MindEase clinic landing page", async () => {
   const html = await response.text();
   assert.match(html, /<title>MindEase Online Clinic<\/title>/i);
   assert.match(html, /Find a therapist who fits your concern/i);
-  assert.match(html, /Message on WhatsApp/i);
-  assert.match(html, /View therapist directory/i);
+  assert.match(html, /Contact MindEase/i);
+  assert.match(html, /Send a private inquiry/i);
   assert.match(html, /Send private inquiry/i);
-  assert.match(html, /Email contact coming soon/i);
+  assert.match(html, /Direct contact details are being updated/i);
+  assert.doesNotMatch(html, /\+92 300 1234567|923001234567/i);
   assert.match(html, /Informational self-checks/i);
   assert.match(html, /Check anxiety patterns/i);
   assert.match(html, /self-tests#relationship-adjustment/i);
@@ -125,4 +126,32 @@ test("surfaces therapist credentials, dashboard access, availability, and device
   assert.match(therapistRoute, /loginUrl:\s*"\/therapist\/login"/);
   assert.match(therapistRoute, /action === "edit"/);
   assert.match(uploadRoute, /Image storage is not configured/);
+});
+
+test("keeps therapist applications separate from client appointment inquiries", async () => {
+  const [joinPage, applicationRoute, contactRoute] = await Promise.all([
+    readFile(new URL("../app/therapists/join/page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/api/therapist-applications/route.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/api/contact/route.ts", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(joinPage, /action="\/api\/therapist-applications"/);
+  assert.match(joinPage, /name="consent"/);
+  assert.match(applicationRoute, /Therapist network application/);
+  assert.doesNotMatch(applicationRoute, /appointments/);
+  assert.match(contactRoute, /contact=\$\{status\}/);
+});
+
+test("does not persist privileged access tokens in browser storage", async () => {
+  const [admin, therapistLogin, therapistDashboard, loginRoute] = await Promise.all([
+    readFile(new URL("../app/admin/AdminConsole.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/therapist/login/page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/therapist/dashboard/page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/api/admin/login/route.ts", import.meta.url), "utf8"),
+  ]);
+
+  assert.doesNotMatch(admin, /localStorage|sessionStorage/);
+  assert.doesNotMatch(therapistLogin, /localStorage|sessionStorage/);
+  assert.doesNotMatch(therapistDashboard, /localStorage|sessionStorage/);
+  assert.match(loginRoute, /httpOnly:\s*true/);
 });

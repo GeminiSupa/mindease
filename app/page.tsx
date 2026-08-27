@@ -229,20 +229,31 @@ async function getPublishedBlogPosts() {
   }
 }
 
-export default async function Home() {
+export default async function Home({
+  searchParams,
+}: {
+  searchParams: Promise<{ contact?: string }>;
+}) {
+  const params = await searchParams;
   const [therapists, posts, contactSettings] = await Promise.all([
     getApprovedTherapists(),
     getPublishedBlogPosts(),
     getPublicContactSettings(),
   ]);
   const featuredTherapists = therapists.slice(0, 3);
-  const whatsappHref = `https://wa.me/${contactSettings.whatsappNumber}?text=${encodeURIComponent(
-    "Hello MindEase, I would like help finding a therapist.",
-  )}`;
-  const callHref = phoneHref(contactSettings.displayPhone);
+  const hasWhatsApp = /^\d{8,15}$/.test(contactSettings.whatsappNumber);
+  const hasPhone = /\d{8,15}/.test(contactSettings.displayPhone.replace(/\D/g, ""));
+  const hasEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactSettings.contactEmail);
+  const whatsappHref = hasWhatsApp
+    ? `https://wa.me/${contactSettings.whatsappNumber}?text=${encodeURIComponent(
+        "Hello MindEase, I would like help finding a therapist.",
+      )}`
+    : "#contact";
+  const callHref = hasPhone ? phoneHref(contactSettings.displayPhone) : "";
+  const contactStatus = params.contact === "sent" || params.contact === "error" ? params.contact : null;
 
   return (
-    <main className="landing-page">
+    <main className="landing-page" id="main-content">
       <section className="hero-shell therapy-hero" id="top">
         <nav className="site-nav" aria-label="Primary navigation">
           <a className="brand" href="#top" aria-label="MindEase Online Clinic home">
@@ -267,7 +278,7 @@ export default async function Home() {
             <a href="#contact">Contact</a>
           </div>
 
-          <a className="nav-cta" href={whatsappHref}>WhatsApp</a>
+          <a className="nav-cta" href={whatsappHref}>{hasWhatsApp ? "WhatsApp" : "Contact"}</a>
         </nav>
 
         <div className="hero-layout">
@@ -279,8 +290,16 @@ export default async function Home() {
               a comfortable next step.
             </p>
             <div className="hero-actions">
-              <a className="primary-btn" href={whatsappHref}>Message on WhatsApp</a>
-              <a className="ghost-btn" href="/therapists">View therapist directory</a>
+              <a className="primary-btn" href={whatsappHref}>
+                {hasWhatsApp ? "Message on WhatsApp" : "Contact MindEase"}
+              </a>
+              {featuredTherapists.length ? (
+                <a className="ghost-btn" href="/therapists">View therapist directory</a>
+              ) : (
+                <a className="ghost-btn" href={whatsappHref}>
+                  {hasWhatsApp ? "Get help choosing" : "Send a private inquiry"}
+                </a>
+              )}
             </div>
             <div className="trust-row" aria-label="MindEase trust highlights">
               <span>Reviewed profiles</span>
@@ -295,7 +314,7 @@ export default async function Home() {
                 <span>Start privately</span>
                 <strong>Request your therapist match</strong>
               </div>
-              <p>Usually easiest on WhatsApp</p>
+              <p>{hasWhatsApp ? "Usually easiest on WhatsApp" : "Private inquiry available"}</p>
             </div>
 
             <form className="search-form" aria-label="Quick booking form" action="/api/contact" method="post">
@@ -305,7 +324,7 @@ export default async function Home() {
               </label>
               <label>
                 WhatsApp or phone
-                <input name="contact" placeholder="+92 300 1234567" required />
+                <input name="contact" inputMode="tel" autoComplete="tel" placeholder="+92 3XX XXXXXXX" required />
               </label>
               <label>
                 Preferred language
@@ -336,10 +355,10 @@ export default async function Home() {
             </form>
 
             <div className="quick-slots" aria-label="Contact options">
-              <a href={whatsappHref}>WhatsApp {contactSettings.displayPhone}</a>
-              <a href={callHref}>Call {contactSettings.displayPhone}</a>
-              {contactSettings.emailIsPlaceholder ? (
-                <span>Email contact coming soon</span>
+              {hasWhatsApp ? <a href={whatsappHref}>WhatsApp {contactSettings.displayPhone || "MindEase"}</a> : null}
+              {hasPhone ? <a href={callHref}>Call {contactSettings.displayPhone}</a> : null}
+              {contactSettings.emailIsPlaceholder || !hasEmail ? (
+                <span>{hasWhatsApp || hasPhone ? "Email contact coming soon" : "Contact details are being updated"}</span>
               ) : (
                 <a href={`mailto:${contactSettings.contactEmail}`}>Email {contactSettings.contactEmail}</a>
               )}
@@ -347,9 +366,13 @@ export default async function Home() {
           </aside>
 
           <aside className="hero-media" aria-label="Calm therapy consultation setting">
-            <img
+            <Image
               src="https://images.unsplash.com/photo-1573497491208-6b1acb260507?auto=format&fit=crop&q=80&w=900&h=1100"
               alt="Therapist consultation in a calm office setting"
+              width={900}
+              height={1100}
+              priority
+              unoptimized
             />
             <div className="clinician-badge">
               <span>Thoughtful matching</span>
@@ -404,7 +427,9 @@ export default async function Home() {
             <span>Therapist Directory</span>
             <h2>Find someone you can talk to.</h2>
           </div>
-          <a className="text-link" href="/therapists">Open full directory</a>
+          <a className="text-link" href={featuredTherapists.length ? "/therapists" : whatsappHref}>
+            {featuredTherapists.length ? "Open full directory" : hasWhatsApp ? "Ask for a personal match" : "Contact the clinic"}
+          </a>
         </div>
 
         <div className="therapist-grid">
@@ -414,7 +439,14 @@ export default async function Home() {
               <article className="therapist-card" key={therapist.id}>
                 <div className="therapist-top">
                   {therapist.profile_image_url ? (
-                    <img className="therapist-photo" src={therapist.profile_image_url} alt={therapist.full_name} />
+                    <Image
+                      className="therapist-photo"
+                      src={therapist.profile_image_url}
+                      alt={therapist.full_name}
+                      width={124}
+                      height={124}
+                      unoptimized
+                    />
                   ) : (
                     <div className="avatar" aria-hidden="true">{initials(therapist.full_name)}</div>
                   )}
@@ -486,7 +518,7 @@ export default async function Home() {
               key={service.title}
               aria-label={`${service.title}: ${service.check}`}
             >
-              <img src={service.image} alt="" loading="lazy" />
+              <Image src={service.image} alt="" width={900} height={620} loading="lazy" unoptimized />
               <span className="service-number">0{index + 1}</span>
               <div className="service-card-copy">
                 <h3>{service.title}</h3>
@@ -520,9 +552,12 @@ export default async function Home() {
         <div className="blog-grid">
           {posts.map((post) => (
             <article className="blog-card" key={post.id}>
-              <img
+              <Image
                 src={post.image_url || "https://images.unsplash.com/photo-1493836512294-502baa1986e2?auto=format&fit=crop&q=80&w=900&h=540"}
                 alt=""
+                width={900}
+                height={540}
+                unoptimized
               />
               <div>
                 <span>{post.published_at ? new Date(post.published_at).toLocaleDateString("en-GB") : "Sample"}</span>
@@ -546,15 +581,19 @@ export default async function Home() {
           <h2>Your next step can be small.</h2>
           <p>
             Send a short message. A care coordinator will help with matching, fees, and available times.
-            {contactSettings.emailIsPlaceholder
-              ? " WhatsApp is currently the best way to reach us."
+            {contactSettings.emailIsPlaceholder || !hasEmail
+              ? hasWhatsApp
+                ? " WhatsApp is currently the best way to reach us."
+                : " Use the private inquiry form while direct contact details are being updated."
               : " You can also reach us by email."}
           </p>
           <div className="contact-cta-stack">
-            <a className="primary-btn" href={whatsappHref}>WhatsApp {contactSettings.displayPhone}</a>
-            <a className="ghost-btn" href={callHref}>Call {contactSettings.displayPhone}</a>
-            {contactSettings.emailIsPlaceholder ? (
-              <span>Email contact coming soon</span>
+            {hasWhatsApp ? (
+              <a className="primary-btn" href={whatsappHref}>WhatsApp {contactSettings.displayPhone || "MindEase"}</a>
+            ) : null}
+            {hasPhone ? <a className="ghost-btn" href={callHref}>Call {contactSettings.displayPhone}</a> : null}
+            {contactSettings.emailIsPlaceholder || !hasEmail ? (
+              <span>{hasWhatsApp || hasPhone ? "Email contact coming soon" : "Direct contact details are being updated"}</span>
             ) : (
               <a className="ghost-btn" href={`mailto:${contactSettings.contactEmail}`}>
                 Email {contactSettings.contactEmail}
@@ -567,13 +606,23 @@ export default async function Home() {
           </div>
         </div>
         <form className="contact-form" aria-label="Contact MindEase" action="/api/contact" method="post">
+          {contactStatus === "sent" ? (
+            <p className="form-status is-success" role="status" tabIndex={-1}>
+              Your inquiry was sent. A coordinator will respond using the contact details you provided.
+            </p>
+          ) : null}
+          {contactStatus === "error" ? (
+            <p className="form-status is-error" role="alert" tabIndex={-1}>
+              Your inquiry could not be sent. Check the required fields and try again.
+            </p>
+          ) : null}
           <label>
             Full name
             <input name="name" placeholder="Your name" required />
           </label>
           <label>
             WhatsApp, phone, or email
-            <input name="contact" placeholder="+92 300 1234567" required />
+            <input name="contact" autoComplete="email" placeholder="Email or +92 3XX XXXXXXX" required />
           </label>
           <label>
             Preferred language
@@ -614,7 +663,7 @@ export default async function Home() {
           </span>
         </a>
         <div className="footer-links">
-          <a href={whatsappHref}>WhatsApp</a>
+          <a href={whatsappHref}>{hasWhatsApp ? "WhatsApp" : "Contact"}</a>
           <a href="/therapists">Therapists</a>
           <a href="/self-tests">Self-checks</a>
           <a href="/therapist/login">Therapist portal</a>
