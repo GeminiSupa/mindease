@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { getPublishedBlogPosts } from "./blog/posts";
 import { getPublicContactSettings, phoneHref } from "./site-settings";
 
 const SUPABASE_URL =
@@ -28,15 +29,6 @@ type LiveTherapist = {
   currency?: string;
   availability_status?: string;
   profile_image_url?: string;
-};
-
-type BlogPost = {
-  id: string;
-  title: string;
-  slug: string;
-  excerpt?: string;
-  image_url?: string;
-  published_at?: string;
 };
 
 const services = [
@@ -138,60 +130,6 @@ const fallbackTherapists: LiveTherapist[] = [
   },
 ];
 
-const fallbackPosts: BlogPost[] = [
-  {
-    id: "sample-blog-sleep",
-    slug: "sleep-and-stress",
-    title: "When stress starts showing up in your sleep",
-    excerpt: "Small signs that your nervous system may need steadier support, and what to discuss in therapy.",
-    image_url:
-      "https://images.unsplash.com/photo-1506126613408-eca07ce68773?auto=format&fit=crop&q=80&w=900&h=540",
-  },
-  {
-    id: "sample-blog-first-session",
-    slug: "first-therapy-session",
-    title: "What happens in a first therapy session?",
-    excerpt: "A simple overview of intake, confidentiality, goals, and how matching decisions are made.",
-    image_url:
-      "https://images.unsplash.com/photo-1516302752625-fcc3c50ae61f?auto=format&fit=crop&q=80&w=900&h=540",
-  },
-  {
-    id: "sample-blog-family-therapy-online",
-    slug: "family-therapy-online-eft-approach",
-    title: "Family therapy online: how an EFT-informed approach works",
-    excerpt:
-      "How couples and families work through conflict, trust, and communication patterns in secure video sessions—with structured EFT-informed support and clear care coordination.",
-    image_url:
-      "https://images.unsplash.com/photo-1476703993599-0035a21b17a9?auto=format&fit=crop&q=80&w=900&h=540",
-    published_at: "2026-09-02T00:00:00.000Z",
-  },
-];
-
-function mergeBlogPosts(dbPosts: BlogPost[]) {
-  const seen = new Set<string>();
-  const merged: BlogPost[] = [];
-
-  for (const post of dbPosts) {
-    if (seen.has(post.slug)) continue;
-    seen.add(post.slug);
-    merged.push(post);
-  }
-
-  for (const post of fallbackPosts) {
-    if (seen.has(post.slug)) continue;
-    seen.add(post.slug);
-    merged.push(post);
-  }
-
-  return merged
-    .sort((a, b) => {
-      const aTime = a.published_at ? new Date(a.published_at).getTime() : 0;
-      const bTime = b.published_at ? new Date(b.published_at).getTime() : 0;
-      return bTime - aTime;
-    })
-    .slice(0, 3);
-}
-
 function initials(name: string) {
   return name
     .split(" ")
@@ -234,33 +172,6 @@ async function getApprovedTherapists() {
     return therapists.length ? therapists : DEMO_MODE ? fallbackTherapists : [];
   } catch {
     return DEMO_MODE ? fallbackTherapists : [];
-  }
-}
-
-async function getPublishedBlogPosts() {
-  if (!PUBLIC_READ_KEY) return DEMO_MODE ? fallbackPosts : [];
-
-  const query = new URLSearchParams({
-    select: "id,title,slug,excerpt,image_url,published_at",
-    status: "eq.published",
-    order: "published_at.desc",
-    limit: "10",
-  });
-
-  try {
-    const response = await fetch(`${SUPABASE_URL}/rest/v1/blog_posts?${query}`, {
-      headers: {
-        apikey: PUBLIC_READ_KEY,
-        authorization: `Bearer ${PUBLIC_READ_KEY}`,
-      },
-      cache: "no-store",
-    });
-
-    if (!response.ok) return mergeBlogPosts([]);
-    const posts = (await response.json()) as BlogPost[];
-    return mergeBlogPosts(posts);
-  } catch {
-    return mergeBlogPosts([]);
   }
 }
 
@@ -586,7 +497,12 @@ export default async function Home({
         </div>
         <div className="blog-grid">
           {posts.map((post) => (
-            <article className="blog-card" key={post.id}>
+            <a
+              className="blog-card blog-card-link"
+              href={`/blog/${post.slug}`}
+              key={post.id}
+              aria-label={`Read article: ${post.title}`}
+            >
               <Image
                 src={post.image_url || "https://images.unsplash.com/photo-1493836512294-502baa1986e2?auto=format&fit=crop&q=80&w=900&h=540"}
                 alt=""
@@ -599,7 +515,7 @@ export default async function Home({
                 <h3>{post.title}</h3>
                 <p>{post.excerpt}</p>
               </div>
-            </article>
+            </a>
           ))}
         </div>
         {posts.length === 0 ? (
