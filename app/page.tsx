@@ -155,6 +155,15 @@ const fallbackPosts: BlogPost[] = [
     image_url:
       "https://images.unsplash.com/photo-1516302752625-fcc3c50ae61f?auto=format&fit=crop&q=80&w=900&h=540",
   },
+  {
+    id: "sample-blog-family-therapy-online",
+    slug: "family-therapy-online-eft-approach",
+    title: "Family therapy online: how an EFT-informed approach works",
+    excerpt:
+      "How couples and families work through conflict, trust, and communication patterns in secure video sessions—with structured EFT-informed support and clear care coordination.",
+    image_url:
+      "https://images.unsplash.com/photo-1476703993599-0035a21b17a9?auto=format&fit=crop&q=80&w=900&h=540",
+  },
 ];
 
 function initials(name: string) {
