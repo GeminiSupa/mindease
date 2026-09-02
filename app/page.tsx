@@ -163,8 +163,34 @@ const fallbackPosts: BlogPost[] = [
       "How couples and families work through conflict, trust, and communication patterns in secure video sessions—with structured EFT-informed support and clear care coordination.",
     image_url:
       "https://images.unsplash.com/photo-1476703993599-0035a21b17a9?auto=format&fit=crop&q=80&w=900&h=540",
+    published_at: "2026-09-02T00:00:00.000Z",
   },
 ];
+
+function mergeBlogPosts(dbPosts: BlogPost[]) {
+  const seen = new Set<string>();
+  const merged: BlogPost[] = [];
+
+  for (const post of dbPosts) {
+    if (seen.has(post.slug)) continue;
+    seen.add(post.slug);
+    merged.push(post);
+  }
+
+  for (const post of fallbackPosts) {
+    if (seen.has(post.slug)) continue;
+    seen.add(post.slug);
+    merged.push(post);
+  }
+
+  return merged
+    .sort((a, b) => {
+      const aTime = a.published_at ? new Date(a.published_at).getTime() : 0;
+      const bTime = b.published_at ? new Date(b.published_at).getTime() : 0;
+      return bTime - aTime;
+    })
+    .slice(0, 3);
+}
 
 function initials(name: string) {
   return name
@@ -218,7 +244,7 @@ async function getPublishedBlogPosts() {
     select: "id,title,slug,excerpt,image_url,published_at",
     status: "eq.published",
     order: "published_at.desc",
-    limit: "3",
+    limit: "10",
   });
 
   try {
@@ -230,11 +256,11 @@ async function getPublishedBlogPosts() {
       cache: "no-store",
     });
 
-    if (!response.ok) return DEMO_MODE ? fallbackPosts : [];
+    if (!response.ok) return mergeBlogPosts([]);
     const posts = (await response.json()) as BlogPost[];
-    return posts.length ? posts : DEMO_MODE ? fallbackPosts : [];
+    return mergeBlogPosts(posts);
   } catch {
-    return DEMO_MODE ? fallbackPosts : [];
+    return mergeBlogPosts([]);
   }
 }
 
