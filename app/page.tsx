@@ -383,8 +383,10 @@ export default async function Home({
 
         <div className="therapist-grid">
           {featuredTherapists.map((therapist, idx) => {
-            const focus = splitFocus(therapist.specialization);
+            const focus = splitFocus(therapist.specialization).slice(0, 3);
             const delays = ["100", "200", "300"] as const;
+            const langs = therapist.languages?.join(", ") || "Urdu, English";
+            const exp = therapist.years_experience ? `${therapist.years_experience}+ yrs` : null;
             return (
               <article className="therapist-card" key={therapist.id} data-animate="fade-up" data-delay={delays[idx % 3]}>
                 <div className="therapist-top">
@@ -393,8 +395,8 @@ export default async function Home({
                       className="therapist-photo"
                       src={therapist.profile_image_url}
                       alt={therapist.full_name}
-                      width={124}
-                      height={124}
+                      width={88}
+                      height={88}
                       unoptimized
                     />
                   ) : (
@@ -403,31 +405,23 @@ export default async function Home({
                   <div>
                     <h3>{therapist.full_name}</h3>
                     <p>{therapist.title}</p>
-                    <small>{therapist.qualifications}</small>
+                    {/* Compact stat chips: exp · languages */}
+                    <div className="therapist-stats">
+                      {exp && <span>{exp}</span>}
+                      <span>{langs}</span>
+                    </div>
                   </div>
                 </div>
 
-                <p>{therapist.bio}</p>
-                <div className="pill-row">
-                  {(focus.length ? focus : ["Online therapy"]).map((item) => (
-                    <span key={item}>{item}</span>
-                  ))}
-                </div>
+                {therapist.bio && <p>{therapist.bio}</p>}
 
-                <dl className="therapist-meta">
-                  <div>
-                    <dt>Experience</dt>
-                    <dd>{therapist.years_experience ? `${therapist.years_experience}+ years` : "Reviewed profile"}</dd>
+                {focus.length > 0 && (
+                  <div className="pill-row">
+                    {focus.map((item) => (
+                      <span key={item}>{item}</span>
+                    ))}
                   </div>
-                  <div>
-                    <dt>Languages</dt>
-                    <dd>{therapist.languages?.join(", ") || "Urdu, English"}</dd>
-                  </div>
-                  <div>
-                    <dt>Availability</dt>
-                    <dd>{therapist.availability_status || "Ask coordinator"}</dd>
-                  </div>
-                </dl>
+                )}
 
                 <div className="card-footer">
                   <div>

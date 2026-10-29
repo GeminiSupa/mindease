@@ -1039,8 +1039,14 @@ footer {
 .pricing-grid,
 .integration-grid {
   display: grid;
-  gap: 16px;
-  margin-top: 30px;
+  gap: 14px;
+  margin-top: 28px;
+}
+
+/* Pills: one row, clip overflow */
+.pill-row {
+  flex-wrap: nowrap;
+  overflow: hidden;
 }
 
 .journey-grid {
@@ -1130,9 +1136,9 @@ footer {
 .therapist-card {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
   min-width: 0;
-  padding: 22px;
+  padding: 20px;
   transition: transform var(--transition), box-shadow var(--transition), border-color var(--transition);
 }
 
@@ -1143,9 +1149,9 @@ footer {
 }
 
 .therapist-top {
-  align-items: center;
+  align-items: flex-start;
   display: grid;
-  gap: 14px;
+  gap: 12px;
   grid-template-columns: 88px minmax(0, 1fr);
 }
 
@@ -1198,12 +1204,23 @@ footer {
   margin: 0;
 }
 
+/* Bio: show max 2 lines then ellipsis */
+.therapist-card > p {
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  display: -webkit-box;
+  overflow: hidden;
+}
+
 .therapist-card small {
   color: var(--teal);
   display: block;
-  font-size: 0.76rem;
+  font-size: 0.74rem;
   font-weight: 700;
-  margin-top: 6px;
+  margin-top: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .therapist-meta {
@@ -3572,10 +3589,10 @@ footer {
 
 .landing-page .therapist-card,
 .landing-page .blog-card {
-  background: #fffefa;
-  border-color: var(--line);
+  background: rgba(13, 27, 42, 0.75);
+  border-color: var(--glass-border);
   border-radius: 20px;
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow-card);
   min-height: 100%;
   overflow: hidden;
 }
@@ -3584,19 +3601,39 @@ footer {
   padding: 18px;
 }
 
-.landing-page .therapist-card:nth-child(2) {
-  background: #fff9f6;
+/* Hide verbose meta table on landing page — too much text */
+.landing-page .therapist-meta {
+  display: none;
 }
 
-.landing-page .therapist-card:nth-child(3) {
-  background: #faf8ff;
-}
-
+/* Bio: max 2 lines */
 .landing-page .therapist-card > p {
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
   display: -webkit-box;
   overflow: hidden;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
+  font-size: 0.88rem;
+}
+
+/* Compact stat chips row below name */
+.therapist-stats {
+  align-items: center;
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 6px;
+  margin-top: 6px;
+  overflow: hidden;
+}
+
+.therapist-stats span {
+  background: rgba(0, 201, 190, 0.1);
+  border: 1px solid rgba(0, 201, 190, 0.2);
+  border-radius: 100px;
+  color: var(--teal);
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 3px 9px;
+  white-space: nowrap;
 }
 
 .landing-page .therapist-top > div:last-child {
@@ -3608,21 +3645,25 @@ footer {
   border-radius: 50%;
 }
 
-.landing-page .pill-row span {
-  background: #eef5f3;
-  border: 0;
-  border-radius: 999px;
-  color: var(--teal-dark);
-  font-size: 0.75rem;
-  padding: 7px 9px;
+.landing-page .pill-row {
+  flex-wrap: nowrap;
+  overflow: hidden;
 }
 
-.landing-page .therapist-meta div {
-  grid-template-columns: 84px minmax(0, 1fr);
+.landing-page .pill-row span {
+  background: rgba(0, 201, 190, 0.08);
+  border: 1px solid rgba(0, 201, 190, 0.18);
+  border-radius: 999px;
+  color: var(--teal);
+  font-size: 0.72rem;
+  padding: 5px 10px;
+  white-space: nowrap;
 }
 
 .landing-page .card-footer a {
-  background: var(--navy);
+  background: linear-gradient(135deg, var(--teal), var(--teal-dark));
+  color: #000;
+  font-weight: 800;
 }
 
 .landing-page .soft-section {
