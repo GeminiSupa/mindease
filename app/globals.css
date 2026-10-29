@@ -462,6 +462,34 @@ p {
   color: var(--teal-dark);
 }
 
+.nav-actions {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+}
+
+.nav-admin-btn {
+  align-items: center;
+  background: transparent;
+  border: 1.5px solid rgba(46, 69, 64, 0.22);
+  border-radius: 9px;
+  color: var(--muted);
+  display: inline-flex;
+  font-size: 0.82rem;
+  font-weight: 700;
+  justify-content: center;
+  letter-spacing: 0.01em;
+  min-height: 38px;
+  padding: 0 13px;
+  transition: all var(--transition);
+}
+
+.nav-admin-btn:hover {
+  background: rgba(46, 69, 64, 0.06);
+  border-color: rgba(46, 69, 64, 0.42);
+  color: var(--ink);
+}
+
 .nav-cta,
 .primary-btn,
 .ghost-btn,
