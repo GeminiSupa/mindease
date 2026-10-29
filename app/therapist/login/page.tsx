@@ -41,7 +41,7 @@ export default function TherapistLogin() {
         throw new Error(body.error ?? "Login failed.");
       }
 
-      router.push("/therapist/dashboard");
+      window.location.href = "/therapist/dashboard";
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed.");
     } finally {
