@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { cookies } from 'next/headers';
-import LeadCaptureModal from '../components/LeadCaptureModal';
+import LeadCaptureModal from '../../components/LeadCaptureModal';
 
 const selfTests = [
   {
