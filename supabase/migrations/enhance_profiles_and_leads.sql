@@ -1,6 +1,6 @@
 -- MindEase: Dashboard & Profile Enhancement SQL Migration
 -- Run in: Supabase Dashboard → SQL Editor
--- Safe to run multiple times (uses IF NOT EXISTS / DO blocks)
+-- Safe to run multiple times (idempotent)
 
 -- 1. THERAPIST TABLE ENHANCEMENTS
 ALTER TABLE public.therapists ADD COLUMN IF NOT EXISTS city text DEFAULT 'Online';
@@ -33,24 +33,18 @@ CREATE TABLE IF NOT EXISTS public.reviews (
 
 ALTER TABLE public.reviews ENABLE ROW LEVEL SECURITY;
 
-DO $$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_policies WHERE tablename = 'reviews' AND policyname = 'Service role full access on reviews'
-  ) THEN
-    CREATE POLICY "Service role full access on reviews"
-      ON public.reviews FOR ALL
-      USING (auth.role() = 'service_role')
-      WITH CHECK (auth.role() = 'service_role');
-  END IF;
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_policies WHERE tablename = 'reviews' AND policyname = 'Public can read approved reviews'
-  ) THEN
-    CREATE POLICY "Public can read approved reviews"
-      ON public.reviews FOR SELECT
-      USING (is_approved = true);
-  END IF;
-END $$;
+-- RLS Policies — using DROP + CREATE for idempotency
+-- (avoids the DO $$ catalog-visibility bug with newly-created tables)
+DROP POLICY IF EXISTS "Service role full access on reviews" ON public.reviews;
+CREATE POLICY "Service role full access on reviews"
+  ON public.reviews FOR ALL
+  USING (auth.role() = 'service_role')
+  WITH CHECK (auth.role() = 'service_role');
+
+DROP POLICY IF EXISTS "Public can read approved reviews" ON public.reviews;
+CREATE POLICY "Public can read approved reviews"
+  ON public.reviews FOR SELECT
+  USING (is_approved = true);
 
 CREATE INDEX IF NOT EXISTS idx_reviews_therapist_id ON public.reviews(therapist_id);
 CREATE INDEX IF NOT EXISTS idx_reviews_approved ON public.reviews(therapist_id, is_approved);
