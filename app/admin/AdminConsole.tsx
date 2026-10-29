@@ -301,10 +301,10 @@ export function AdminConsole() {
     void fetch("/api/admin/session", { cache: "no-store" })
       .then(async (response) => {
         if (!response.ok) return null;
-        return (await response.json()) as { user?: AdminSession["user"] };
+        return (await response.json()) as { user?: AdminSession["user"]; access_token?: string };
       })
       .then((body) => {
-        if (body?.user) setSession({ user: body.user });
+        if (body?.user) setSession({ user: body.user, access_token: body.access_token });
       })
       .finally(() => setCheckingSession(false));
   }, []);

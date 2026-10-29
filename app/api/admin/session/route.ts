@@ -75,6 +75,7 @@ export async function GET() {
 
   return json({
     authenticated: true,
+    access_token: accessToken,
     user: { id: user.id, email: user.email },
   });
 }
