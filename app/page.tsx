@@ -225,7 +225,7 @@ export default async function Home({
           </div>
 
           <div className="nav-actions">
-            <a className="nav-admin-btn" href="/admin/login" aria-label="Admin login">Admin</a>
+            <a className="nav-admin-btn" href="/admin" aria-label="Admin login">Admin</a>
             <a className="nav-cta" href={whatsappHref}>{hasWhatsApp ? "WhatsApp" : "Contact"}</a>
           </div>
         </nav>
@@ -621,7 +621,7 @@ export default async function Home({
           <a href="/therapists">Therapists</a>
           <a href="/self-tests">Self-checks</a>
           <a href="/therapist/login">Therapist portal</a>
-          <a href="/admin/login">Admin login</a>
+          <a href="/admin">Admin login</a>
         </div>
       </footer>
     </main>
