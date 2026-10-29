@@ -231,7 +231,7 @@ export default async function Home({
         </nav>
 
         <div className="hero-layout">
-          <div className="hero-copy">
+          <div className="hero-copy" data-animate="fade-up">
             <p className="eyebrow">Online therapy, made more human</p>
             <h1>Find a therapist who fits your concern, language, and schedule.</h1>
             <p className="hero-lede">
@@ -333,26 +333,26 @@ export default async function Home({
       </section>
 
       <section className="metrics-band" aria-label="Clinic workflow highlights">
-        <div>
+        <div data-animate="fade-up">
           <strong>100%</strong>
           <span>online sessions</span>
         </div>
-        <div>
+        <div data-animate="fade-up" data-delay="100">
           <strong>1:1</strong>
           <span>private matching</span>
         </div>
-        <div>
+        <div data-animate="fade-up" data-delay="200">
           <strong>2+</strong>
           <span>language options</span>
         </div>
-        <div>
+        <div data-animate="fade-up" data-delay="300">
           <strong>Human</strong>
           <span>care coordination</span>
         </div>
       </section>
 
       <section className="section intro-section">
-        <div className="section-heading">
+        <div className="section-heading" data-animate="fade-up">
           <span>Your Journey</span>
           <h2>From first message to first session.</h2>
           <p>
@@ -361,7 +361,7 @@ export default async function Home({
         </div>
         <div className="journey-grid">
           {journey.map(([title, description], index) => (
-            <article key={title}>
+            <article key={title} data-animate="fade-up" data-delay={`${index * 100}` as "100" | "200" | "300" | "400"}>
               <span>{String(index + 1).padStart(2, "0")}</span>
               <strong>{title}</strong>
               <p>{description}</p>
@@ -371,7 +371,7 @@ export default async function Home({
       </section>
 
       <section className="section" id="therapists">
-        <div className="section-heading inline-heading">
+        <div className="section-heading inline-heading" data-animate="fade-up">
           <div>
             <span>Therapist Directory</span>
             <h2>Find someone you can talk to.</h2>
@@ -382,10 +382,11 @@ export default async function Home({
         </div>
 
         <div className="therapist-grid">
-          {featuredTherapists.map((therapist) => {
+          {featuredTherapists.map((therapist, idx) => {
             const focus = splitFocus(therapist.specialization);
+            const delays = ["100", "200", "300"] as const;
             return (
-              <article className="therapist-card" key={therapist.id}>
+              <article className="therapist-card" key={therapist.id} data-animate="fade-up" data-delay={delays[idx % 3]}>
                 <div className="therapist-top">
                   {therapist.profile_image_url ? (
                     <Image
@@ -452,7 +453,7 @@ export default async function Home({
       </section>
 
       <section className="section soft-section" id="services">
-        <div className="section-heading">
+        <div className="section-heading" data-animate="fade-up">
           <span>Care areas</span>
           <h2>Start with what feels hardest today.</h2>
           <p>
@@ -466,6 +467,8 @@ export default async function Home({
               href={`/self-tests#${service.assessment}`}
               key={service.title}
               aria-label={`${service.title}: ${service.check}`}
+              data-animate="scale-in"
+              data-delay={(["100","200","300","400","500"][index % 5]) as "100"|"200"|"300"|"400"|"500"}
             >
               <Image src={service.image} alt="" width={900} height={620} loading="lazy" unoptimized />
               <span className="service-number">0{index + 1}</span>
@@ -479,7 +482,7 @@ export default async function Home({
         </div>
       </section>
 
-      <section className="section self-check-band">
+      <section className="section self-check-band" data-animate="fade-up">
         <div className="section-heading">
           <span>Informational self-checks</span>
           <h2>Not ready to talk yet?</h2>
@@ -492,19 +495,21 @@ export default async function Home({
       </section>
 
       <section className="section" id="blog">
-        <div className="section-heading inline-heading">
+        <div className="section-heading inline-heading" data-animate="fade-up">
           <div>
             <span>Wellbeing journal</span>
             <h2>Latest wellbeing reads.</h2>
           </div>
         </div>
         <div className="blog-grid">
-          {posts.map((post) => (
+          {posts.map((post, pIdx) => (
             <a
               className="blog-card blog-card-link"
               href={`/blog/${post.slug}`}
               key={post.id}
               aria-label={`Read article: ${post.title}`}
+              data-animate="fade-up"
+              data-delay={(["100","200","300"][pIdx % 3]) as "100"|"200"|"300"}
             >
               <Image
                 src={post.image_url || "https://images.unsplash.com/photo-1493836512294-502baa1986e2?auto=format&fit=crop&q=80&w=900&h=540"}
@@ -530,7 +535,7 @@ export default async function Home({
       </section>
 
       <section className="contact-section" id="contact">
-        <div className="contact-copy">
+        <div className="contact-copy" data-animate="slide-left">
           <span>Contact Us</span>
           <h2>Your next step can be small.</h2>
           <p>
@@ -559,7 +564,7 @@ export default async function Home({
             danger, contact local emergency services or go to the nearest hospital emergency department.
           </div>
         </div>
-        <form className="contact-form" aria-label="Contact MindEase" action="/api/contact" method="post">
+        <form className="contact-form" aria-label="Contact MindEase" action="/api/contact" method="post" data-animate="slide-right">
           {contactStatus === "sent" ? (
             <p className="form-status is-success" role="status" tabIndex={-1}>
               Your inquiry was sent. A coordinator will respond using the contact details you provided.

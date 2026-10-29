@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import HelpChat from "./components/HelpChat";
+import ScrollAnimations from "./components/ScrollAnimations";
 import { getPublicContactSettings } from "./site-settings";
 
 export const dynamic = "force-dynamic";
@@ -57,6 +58,7 @@ export default async function RootLayout({
         <a className="skip-link" href="#main-content">Skip to main content</a>
         {children}
         <HelpChat whatsappNumber={contactSettings.whatsappNumber} />
+        <ScrollAnimations />
       </body>
     </html>
   );

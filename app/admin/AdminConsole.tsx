@@ -118,6 +118,13 @@ type Overview = {
     approvalStatus: string;
     isBooked: boolean;
   }>;
+  leads?: Array<{
+    id: string;
+    contactMethod: string;
+    contactValue: string;
+    source: string;
+    createdAt: string;
+  }>;
   contactSettings?: ContactSettingsForm;
   contactSettingsError?: string;
   setupSteps?: string[];
@@ -139,6 +146,7 @@ const emptyOverview: Overview = {
   pendingProfileChanges: [],
   blogPosts: [],
   availabilitySlots: [],
+  leads: [],
   contactSettings: defaultContactSettings,
   setupSteps: [
     "Create therapist profiles from this admin panel.",
@@ -264,6 +272,7 @@ export function AdminConsole() {
   const [lastCreatedTherapist, setLastCreatedTherapist] = useState<{ email: string; loginUrl: string } | null>(null);
   const [messageDrafts, setMessageDrafts] = useState<Record<string, { therapistId: string; note: string; status: string; slotId: string; paymentInstructions: string }>>({});
   const [appointmentDrafts, setAppointmentDrafts] = useState<Record<string, { paymentReference: string; adminNotes: string }>>({});
+  const [leadsFilter, setLeadsFilter] = useState<"all" | "email" | "whatsapp">("all");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
 
@@ -970,6 +979,8 @@ export function AdminConsole() {
   const pendingProfileChanges = overview.pendingProfileChanges ?? [];
   const blogPosts = overview.blogPosts ?? [];
   const availabilitySlots = overview.availabilitySlots ?? [];
+  const leads = overview.leads ?? [];
+  const filteredLeads = leadsFilter === "all" ? leads : leads.filter((l) => l.contactMethod === leadsFilter);
 
   return (
     <main className="admin-shell" id="main-content" aria-busy={saving}>
@@ -980,11 +991,12 @@ export function AdminConsole() {
         </Link>
         <nav aria-label="Admin sections">
           <a href="#overview">Overview</a>
+          <a href="#leads">Leads <span style={{fontSize:'0.75rem',background:'var(--teal)',color:'#fff',borderRadius:'999px',padding:'1px 7px',marginLeft:'4px'}}>{leads.length || ''}</span></a>
+          <a href="#messages">Queries <span style={{fontSize:'0.75rem',background:'var(--coral,#ff6b6b)',color:'#fff',borderRadius:'999px',padding:'1px 7px',marginLeft:'4px'}}>{messages.filter(m=>m.status.toLowerCase()==='open').length || ''}</span></a>
           <a href="#create-therapist">Create therapist</a>
           <a href="#approvals">Approvals</a>
           <a href="#profile-changes">Profile edits</a>
           <a href="#therapists">Live therapists</a>
-          <a href="#messages">Messages</a>
           <a href="#availability">Availability</a>
           <a href="#site-settings">Site contact</a>
           <a href="#blog">Blog</a>
@@ -1027,13 +1039,82 @@ export function AdminConsole() {
             <p>published therapists</p>
           </article>
           <article>
-            <span>Messages</span>
+            <span>Open queries</span>
             <strong>{stats?.openMessages ?? 0}</strong>
-            <p>open messages</p>
+            <p>client inquiries</p>
+          </article>
+          <article style={{borderColor:'rgba(0,201,190,0.4)',background:'rgba(0,201,190,0.06)'}}>
+            <span>Captured leads</span>
+            <strong style={{color:'var(--teal)'}}>{stats?.totalLeads ?? 0}</strong>
+            <p>directory signups</p>
           </article>
         </section>
 
         <section className="admin-grid">
+
+          {/* ── LEADS PANEL ── */}
+          <article className="admin-panel wide" id="leads">
+            <div className="admin-panel-head">
+              <div>
+                <span>Directory signups</span>
+                <h2>Captured leads</h2>
+              </div>
+              <div style={{display:'flex',gap:'8px',alignItems:'center'}}>
+                <button
+                  type="button"
+                  className={leadsFilter === 'all' ? 'admin-tab active' : 'admin-tab'}
+                  onClick={() => setLeadsFilter('all')}
+                >All ({leads.length})</button>
+                <button
+                  type="button"
+                  className={leadsFilter === 'email' ? 'admin-tab active' : 'admin-tab'}
+                  onClick={() => setLeadsFilter('email')}
+                >Email</button>
+                <button
+                  type="button"
+                  className={leadsFilter === 'whatsapp' ? 'admin-tab active' : 'admin-tab'}
+                  onClick={() => setLeadsFilter('whatsapp')}
+                >WhatsApp</button>
+              </div>
+            </div>
+            {filteredLeads.length > 0 ? (
+              <div style={{overflowX:'auto'}}>
+                <table className="admin-table">
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>Contact method</th>
+                      <th>Contact value</th>
+                      <th>Source</th>
+                      <th>Date</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredLeads.map((lead, i) => (
+                      <tr key={lead.id}>
+                        <td>{filteredLeads.length - i}</td>
+                        <td>
+                          <span className={`admin-badge ${lead.contactMethod === 'email' ? 'badge-teal' : 'badge-coral'}`}>
+                            {lead.contactMethod === 'email' ? '✉ Email' : '💬 WhatsApp'}
+                          </span>
+                        </td>
+                        <td><strong>{lead.contactValue}</strong></td>
+                        <td>{lead.source === 'directory_gate' ? 'Directory gate' : lead.source}</td>
+                        <td>{lead.createdAt ? new Date(lead.createdAt).toLocaleDateString('en-GB', {day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="empty-state compact">
+                <strong>No leads captured yet.</strong>
+                <p>Leads appear here when visitors submit their contact on the therapist directory page.</p>
+              </div>
+            )}
+          </article>
+
+          {/* ── CREATE THERAPIST PANEL ── */}
           <article className="admin-panel wide" id="create-therapist">
             <div className="admin-panel-head">
               <div>
@@ -1428,11 +1509,11 @@ export function AdminConsole() {
             </div>
           </article>
 
-          <article className="admin-panel" id="messages">
+          <article className="admin-panel wide" id="messages">
             <div className="admin-panel-head">
               <div>
                 <span>Contact center</span>
-                <h2>Client inquiries</h2>
+                <h2>Client queries</h2>
               </div>
             </div>
             <div className="admin-list compact">

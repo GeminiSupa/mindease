@@ -21,7 +21,15 @@ type AdminOverview = {
     pendingTherapists: number;
     openMessages: number;
     paidThisMonth: string;
+    totalLeads: number;
   };
+  leads: Array<{
+    id: string;
+    contactMethod: string;
+    contactValue: string;
+    source: string;
+    createdAt: string;
+  }>;
   appointments: Array<{
     id: string;
     client: string;
@@ -138,7 +146,9 @@ function emptyOverview(user: SupabaseUser): AdminOverview {
       pendingTherapists: 0,
       openMessages: 0,
       paidThisMonth: "PKR 0",
+      totalLeads: 0,
     },
+    leads: [],
     appointments: [],
     therapists: [],
     pendingTherapists: [],
@@ -174,7 +184,7 @@ export async function GET(request: Request) {
     return json(emptyOverview(user));
   }
 
-  const [appointmentsRows, therapistRows, paymentRows, messageRows, changeRows, blogRows, slotRows, auditRows, settingsResult] =
+  const [appointmentsRows, therapistRows, paymentRows, messageRows, changeRows, blogRows, slotRows, auditRows, settingsResult, leadRows] =
     await Promise.all([
       getRows("appointments", "select=*&order=scheduled_at.asc&limit=20"),
       getRows("therapists", "select=*&order=created_at.desc&limit=50"),
@@ -185,6 +195,7 @@ export async function GET(request: Request) {
       getRows("availability_slots", "select=*&order=starts_at.asc&limit=50"),
       getRows("admin_audit_logs", "select=*&order=created_at.desc&limit=30"),
       getRowsResult("site_settings", "id=eq.clinic&select=*&limit=1"),
+      getRows("leads", "select=id,contact_method,contact_value,source,created_at&order=created_at.desc&limit=100"),
     ]);
 
   const settingsRows = settingsResult.rows;
@@ -315,6 +326,14 @@ export async function GET(request: Request) {
       return sum + (typeof amount === "number" ? amount : Number(amount) || 0);
     }, 0);
 
+  const leads = leadRows.map((row) => ({
+    id: value(row, ["id"], ""),
+    contactMethod: value(row, ["contact_method"], ""),
+    contactValue: value(row, ["contact_value"], ""),
+    source: value(row, ["source"], "directory_gate"),
+    createdAt: value(row, ["created_at"], ""),
+  }));
+
   return json({
     user: {
       email: user.email,
@@ -335,6 +354,7 @@ export async function GET(request: Request) {
         pendingProfileChanges.filter((change) => change.status === "pending").length,
       openMessages: messages.filter((message) => message.status.toLowerCase() === "open").length,
       paidThisMonth: money(paidThisMonth),
+      totalLeads: leadRows.length,
     },
     appointments,
     therapists: activeTherapists,
@@ -344,6 +364,7 @@ export async function GET(request: Request) {
     blogPosts,
     availabilitySlots,
     auditLogs,
+    leads,
     contactSettings,
     contactSettingsError:
       settingsResult.error ??
