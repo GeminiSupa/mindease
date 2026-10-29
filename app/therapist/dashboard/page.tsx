@@ -120,11 +120,14 @@ export default function TherapistDashboard() {
   const loadDashboard = useCallback(async (accessToken?: string) => {
     const response = await fetch("/api/therapist/me", {
       headers: apiHeaders(accessToken),
+      cache: "no-store",
     });
-    const body = (await response.json()) as DashboardData & { error?: string };
+    const body = (await response.json()) as DashboardData & { error?: string; status?: number };
 
     if (!response.ok) {
-      throw new Error(body.error ?? "Could not load therapist dashboard.");
+      const err = new Error(body.error ?? "Could not load therapist dashboard.") as Error & { status: number };
+      err.status = response.status;
+      throw err;
     }
 
     const therapist = body.therapist;
@@ -147,13 +150,31 @@ export default function TherapistDashboard() {
   useEffect(() => {
     queueMicrotask(() => {
       void fetch("/api/therapist/session", { cache: "no-store" })
-        .then(async (response) => {
-          if (!response.ok) throw new Error("Therapist session unavailable.");
+        .then(async (sessionResponse) => {
+          if (sessionResponse.status === 401) {
+            window.location.href = "/therapist/login";
+            return null;
+          }
+          if (!sessionResponse.ok) {
+            const sessionBody = (await sessionResponse.json().catch(() => ({}))) as { error?: string };
+            throw new Error(sessionBody.error ?? "Session check failed.");
+          }
           return loadDashboard();
         })
-        .then((body) => setSession({ user: body.user }))
-        .catch(() => {
-          window.location.href = "/therapist/login";
+        .then((body) => {
+          if (body) setSession({ user: body.user });
+        })
+        .catch((err: unknown) => {
+          const status = (err as { status?: number }).status;
+          if (status === 401) {
+            window.location.href = "/therapist/login";
+          } else {
+            setError(
+              err instanceof Error
+                ? err.message
+                : "Could not load dashboard. Please try again."
+            );
+          }
         })
         .finally(() => setLoading(false));
     });
