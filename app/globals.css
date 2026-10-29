@@ -1079,17 +1079,18 @@ footer {
 }
 
 .therapist-top {
-  align-items: flex-start;
+  align-items: center;
   display: grid;
-  gap: 13px;
-  grid-template-columns: 76px minmax(0, 1fr);
+  gap: 14px;
+  grid-template-columns: 88px minmax(0, 1fr);
 }
 
 .avatar,
 .therapist-photo {
-  border-radius: 10px;
-  height: 80px;
-  width: 80px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  height: 88px;
+  width: 88px;
 }
 
 .avatar {
@@ -1106,7 +1107,7 @@ footer {
 .therapist-photo {
   border: 2.5px solid #c8e0db;
   object-fit: cover;
-  object-position: center 22%;
+  object-position: center top;
   transition: transform var(--transition), box-shadow var(--transition);
 }
 
@@ -3417,7 +3418,7 @@ footer {
 
 .landing-page .therapist-photo,
 .landing-page .avatar {
-  border-radius: 16px;
+  border-radius: 50%;
 }
 
 .landing-page .pill-row span {
@@ -4162,21 +4163,22 @@ footer {
 .directory-profile-head {
   align-items: flex-start;
   display: grid;
-  gap: 15px;
-  grid-template-columns: 92px minmax(0, 1fr);
+  gap: 16px;
+  grid-template-columns: 96px minmax(0, 1fr);
 }
 
 .directory-photo,
 .directory-avatar {
-  border-radius: 20px;
-  height: 92px;
-  width: 92px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  height: 96px;
+  width: 96px;
 }
 
 .directory-photo {
   background: var(--directory-sage);
   object-fit: cover;
-  object-position: center 20%;
+  object-position: center top;
 }
 
 .directory-avatar {
@@ -4428,7 +4430,7 @@ footer {
 
 .directory-photo.is-large,
 .directory-avatar.is-large {
-  border-radius: 26px;
+  border-radius: 50%;
   height: 124px;
   width: 124px;
 }
@@ -4720,7 +4722,7 @@ footer {
 
   .directory-photo,
   .directory-avatar {
-    border-radius: 17px;
+    border-radius: 50%;
     height: 78px;
     width: 78px;
   }
@@ -4749,7 +4751,7 @@ footer {
 
   .directory-photo.is-large,
   .directory-avatar.is-large {
-    border-radius: 18px;
+    border-radius: 50%;
     height: 82px;
     width: 82px;
   }
