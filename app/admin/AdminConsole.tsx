@@ -64,6 +64,7 @@ type Overview = {
     pendingTherapists: number;
     openMessages: number;
     paidThisMonth: string;
+    totalLeads: number;
   };
   appointments?: Array<{
     id: string;
@@ -138,6 +139,7 @@ const emptyOverview: Overview = {
     pendingTherapists: 0,
     openMessages: 0,
     paidThisMonth: "PKR 0",
+    totalLeads: 0,
   },
   appointments: [],
   therapists: [],
