@@ -230,7 +230,7 @@ export default function SelfTestsPage() {
       <section className="test-hero">
         <nav className="site-nav" aria-label="Self-check navigation">
           <Link className="brand" href="/">
-            <Image src="/brand/mindease-app-icon.png" alt="" width={42} height={42} className="brand-icon" />
+            <Image src="/brand/mindease-app-icon.svg" alt="" width={42} height={42} className="brand-icon" />
             <span>
               <strong>MindEase</strong>
               <small>Self-checks</small>

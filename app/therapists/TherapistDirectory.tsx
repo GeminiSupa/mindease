@@ -28,9 +28,9 @@ function initials(name: string) {
 
 function focusAreas(value?: string) {
   return (value ?? "")
-    .split(",")
+    .split(/[,;/|]+/)
     .map((item) => item.trim())
-    .filter(Boolean)
+    .filter((item) => item.length > 1)
     .slice(0, 5);
 }
 

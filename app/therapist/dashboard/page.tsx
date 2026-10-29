@@ -302,7 +302,7 @@ export default function TherapistDashboard() {
     <main className="admin-shell therapist-shell" id="main-content" aria-busy={saving}>
       <aside className="admin-sidebar">
         <Link className="admin-mini-brand" href="/">
-          <Image src="/brand/mindease-app-icon.png" alt="" width={44} height={44} />
+          <Image src="/brand/mindease-app-icon.svg" alt="" width={44} height={44} />
           <span>MindEase</span>
         </Link>
         <nav aria-label="Therapist dashboard sections">

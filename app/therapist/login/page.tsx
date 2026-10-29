@@ -54,7 +54,7 @@ export default function TherapistLogin() {
       <section className="admin-login therapist-login">
         <div className="admin-login-copy">
           <Link className="admin-mini-brand" href="/">
-            <Image src="/brand/mindease-app-icon.png" alt="" width={44} height={44} />
+            <Image src="/brand/mindease-app-icon.svg" alt="" width={44} height={44} />
             <span>MindEase Therapist Portal</span>
           </Link>
           <p className="admin-kicker">Therapist access</p>

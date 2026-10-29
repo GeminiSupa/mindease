@@ -906,7 +906,7 @@ export function AdminConsole() {
         <section className="admin-login">
           <div className="admin-login-copy">
             <Link className="admin-mini-brand" href="/">
-              <Image src="/brand/mindease-app-icon.png" alt="" width={44} height={44} />
+              <Image src="/brand/mindease-app-icon.svg" alt="" width={44} height={44} />
               <span>MindEase Admin</span>
             </Link>
             <p className="admin-kicker">Clinic operations</p>
@@ -975,7 +975,7 @@ export function AdminConsole() {
     <main className="admin-shell" id="main-content" aria-busy={saving}>
       <aside className="admin-sidebar">
         <Link className="admin-mini-brand" href="/">
-          <Image src="/brand/mindease-app-icon.png" alt="" width={44} height={44} />
+          <Image src="/brand/mindease-app-icon.svg" alt="" width={44} height={44} />
           <span>MindEase</span>
         </Link>
         <nav aria-label="Admin sections">

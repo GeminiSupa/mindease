@@ -1,67 +1,95 @@
-import Image from "next/image";
-import Link from "next/link";
+import Link from 'next/link';
 
-export default async function JoinTherapistsPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ application?: string }>;
-}) {
-  const params = await searchParams;
-  const applicationStatus =
-    params.application === "sent" || params.application === "error" ? params.application : null;
-
+export default function JoinTherapistsPage() {
   return (
     <main className="admin-page" id="main-content">
       <section className="admin-login">
         <div className="admin-login-copy">
           <Link className="admin-mini-brand" href="/">
-            <Image src="/brand/mindease-app-icon.png" alt="" width={44} height={44} />
             <span>MindEase</span>
           </Link>
-          <p className="admin-kicker">Therapist network</p>
-          <h1>Bring thoughtful care online.</h1>
+          <p className="admin-kicker">Grow your practice</p>
+          <h1>Join our therapist network.</h1>
           <p>
-            Share your credentials and clinical focus. Our team reviews every
-            application before inviting approved professionals to create a profile.
+            Reach more clients through a trusted, admin-verified directory. Submit your application
+            and our team will review your profile before it goes live.
           </p>
+          <div className="admin-feature-list">
+            <span>Admin-reviewed profiles</span>
+            <span>Secure client enquiries</span>
+            <span>Your own dashboard</span>
+            <span>Control your availability</span>
+          </div>
         </div>
 
-        <form className="admin-login-card" action="/api/therapist-applications" method="post">
+        <form
+          className="admin-login-card"
+          onSubmit={(e) => {
+            e.preventDefault();
+            alert('Application submitted! We will review your profile and be in touch shortly.');
+          }}
+        >
           <div>
-            <span>Professional application</span>
-            <h2>Introduce yourself</h2>
-            <p>This is an application, not immediate public listing.</p>
+            <span>New application</span>
+            <h2>Tell us about yourself</h2>
+            <p>Fill in your details below. Our admin team will create your login once reviewed.</p>
           </div>
-          {applicationStatus === "sent" ? (
-            <p className="admin-notice" role="status">
-              Application received. The MindEase team will contact you after reviewing your details.
-            </p>
-          ) : null}
-          {applicationStatus === "error" ? (
-            <p className="admin-error" role="alert">
-              The application could not be sent. Check every required field and try again.
-            </p>
-          ) : null}
-          <label>
-            Full name
-            <input autoComplete="name" name="name" required />
-          </label>
-          <label>
-            Email or WhatsApp
-            <input autoComplete="email" name="contact" required />
-          </label>
-          <label>
-            Credentials, experience, and clinical focus
-            <textarea name="message" required rows={7} />
-          </label>
-          <label className="consent-check">
-            <input name="consent" type="checkbox" required />
-            <span>
-              I consent to MindEase using my submitted professional and contact details to review this application.
-            </span>
-          </label>
-          <button type="submit">Submit for review</button>
-          <Link className="admin-back-link" href="/">Return to clinic website</Link>
+
+          <div className="admin-form-grid">
+            <label>
+              Full name
+              <input type="text" placeholder="Dr. Jane Doe" required />
+            </label>
+            <label>
+              Email address
+              <input type="email" placeholder="jane@example.com" required />
+            </label>
+            <label>
+              Professional title
+              <input type="text" placeholder="e.g. Clinical Psychologist" required />
+            </label>
+            <label>
+              Qualifications
+              <input type="text" placeholder="e.g. MPhil Psychology, LCSW" required />
+            </label>
+            <label>
+              Session fee (PKR)
+              <input type="number" placeholder="4500" min="0" />
+            </label>
+            <label>
+              Years of experience
+              <input type="number" placeholder="5" min="0" />
+            </label>
+            <label className="wide-field">
+              Focus areas / specialisations
+              <input type="text" placeholder="e.g. Anxiety, Depression, Family therapy" />
+            </label>
+            <label className="wide-field">
+              Languages offered
+              <input type="text" placeholder="e.g. Urdu, English" />
+            </label>
+            <label className="wide-field">
+              Professional bio
+              <textarea
+                placeholder="Tell potential clients about your experience, approach, and what you specialise in..."
+                style={{ minHeight: '130px' }}
+              />
+            </label>
+
+            {/* Photo Upload */}
+            <label className="wide-field image-upload-field">
+              <span>Profile photo</span>
+              <span className="upload-placeholder">JPG, PNG or WebP — up to 5 MB</span>
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+              />
+              <strong>Choose photo from your device</strong>
+              <small>Your photo will go live only after admin approval.</small>
+            </label>
+
+            <button type="submit">Submit application</button>
+          </div>
         </form>
       </section>
     </main>

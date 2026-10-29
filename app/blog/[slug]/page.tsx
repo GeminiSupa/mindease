@@ -89,7 +89,7 @@ export default async function BlogPostPage({
         <nav className="site-nav" aria-label="Blog navigation">
           <Link className="brand" href="/">
             <Image
-              src="/brand/mindease-app-icon.png"
+              src="/brand/mindease-app-icon.svg"
               alt=""
               width={42}
               height={42}

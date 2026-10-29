@@ -140,7 +140,7 @@ function initials(name: string) {
 
 function splitFocus(value?: string) {
   return (value ?? "")
-    .split(",")
+    .split(/[,;/|]+/)
     .map((item) => item.trim())
     .filter(Boolean)
     .slice(0, 3);
@@ -204,7 +204,7 @@ export default async function Home({
         <nav className="site-nav" aria-label="Primary navigation">
           <a className="brand" href="#top" aria-label="MindEase Online Clinic home">
             <Image
-              src="/brand/mindease-app-icon.png"
+              src="/brand/mindease-app-icon.svg"
               alt=""
               width={42}
               height={42}
@@ -607,7 +607,7 @@ export default async function Home({
 
       <footer>
         <a className="footer-brand" href="#top">
-          <Image src="/brand/mindease-app-icon.png" alt="" width={36} height={36} />
+          <Image src="/brand/mindease-app-icon.svg" alt="" width={36} height={36} />
           <span>
             <strong>MindEase Online Clinic</strong>
             <small>Confidential online therapy coordination.</small>
