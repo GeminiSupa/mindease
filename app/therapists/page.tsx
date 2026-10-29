@@ -1,59 +1,73 @@
-import { cookies } from 'next/headers';
-import Link from 'next/link';
-import LeadCaptureModal from '../components/LeadCaptureModal';
+import Link from "next/link";
+import TherapistDirectory, { TherapistProfile } from "./TherapistDirectory";
+import { getPublicContactSettings } from "../site-settings";
 
-const mockTherapists = [
+const fallbackTherapists: TherapistProfile[] = [
   {
-    id: '1',
-    full_name: 'Dr. Sarah Jenkins',
-    title: 'Clinical Psychologist',
-    qualifications: 'PhD Clinical Psychology',
-    years_experience: 9,
-    bio: 'Specializing in cognitive behavioural therapy for anxiety and depression. A calm, structured style with practical tools.',
-    specialization: 'Anxiety, Depression, CBT',
-    languages: ['English', 'Urdu'],
-    session_fee: 4500,
-    currency: 'PKR',
-    availability_status: 'Evening slots available',
-    profile_image_url: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=400&h=400',
-  },
-  {
-    id: '2',
-    full_name: 'Michael Chen',
-    title: 'Licensed Clinical Social Worker',
-    qualifications: 'MSW, LCSW',
-    years_experience: 7,
-    bio: 'Helping individuals navigate life transitions, stress, and relationship issues with compassion and evidence-based care.',
-    specialization: 'Relationships, Stress, Life Transitions',
-    languages: ['English'],
-    session_fee: 5000,
-    currency: 'PKR',
-    availability_status: 'Weekend intake available',
-    profile_image_url: 'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?auto=format&fit=crop&q=80&w=400&h=400',
-  },
-  {
-    id: '3',
-    full_name: 'Dr. Emily Parker',
-    title: 'Couples Therapist',
-    qualifications: 'MPhil Psychology',
+    id: "sample-emily",
+    full_name: "Dr. Emily Parker",
+    title: "Couples Therapist",
+    qualifications: "MPhil Psychology",
     years_experience: 11,
-    bio: 'Dedicated to fostering healthy communication and intimacy in relationships. Specialises in couples and family work.',
-    specialization: 'Couples, Communication, Family',
-    languages: ['English', 'Urdu'],
+    bio: "Dedicated to fostering healthy communication and intimacy in relationships. Specialises in couples and family work.",
+    specialization: "Couples, Communication, Family",
+    languages: ["English", "Urdu"],
     session_fee: 5500,
-    currency: 'PKR',
-    availability_status: 'Limited weekday mornings',
-    profile_image_url: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&q=80&w=400&h=400',
+    currency: "PKR",
+    availability_status: "Limited weekday mornings",
+    profile_image_url:
+      "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&q=80&w=400&h=400",
   },
 ];
 
-function initials(name: string) {
-  return name.split(' ').map(p => p[0]).join('').slice(0, 2).toUpperCase();
+const SUPABASE_URL =
+  process.env.SUPABASE_URL ??
+  process.env.NEXT_PUBLIC_SUPABASE_URL ??
+  "https://lhcjubkyyikirliafwfd.supabase.co";
+const SUPABASE_ANON_KEY =
+  process.env.SUPABASE_ANON_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const PUBLIC_READ_KEY = SUPABASE_SERVICE_ROLE_KEY ?? SUPABASE_ANON_KEY;
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
+async function getApprovedTherapists(): Promise<TherapistProfile[]> {
+  if (!PUBLIC_READ_KEY) return fallbackTherapists;
+
+  const query = new URLSearchParams({
+    select:
+      "id,full_name,title,qualifications,years_experience,bio,specialization,languages,session_fee,currency,availability_status,profile_image_url",
+    is_active: "eq.true",
+    approval_status: "eq.approved",
+    order: "is_featured.desc,created_at.desc",
+    limit: "50",
+  });
+
+  try {
+    const response = await fetch(`${SUPABASE_URL}/rest/v1/therapists?${query}`, {
+      headers: {
+        apikey: PUBLIC_READ_KEY,
+        authorization: `Bearer ${PUBLIC_READ_KEY}`,
+      },
+      cache: "no-store",
+    });
+
+    if (!response.ok) return [];
+    const therapists = (await response.json()) as TherapistProfile[];
+    return therapists.length ? therapists : fallbackTherapists;
+  } catch {
+    return fallbackTherapists;
+  }
 }
 
 export default async function TherapistsDirectoryPage() {
-  const cookieStore = await cookies();
-  const hasCaptured = cookieStore.get('lead_captured')?.value === 'true';
+  const [therapists, contactSettings] = await Promise.all([
+    getApprovedTherapists(),
+    getPublicContactSettings(),
+  ]);
+
+  const whatsappNumber = contactSettings.whatsappNumber ?? "";
 
   return (
     <main className="directory-page" id="main-content">
@@ -104,70 +118,24 @@ export default async function TherapistsDirectoryPage() {
         </div>
       </section>
 
-      <section className="section" id="browse" style={{ position: 'relative' }}>
-        <div className="inline-heading section-heading">
-          <div>
-            <span>Our therapists</span>
-            <h2>Meet our verified therapists</h2>
+      {therapists.length === 0 ? (
+        <section className="section" id="browse">
+          <div className="inline-heading section-heading">
+            <div>
+              <span>Our therapists</span>
+              <h2>Meet our verified therapists</h2>
+            </div>
+            <Link className="text-link" href="/therapists/join">Join the network →</Link>
           </div>
-          <Link className="text-link" href="/therapists/join">Join the network →</Link>
-        </div>
-
-        <div
-          className="therapist-grid"
-          style={!hasCaptured ? { filter: 'blur(6px)', pointerEvents: 'none', userSelect: 'none', opacity: 0.6 } : {}}
-          aria-hidden={!hasCaptured}
-        >
-          {mockTherapists.map((t) => (
-            <article className="therapist-card" key={t.id}>
-              <div className="therapist-top">
-                {t.profile_image_url ? (
-                  <img
-                    src={t.profile_image_url}
-                    alt={t.full_name}
-                    className="therapist-photo"
-                    loading="lazy"
-                  />
-                ) : (
-                  <span className="avatar">{initials(t.full_name)}</span>
-                )}
-                <div>
-                  <h3>{t.full_name}</h3>
-                  <p>{t.title}</p>
-                  <small>{t.qualifications} · {t.years_experience} yrs</small>
-                </div>
-              </div>
-
-              <dl className="therapist-meta">
-                <div>
-                  <dt>Focus</dt>
-                  <dd>{t.specialization}</dd>
-                </div>
-                <div>
-                  <dt>Languages</dt>
-                  <dd>{t.languages.join(', ')}</dd>
-                </div>
-                <div>
-                  <dt>Availability</dt>
-                  <dd>{t.availability_status}</dd>
-                </div>
-              </dl>
-
-              {t.bio ? <p style={{ fontSize: '0.88rem', color: 'var(--muted)', lineHeight: 1.5 }}>{t.bio}</p> : null}
-
-              <div className="card-footer">
-                <div>
-                  <span>Session fee</span>
-                  <strong>{t.currency} {t.session_fee.toLocaleString()}</strong>
-                </div>
-                <a className="primary-btn" href="/#contact">Enquire</a>
-              </div>
-            </article>
-          ))}
-        </div>
-
-        {!hasCaptured && <LeadCaptureModal />}
-      </section>
+          <div className="empty-state">
+            <strong>No therapist profiles are available right now.</strong>
+            <p>Message the care coordinator and we will help you find a suitable option.</p>
+            <a className="primary-btn" href="/#contact">Contact the clinic</a>
+          </div>
+        </section>
+      ) : (
+        <TherapistDirectory therapists={therapists} whatsappNumber={whatsappNumber} />
+      )}
 
       <footer className="simple-footer" aria-label="MindEase links">
         <strong>MindEase Online Clinic</strong>

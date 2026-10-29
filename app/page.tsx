@@ -377,7 +377,7 @@ export default async function Home({
             <h2>Find someone you can talk to.</h2>
           </div>
           <a className="text-link" href={featuredTherapists.length ? "/therapists" : whatsappHref}>
-            {featuredTherapists.length ? "Open full directory" : hasWhatsApp ? "Ask for a personal match" : "Contact the clinic"}
+            {featuredTherapists.length ? "Meet our therapists →" : hasWhatsApp ? "Ask for a personal match" : "Contact the clinic"}
           </a>
         </div>
 
