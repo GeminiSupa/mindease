@@ -92,7 +92,7 @@ export default async function TherapistsDirectoryPage() {
 
       {/* ── Hero ────────────────────────────────────────────────── */}
       <div className="dir-hero">
-        <div className="dir-hero-inner">
+        <div className="dir-hero-inner" data-animate="fade-up">
           <span className="eyebrow">Online Mental Health Platform</span>
           <h1>Find Your Specialist</h1>
           <p>
@@ -109,10 +109,10 @@ export default async function TherapistsDirectoryPage() {
 
       {/* ── Stats band ──────────────────────────────────────────── */}
       <div className="dir-stats-band">
-        <div><strong>{therapists.length}+</strong><span>Verified Specialists</span></div>
-        <div><strong>5,000+</strong><span>Happy Clients</span></div>
-        <div><strong>100%</strong><span>Online Sessions</span></div>
-        <div><strong>4.8★</strong><span>Average Rating</span></div>
+        <div data-animate="fade-up"><strong>{therapists.length}+</strong><span>Verified Specialists</span></div>
+        <div data-animate="fade-up" data-delay="100"><strong>4</strong><span>Matching Factors</span></div>
+        <div data-animate="fade-up" data-delay="200"><strong>100%</strong><span>Online Sessions</span></div>
+        <div data-animate="fade-up" data-delay="300"><strong>1:1</strong><span>Coordinator Support</span></div>
       </div>
 
       {/* ── Directory ───────────────────────────────────────────── */}

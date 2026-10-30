@@ -194,7 +194,12 @@ export default function TherapistDirectory({
             const specs = focusAreas(t.specialization);
             const langs = cleanLanguages(t.languages);
             return (
-              <article className="dir-card" key={t.id}>
+              <article
+                className="dir-card"
+                key={t.id}
+                data-animate="fade-up"
+                data-tilt
+              >
                 {/* Photo */}
                 <div className="dir-card-photo-wrap">
                   <ProfileImage therapist={t} />

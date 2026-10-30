@@ -1,4 +1,5 @@
 import Image from "next/image";
+import ScrollRailControls from "./components/ScrollRailControls";
 import { getPublishedBlogPosts } from "./blog/posts";
 import { getPublicContactSettings, phoneHref } from "./site-settings";
 
@@ -257,7 +258,7 @@ export default async function Home({
             </div>
           </div>
 
-          <aside className="booking-widget" id="booking" aria-label="Find a therapist">
+          <aside className="booking-widget" id="booking" aria-label="Find a therapist" data-animate="fade-up">
             <div className="widget-head">
               <div>
                 <span>Start privately</span>
@@ -314,7 +315,7 @@ export default async function Home({
             </div>
           </aside>
 
-          <aside className="hero-media" aria-label="Calm therapy consultation setting">
+          <aside className="hero-media" aria-label="Calm therapy consultation setting" data-animate="slide-right" data-tilt>
             <Image
               src="https://images.unsplash.com/photo-1573497491208-6b1acb260507?auto=format&fit=crop&q=80&w=900&h=1100"
               alt="Therapist consultation in a calm office setting"
@@ -351,6 +352,52 @@ export default async function Home({
         </div>
       </section>
 
+      <section className="section care-tech-section" aria-labelledby="care-tech-title">
+        <div className="care-tech-copy" data-animate="slide-left">
+          <span className="eyebrow">A calmer matching experience</span>
+          <h2 id="care-tech-title">Useful signals up front. A human handoff when it matters.</h2>
+          <p>
+            MindEase brings the details people usually hunt for into one guided flow, then keeps a care
+            coordinator available for the final fit and timing check.
+          </p>
+          <div className="care-tech-points">
+            <article data-animate="fade-up" data-delay="100">
+              <strong>01</strong>
+              <div><h3>Compare what matters</h3><p>Focus area, language, fee, and availability stay easy to scan.</p></div>
+            </article>
+            <article data-animate="fade-up" data-delay="200">
+              <strong>02</strong>
+              <div><h3>Reflect privately</h3><p>Self-check results stay on your device and are never a diagnosis.</p></div>
+            </article>
+            <article data-animate="fade-up" data-delay="300">
+              <strong>03</strong>
+              <div><h3>Confirm with a person</h3><p>A coordinator helps verify the fit before a session is arranged.</p></div>
+            </article>
+          </div>
+        </div>
+        <div className="care-tech-visual" data-animate="slide-right" data-tilt aria-label="Illustration of the MindEase matching flow">
+          <div className="tech-orbit orbit-one" aria-hidden="true" />
+          <div className="tech-orbit orbit-two" aria-hidden="true" />
+          <div className="tech-console">
+            <div className="tech-console-head"><span>MindEase match</span><i>Private</i></div>
+            <div className="tech-profile-row">
+              <span className="tech-avatar" aria-hidden="true">ME</span>
+              <div><strong>Finding a suitable fit</strong><small>Comparing verified profile details</small></div>
+              <b>72%</b>
+            </div>
+            <div className="tech-progress"><span /></div>
+            <div className="tech-signal-grid">
+              <span><small>Language</small><strong>Urdu + English</strong></span>
+              <span><small>Format</small><strong>Online</strong></span>
+              <span><small>Priority</small><strong>Good fit</strong></span>
+              <span><small>Next step</small><strong>Human review</strong></span>
+            </div>
+          </div>
+          <div className="tech-float-card tech-float-top"><span>✓</span> Reviewed profile</div>
+          <div className="tech-float-card tech-float-bottom"><span>●</span> Coordinator ready</div>
+        </div>
+      </section>
+
       <section className="section intro-section">
         <div className="section-heading" data-animate="fade-up">
           <span>Your Journey</span>
@@ -361,7 +408,7 @@ export default async function Home({
         </div>
         <div className="journey-grid">
           {journey.map(([title, description], index) => (
-            <article key={title} data-animate="fade-up" data-delay={`${index * 100}` as "100" | "200" | "300" | "400"}>
+            <article key={title} data-animate="fade-up" data-tilt data-delay={`${index * 100}` as "100" | "200" | "300" | "400"}>
               <span>{String(index + 1).padStart(2, "0")}</span>
               <strong>{title}</strong>
               <p>{description}</p>
@@ -388,7 +435,7 @@ export default async function Home({
             const langs = therapist.languages?.join(", ") || "Urdu, English";
             const exp = therapist.years_experience ? `${therapist.years_experience}+ yrs` : null;
             return (
-              <article className="therapist-card" key={therapist.id} data-animate="fade-up" data-delay={delays[idx % 3]}>
+              <article className="therapist-card" key={therapist.id} data-animate="fade-up" data-tilt data-delay={delays[idx % 3]}>
                 <div className="therapist-top">
                   {therapist.profile_image_url ? (
                     <Image
@@ -447,14 +494,17 @@ export default async function Home({
       </section>
 
       <section className="section soft-section" id="services">
-        <div className="section-heading" data-animate="fade-up">
-          <span>Care areas</span>
-          <h2>Start with what feels hardest today.</h2>
-          <p>
-            Choose a starting point. Your therapist can help make sense of the rest.
-          </p>
+        <div className="rail-heading">
+          <div className="section-heading" data-animate="fade-up">
+            <span>Care areas</span>
+            <h2>Start with what feels hardest today.</h2>
+            <p>
+              Choose a starting point. Your therapist can help make sense of the rest.
+            </p>
+          </div>
+          <ScrollRailControls targetId="care-area-rail" label="care areas" />
         </div>
-        <div className="service-grid">
+        <div className="service-grid horizontal-rail" id="care-area-rail">
           {services.map((service, index) => (
             <a
               className="service-card"
@@ -462,6 +512,7 @@ export default async function Home({
               key={service.title}
               aria-label={`${service.title}: ${service.check}`}
               data-animate="scale-in"
+              data-tilt
               data-delay={(["100","200","300","400","500"][index % 5]) as "100"|"200"|"300"|"400"|"500"}
             >
               <Image src={service.image} alt="" width={900} height={620} loading="lazy" unoptimized />
@@ -503,6 +554,7 @@ export default async function Home({
               key={post.id}
               aria-label={`Read article: ${post.title}`}
               data-animate="fade-up"
+              data-tilt
               data-delay={(["100","200","300"][pIdx % 3]) as "100"|"200"|"300"}
             >
               <Image
