@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
-import { countryFlag } from "../countries";
+import { countryFlag, countryName } from "../countries";
 
 export type TherapistProfile = {
   id: string;
@@ -225,7 +225,7 @@ export default function TherapistDirectory({
 
                 {/* Meta row */}
                 <div className="dir-card-meta">
-                  <span className="dir-country" title="Country of origin">{countryFlag(t.country_code)} {t.country_of_origin || "Pakistan"}</span>
+                  <span className="dir-country" role="img" aria-label={countryName(t.country_code)} title={countryName(t.country_code)}>{countryFlag(t.country_code)}</span>
                   {t.years_experience && (
                     <span>
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
@@ -314,7 +314,7 @@ export default function TherapistDirectory({
                 </div>
               </div>
               <dl className="profile-modal-facts">
-                <div><dt>Country of origin</dt><dd>{countryFlag(activeTherapist.country_code)} {activeTherapist.country_of_origin || "Pakistan"}</dd></div>
+                <div><dt>Country of origin</dt><dd><span role="img" aria-label={countryName(activeTherapist.country_code)} title={countryName(activeTherapist.country_code)}>{countryFlag(activeTherapist.country_code)}</span></dd></div>
                 <div><dt>Experience</dt><dd>{activeTherapist.years_experience ? `${activeTherapist.years_experience}+ years` : "Reviewed profile"}</dd></div>
                 <div><dt>Languages</dt><dd>{cleanLanguages(activeTherapist.languages).join(", ") || "Confirm with coordinator"}</dd></div>
                 <div><dt>Availability</dt><dd>{activeTherapist.availability_status || "Ask coordinator"}</dd></div>

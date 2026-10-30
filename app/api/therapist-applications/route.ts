@@ -1,3 +1,4 @@
+import { countryName } from "../../countries";
 import {
   SUPABASE_ANON_KEY,
   SUPABASE_SERVICE_ROLE_KEY,
@@ -25,7 +26,7 @@ export async function POST(request: Request) {
   const phone = trimLimit(formData.get("phone"), 80);
   const professionalTitle = trimLimit(formData.get("professionalTitle"), 120);
   const countryCode = trimLimit(formData.get("countryCode"), 2).toUpperCase();
-  const countryOfOrigin = trimLimit(formData.get("countryOfOrigin"), 100);
+  const countryOfOrigin = countryName(countryCode);
   const qualifications = trimLimit(formData.get("qualifications"), 400);
   const licenseNumber = trimLimit(formData.get("licenseNumber"), 200);
   const yearsExperience = trimLimit(formData.get("yearsExperience"), 3);

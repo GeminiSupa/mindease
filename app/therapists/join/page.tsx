@@ -42,8 +42,7 @@ export default async function JoinTherapistsPage({ searchParams }: { searchParam
             <label>Email address<input name="email" type="email" placeholder="jane@example.com" required /></label>
             <label>WhatsApp / phone<input name="phone" type="tel" placeholder="+92 3XX XXXXXXX" required /></label>
             <label>Professional title<select name="professionalTitle" required defaultValue=""><option value="" disabled>Select title</option><option>Psychiatrist</option><option>Clinical Psychologist</option><option>Counselling Psychologist</option><option>Psychotherapist</option><option>Marriage & Family Therapist</option><option>Child & Teen Specialist</option><option>Counsellor</option><option>Other qualified clinician</option></select></label>
-            <label>Country of origin<select name="countryCode" defaultValue="PK" required>{THERAPIST_COUNTRIES.map(([code, name]) => <option key={code} value={code}>{name}</option>)}<option value="XX">Other country</option></select></label>
-            <label>Country name (if other)<input name="countryOfOrigin" placeholder="Optional" /></label>
+            <label>Country of origin<select name="countryCode" defaultValue="PK" required>{THERAPIST_COUNTRIES.map(([code, name]) => <option key={code} value={code}>{name}</option>)}</select></label>
             <label>Qualifications<input name="qualifications" placeholder="MPhil Clinical Psychology" required /></label>
             <label>Licence / registration<input name="licenseNumber" placeholder="PMDC or relevant registration" required /></label>
             <label>Years of experience<input name="yearsExperience" type="number" min="0" max="80" placeholder="5" required /></label>

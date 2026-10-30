@@ -2,7 +2,7 @@ import Image from "next/image";
 import ScrollRailControls from "./components/ScrollRailControls";
 import { getPublishedBlogPosts } from "./blog/posts";
 import { getPublicContactSettings, phoneHref } from "./site-settings";
-import { countryFlag } from "./countries";
+import { countryFlag, countryName } from "./countries";
 
 const SUPABASE_URL =
   process.env.SUPABASE_URL ??
@@ -462,7 +462,7 @@ export default async function Home({
                     <p>{therapist.title}</p>
                     {/* Compact stat chips: exp · languages */}
                     <div className="therapist-stats">
-                      <span>{countryFlag(therapist.country_code)} {therapist.country_of_origin || "Pakistan"}</span>
+                      <span role="img" aria-label={countryName(therapist.country_code)} title={countryName(therapist.country_code)}>{countryFlag(therapist.country_code)}</span>
                       {exp && <span>{exp}</span>}
                       <span>{langs}</span>
                     </div>
