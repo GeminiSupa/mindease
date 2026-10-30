@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { cookies } from 'next/headers';
 import LeadCaptureModal from '../../components/LeadCaptureModal';
 
@@ -86,10 +87,13 @@ export default async function SelfTestsListingPage() {
             </div>
           </div>
           <div className="test-hero-media">
-            <img
+            <Image
               src="https://images.unsplash.com/photo-1506126613408-eca07ce68773?auto=format&fit=crop&q=85&w=900&h=700"
               alt="A person in a calm reflective moment"
-              loading="eager"
+              width={900}
+              height={700}
+              priority
+              unoptimized
               style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 30%' }}
             />
             <div>

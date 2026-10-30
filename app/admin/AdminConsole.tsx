@@ -999,6 +999,7 @@ export function AdminConsole() {
           <a href="#approvals">Approvals</a>
           <a href="#profile-changes">Profile edits</a>
           <a href="#therapists">Live therapists</a>
+          <a href="#appointments">Appointments</a>
           <a href="#availability">Availability</a>
           <a href="#site-settings">Site contact</a>
           <a href="#blog">Blog</a>

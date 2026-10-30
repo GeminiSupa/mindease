@@ -15,6 +15,7 @@
   --mint:         rgba(0, 180, 170, 0.07);
   --aqua:         rgba(0, 180, 170, 0.12);
   --amber:        #f59e0b;
+  --lilac:        #645591;
   --white:        #ffffff;
   --off-white:    #f7fbfa;
   --soft:         #eef6f5;
@@ -2677,8 +2678,8 @@ footer {
   text-align: right;
 }
 
-.admin-list div,
-.setup-list p {
+.admin-list > div,
+.setup-list > p {
   background: #f7fbf9;
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -4626,6 +4627,212 @@ footer {
 
 /* Selection color */
 ::selection { background: rgba(10, 140, 131, 0.18); color: var(--ink); }
+
+/* Final UI hardening: contrast, containment, and responsive wrapping */
+.landing-page .booking-widget {
+  background: #ffffff !important;
+  border: 1px solid var(--line) !important;
+}
+
+.landing-page .ghost-btn {
+  background: #ffffff;
+  border-color: #8cc9c4;
+  color: #075f59;
+}
+
+.landing-page .ghost-btn:hover {
+  background: var(--teal-light);
+  border-color: #0f766e;
+  color: #075f59;
+}
+
+.landing-page .nav-cta,
+.landing-page .primary-btn,
+.landing-page .search-form button,
+.landing-page .contact-form button {
+  background: linear-gradient(135deg, #0f766e, #075f59);
+  color: #ffffff;
+}
+
+.landing-page .service-card {
+  aspect-ratio: auto;
+  min-height: 340px;
+}
+
+.landing-page .therapist-card,
+.landing-page .service-card,
+.landing-page .blog-card,
+.admin-panel,
+.admin-kpis article,
+.admin-list > div,
+.question-card {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.therapist-stats,
+.landing-page .pill-row {
+  flex-wrap: wrap;
+  overflow: visible;
+}
+
+.therapist-stats span,
+.landing-page .pill-row span,
+.dir-card-tags span {
+  max-width: 100%;
+  white-space: normal;
+}
+
+.admin-sidebar {
+  height: 100vh;
+  overflow-y: auto;
+}
+
+.admin-sidebar nav a {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  overflow-wrap: anywhere;
+}
+
+.admin-sidebar nav a:hover,
+.admin-sidebar nav a:focus-visible,
+.admin-sidebar button:hover,
+.admin-sidebar button:focus-visible {
+  background: rgba(255, 255, 255, 0.16);
+  color: #ffffff;
+}
+
+.admin-grid > *,
+.admin-panel,
+.admin-panel-head > *,
+.admin-list > *,
+.admin-row > *,
+.admin-form-grid > * {
+  min-width: 0;
+}
+
+.admin-panel[id],
+.admin-content[id] {
+  scroll-margin-top: 20px;
+}
+
+.admin-list p,
+.admin-list small,
+.admin-list strong,
+.admin-row p,
+.admin-row strong,
+.admin-table td {
+  overflow-wrap: anywhere;
+}
+
+.admin-actions button,
+.admin-editor-actions button {
+  flex: 1 1 140px;
+  max-width: 100%;
+  min-width: 0;
+  padding: 9px 12px;
+  white-space: normal;
+}
+
+.admin-panel-head {
+  flex-wrap: wrap;
+}
+
+.admin-panel-head > div:last-child {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.image-upload-field input[type="file"] {
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+}
+
+@media (max-width: 820px) {
+  .admin-sidebar {
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+    position: static;
+  }
+
+  .admin-sidebar nav {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 620px) {
+  .landing-page .therapist-grid,
+  .landing-page .service-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .landing-page .service-card {
+    min-height: 360px;
+  }
+
+  .admin-content {
+    padding-inline: 14px;
+  }
+
+  .admin-sidebar nav {
+    display: flex;
+    gap: 8px;
+    margin-inline: -22px;
+    overflow-x: auto;
+    padding: 0 22px 8px;
+    scrollbar-width: thin;
+  }
+
+  .admin-sidebar nav a {
+    flex: 0 0 auto;
+    min-height: 44px;
+    white-space: nowrap;
+  }
+
+  .admin-panel,
+  .admin-kpis article {
+    padding: 15px;
+  }
+
+  .admin-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .admin-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .admin-actions button {
+    flex-basis: auto;
+    width: 100%;
+  }
+
+  .image-upload-field {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .image-upload-field > span:first-child,
+  .image-upload-field > input,
+  .image-upload-field > strong,
+  .image-upload-field > small,
+  .image-upload-field img,
+  .image-upload-field .upload-placeholder {
+    grid-column: 1;
+  }
+
+  .image-upload-field img,
+  .image-upload-field .upload-placeholder {
+    grid-row: auto;
+    height: 96px;
+    width: 96px;
+  }
+}
 
 /* Reduced motion fallback */
 @media (prefers-reduced-motion: reduce) {

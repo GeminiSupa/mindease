@@ -83,7 +83,7 @@ export default function LeadCaptureModal() {
               Unlock our therapist profiles & self-checks
             </h2>
             <p style={{ color: 'var(--muted)', lineHeight: 1.55, marginBottom: '22px', fontSize: '0.93rem' }}>
-              Leave your email or WhatsApp so our care coordinator can follow up if you'd like a personal match.
+              Leave your email or WhatsApp so our care coordinator can follow up if you&apos;d like a personal match.
             </p>
 
             <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
