@@ -7,6 +7,8 @@ export const therapists = sqliteTable("therapists", {
   email: text("email").notNull(),
   bio: text("bio").notNull(),
   imageUrl: text("image_url"),
+  countryOfOrigin: text("country_of_origin").default("Pakistan").notNull(),
+  countryCode: text("country_code").default("PK").notNull(),
   status: text("status", { enum: ["PENDING", "APPROVED", "REJECTED"] }).default("PENDING").notNull(),
   createdAt: integer("created_at", { mode: "timestamp" }).default(sql`(strftime('%s', 'now'))`),
 });

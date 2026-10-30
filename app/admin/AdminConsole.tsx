@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { THERAPIST_COUNTRIES, countryFlag } from "../countries";
 
 type AdminSession = {
   access_token?: string;
@@ -36,6 +37,8 @@ type AdminTherapist = {
   sessionFee: number;
   currency: string;
   bio: string;
+  countryOfOrigin: string;
+  countryCode: string;
 };
 
 type ContactSettingsForm = {
@@ -170,6 +173,8 @@ type TherapistForm = {
   sessionFee: string;
   profileImageUrl: string;
   bio: string;
+  countryOfOrigin: string;
+  countryCode: string;
 };
 
 type TherapistEditForm = {
@@ -183,6 +188,8 @@ type TherapistEditForm = {
   profileImageUrl: string;
   bio: string;
   availabilityStatus: string;
+  countryOfOrigin: string;
+  countryCode: string;
 };
 
 const blankTherapistEditForm: TherapistEditForm = {
@@ -196,6 +203,8 @@ const blankTherapistEditForm: TherapistEditForm = {
   profileImageUrl: "",
   bio: "",
   availabilityStatus: "Available",
+  countryOfOrigin: "Pakistan",
+  countryCode: "PK",
 };
 
 const blankTherapistForm: TherapistForm = {
@@ -210,6 +219,8 @@ const blankTherapistForm: TherapistForm = {
   sessionFee: "",
   profileImageUrl: "",
   bio: "",
+  countryOfOrigin: "Pakistan",
+  countryCode: "PK",
 };
 
 type BlogForm = {
@@ -415,6 +426,8 @@ export function AdminConsole() {
       profileImageUrl: therapist.photo ?? "",
       bio: therapist.bio,
       availabilityStatus: therapist.status,
+      countryOfOrigin: therapist.countryOfOrigin || "Pakistan",
+      countryCode: therapist.countryCode || "PK",
     });
     setError("");
     setNotice("");
@@ -583,6 +596,14 @@ export function AdminConsole() {
             onChange={(event) => updateTherapistEditField("qualifications", event.target.value)}
             placeholder="MS Clinical Psychology"
           />
+        </label>
+        <label>
+          Country of origin
+          <select value={therapistEditForm.countryCode} onChange={(event) => {
+            const code = event.target.value;
+            const name = THERAPIST_COUNTRIES.find(([itemCode]) => itemCode === code)?.[1] ?? "International";
+            setTherapistEditForm((current) => ({ ...current, countryCode: code, countryOfOrigin: name }));
+          }}>{THERAPIST_COUNTRIES.map(([code, name]) => <option key={code} value={code}>{countryFlag(code)} {name}</option>)}</select>
         </label>
         <label>
           Languages
@@ -1194,6 +1215,14 @@ export function AdminConsole() {
                   onChange={(event) => updateTherapistField("qualifications", event.target.value)}
                   placeholder="MS Clinical Psychology"
                 />
+              </label>
+              <label>
+                Country of origin
+                <select value={therapistForm.countryCode} onChange={(event) => {
+                  const code = event.target.value;
+                  const name = THERAPIST_COUNTRIES.find(([itemCode]) => itemCode === code)?.[1] ?? "International";
+                  setTherapistForm((current) => ({ ...current, countryCode: code, countryOfOrigin: name }));
+                }}>{THERAPIST_COUNTRIES.map(([code, name]) => <option key={code} value={code}>{countryFlag(code)} {name}</option>)}</select>
               </label>
               <label>
                 Languages

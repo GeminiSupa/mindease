@@ -94,6 +94,8 @@ create table if not exists public.therapists (
   profile_image_url text,
   session_fee numeric(12, 2) not null default 0,
   currency text not null default 'PKR',
+  country_of_origin text not null default 'Pakistan',
+  country_code text not null default 'PK',
   availability_status text not null default 'Available',
   approval_status text not null default 'pending' check (approval_status in ('pending', 'approved', 'rejected')),
   approved_at timestamptz,
@@ -111,6 +113,10 @@ alter table public.therapists
   add column if not exists approved_at timestamptz,
   add column if not exists approved_by uuid references auth.users(id) on delete set null,
   add column if not exists admin_notes text;
+
+alter table public.therapists
+  add column if not exists country_of_origin text not null default 'Pakistan',
+  add column if not exists country_code text not null default 'PK';
 
 create table if not exists public.therapist_services (
   therapist_id uuid not null references public.therapists(id) on delete cascade,

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { THERAPIST_COUNTRIES, countryFlag } from "../../countries";
 
 type TherapistSession = {
   access_token?: string;
@@ -24,6 +25,8 @@ type TherapistProfile = {
   availability_status?: string;
   approval_status?: string;
   is_active?: boolean;
+  country_of_origin?: string;
+  country_code?: string;
 };
 
 type DashboardData = {
@@ -66,6 +69,8 @@ type ProfileForm = {
   profileImageUrl: string;
   sessionFee: string;
   availabilityStatus: string;
+  countryOfOrigin: string;
+  countryCode: string;
 };
 
 const blankForm: ProfileForm = {
@@ -77,6 +82,8 @@ const blankForm: ProfileForm = {
   profileImageUrl: "",
   sessionFee: "",
   availabilityStatus: "Available",
+  countryOfOrigin: "Pakistan",
+  countryCode: "PK",
 };
 
 const profileFieldNames: Record<string, string> = {
@@ -88,6 +95,8 @@ const profileFieldNames: Record<string, string> = {
   profile_image_url: "Profile photo",
   session_fee: "Session fee",
   availability_status: "Availability",
+  country_of_origin: "Country of origin",
+  country_code: "Country code",
 };
 
 function friendlyLabel(value: string) {
@@ -142,6 +151,8 @@ export default function TherapistDashboard() {
         profileImageUrl: therapist.profile_image_url ?? "",
         sessionFee: therapist.session_fee ? String(therapist.session_fee) : "",
         availabilityStatus: therapist.availability_status ?? "Available",
+        countryOfOrigin: therapist.country_of_origin ?? "Pakistan",
+        countryCode: therapist.country_code ?? "PK",
       });
     }
     return body;
@@ -399,6 +410,14 @@ export default function TherapistDashboard() {
               <label>
                 Languages
                 <input value={form.languages} onChange={(event) => updateField("languages", event.target.value)} />
+              </label>
+              <label>
+                Country of origin
+                <select value={form.countryCode} onChange={(event) => {
+                  const code = event.target.value;
+                  const name = THERAPIST_COUNTRIES.find(([itemCode]) => itemCode === code)?.[1] ?? "International";
+                  setForm((current) => ({ ...current, countryCode: code, countryOfOrigin: name }));
+                }}>{THERAPIST_COUNTRIES.map(([code, name]) => <option key={code} value={code}>{countryFlag(code)} {name}</option>)}</select>
               </label>
               <label>
                 Session fee

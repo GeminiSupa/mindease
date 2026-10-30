@@ -2,6 +2,7 @@ import Image from "next/image";
 import ScrollRailControls from "./components/ScrollRailControls";
 import { getPublishedBlogPosts } from "./blog/posts";
 import { getPublicContactSettings, phoneHref } from "./site-settings";
+import { countryFlag } from "./countries";
 
 const SUPABASE_URL =
   process.env.SUPABASE_URL ??
@@ -30,7 +31,20 @@ type LiveTherapist = {
   currency?: string;
   availability_status?: string;
   profile_image_url?: string;
+  country_of_origin?: string;
+  country_code?: string;
 };
+
+const supportFormats = [
+  ["Online Psychiatrist", "PMDC-licensed psychiatrists for assessment and medication guidance when clinically appropriate.", "/therapists", "Find a psychiatrist"],
+  ["Online Psychologist", "Verified, qualified clinical psychologists for evidence-based talk therapy and counselling.", "/therapists", "Meet psychologists"],
+  ["Therapy & Counselling", "Structured video or audio sessions for low mood, worry, and everyday life challenges.", "/therapists", "Find a counsellor"],
+  ["Child & Teen Specialists", "Specialists for behaviour, school, family, and emotional concerns affecting young people.", "/therapists", "Explore specialists"],
+  ["Relationship & Marriage", "Counselling for couples and families working through conflict, trust, and communication.", "/therapists", "Find relationship support"],
+  ["Text Chat Counselling", "Prefer to write? Ask the coordinator which clinicians currently offer text-based support.", "#contact", "Check availability"],
+  ["International Panel", "Consult experienced clinicians from abroad, designed for Pakistanis at home and overseas.", "/therapists", "View international panel"],
+  ["Corporate Wellness", "Employee wellbeing programmes, webinars, and workplace emotional wellbeing assessments.", "#contact", "Discuss a programme"],
+];
 
 const services = [
   {
@@ -98,6 +112,7 @@ const fallbackTherapists: LiveTherapist[] = [
     availability_status: "Evening slots by request",
     profile_image_url: "/team/ishrat-noureen.jpeg",
     bio: "A calm, structured therapy style for clients who want practical tools and reflective support.",
+    country_of_origin: "Pakistan", country_code: "PK",
   },
   {
     id: "sample-aisha",
@@ -113,6 +128,7 @@ const fallbackTherapists: LiveTherapist[] = [
     profile_image_url:
       "https://images.unsplash.com/photo-1551836022-d5d88e9218df?auto=format&fit=crop&q=80&w=500&h=620",
     bio: "Focused on helping clients build steadier routines, boundaries, and emotional regulation.",
+    country_of_origin: "Pakistan", country_code: "PK",
   },
   {
     id: "sample-hamza",
@@ -128,6 +144,7 @@ const fallbackTherapists: LiveTherapist[] = [
     profile_image_url:
       "https://images.unsplash.com/photo-1582750433449-648ed127bb54?auto=format&fit=crop&q=80&w=500&h=620",
     bio: "A collaborative approach for professionals and students managing overload and uncertainty.",
+    country_of_origin: "Pakistan", country_code: "PK",
   },
 ];
 
@@ -150,23 +167,14 @@ function splitFocus(value?: string) {
 async function getApprovedTherapists() {
   if (!PUBLIC_READ_KEY) return DEMO_MODE ? fallbackTherapists : [];
 
-  const query = new URLSearchParams({
-    select:
-      "id,full_name,title,qualifications,years_experience,bio,specialization,languages,session_fee,currency,availability_status,profile_image_url",
-    is_active: "eq.true",
-    approval_status: "eq.approved",
-    order: "is_featured.desc,created_at.desc",
-    limit: "12",
-  });
-
   try {
-    const response = await fetch(`${SUPABASE_URL}/rest/v1/therapists?${query}`, {
-      headers: {
-        apikey: PUBLIC_READ_KEY,
-        authorization: `Bearer ${PUBLIC_READ_KEY}`,
-      },
-      cache: "no-store",
-    });
+    const fields = "id,full_name,title,qualifications,years_experience,bio,specialization,languages,session_fee,currency,availability_status,profile_image_url";
+    const load = (select: string) => {
+      const query = new URLSearchParams({ select, is_active: "eq.true", approval_status: "eq.approved", order: "is_featured.desc,created_at.desc", limit: "12" });
+      return fetch(`${SUPABASE_URL}/rest/v1/therapists?${query}`, { headers: { apikey: PUBLIC_READ_KEY, authorization: `Bearer ${PUBLIC_READ_KEY}` }, cache: "no-store" });
+    };
+    let response = await load(`${fields},country_of_origin,country_code`);
+    if (!response.ok) response = await load(fields);
 
     if (!response.ok) return DEMO_MODE ? fallbackTherapists : [];
     const therapists = (await response.json()) as LiveTherapist[];
@@ -454,6 +462,7 @@ export default async function Home({
                     <p>{therapist.title}</p>
                     {/* Compact stat chips: exp · languages */}
                     <div className="therapist-stats">
+                      <span>{countryFlag(therapist.country_code)} {therapist.country_of_origin || "Pakistan"}</span>
                       {exp && <span>{exp}</span>}
                       <span>{langs}</span>
                     </div>
@@ -491,6 +500,25 @@ export default async function Home({
             <p>Message the care coordinator and we will help you find a suitable option.</p>
           </div>
         ) : null}
+      </section>
+
+      <section className="section support-formats" aria-labelledby="support-formats-title">
+        <div className="section-heading" data-animate="fade-up">
+          <span>Care, your way</span><h2 id="support-formats-title">Specialist support for Pakistan and beyond.</h2>
+          <p>Choose the kind of support you need. A MindEase coordinator can help confirm credentials, fit, language, fee, and availability.</p>
+        </div>
+        <div className="support-format-grid">
+          {supportFormats.map(([title, description, href, label], index) => (
+            <article key={title} data-animate="fade-up" data-tilt data-delay={`${(index % 4 + 1) * 100}` as "100" | "200" | "300" | "400"}>
+              <span>{String(index + 1).padStart(2, "0")}</span><h3>{title}</h3><p>{description}</p><a href={href}>{label} →</a>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="section payment-options" aria-labelledby="payment-options-title" data-animate="fade-up">
+        <div><span className="eyebrow">Payment options</span><h2 id="payment-options-title">Familiar ways to pay in Pakistan.</h2><p>Once your therapist and time are confirmed, the coordinator shares the approved payment instructions. Never send payment before confirmation.</p></div>
+        <div className="payment-methods" aria-label="Supported payment methods"><span><b>JC</b>JazzCash</span><span><b>EP</b>Easypaisa</span><span><b>V</b>Visa / Mastercard</span></div>
       </section>
 
       <section className="section soft-section" id="services">

@@ -2243,6 +2243,61 @@ footer {
   margin-bottom: 18px;
 }
 
+/* Therapist network application */
+.join-page { background: linear-gradient(145deg, #effaf7 0%, #f7f5ef 55%, #eef6f5 100%); color: var(--ink); min-height: 100vh; }
+.join-nav { align-items: center; display: flex; justify-content: space-between; margin: 0 auto; max-width: 1240px; padding: 24px clamp(18px, 5vw, 64px); }
+.join-nav .admin-mini-brand { color: var(--ink); display: flex; flex-direction: column; font-weight: 950; margin: 0; }
+.join-nav small { color: var(--muted); font-size: .68rem; }
+.join-nav > div { display: flex; gap: 22px; }
+.join-nav a { color: var(--ink); font-weight: 800; }
+.join-hero, .join-application { display: grid; gap: clamp(28px, 6vw, 76px); grid-template-columns: minmax(0, .85fr) minmax(460px, 1.15fr); margin: 0 auto; max-width: 1240px; padding: clamp(48px, 8vw, 110px) clamp(18px, 5vw, 64px); }
+.join-hero-copy h1 { font-size: clamp(3rem, 6vw, 6rem); letter-spacing: -.055em; line-height: .94; margin: 14px 0 24px; max-width: 760px; }
+.join-hero-copy > p:not(.admin-kicker), .join-application-copy > p { color: var(--muted); font-size: 1.04rem; line-height: 1.7; }
+.join-steps { display: grid; gap: 12px; }
+.join-steps article { align-items: flex-start; background: rgba(255,255,255,.86); border: 1px solid rgba(21,73,65,.12); border-radius: 18px; box-shadow: 0 18px 45px rgba(20,62,56,.08); display: flex; gap: 18px; padding: 22px; }
+.join-steps article > span { color: var(--teal-dark); font-size: .78rem; font-weight: 950; padding-top: 3px; }
+.join-steps h2 { font-size: 1rem; margin: 0 0 5px; }
+.join-steps p { color: var(--muted); line-height: 1.55; margin: 0; }
+.join-application { align-items: start; background: rgba(255,255,255,.44); border-radius: 32px; margin-bottom: 60px; padding-bottom: clamp(36px, 6vw, 74px); padding-top: clamp(36px, 6vw, 74px); }
+.join-application-copy { position: sticky; top: 28px; }
+.join-application-copy h2 { font-size: clamp(2.2rem, 4vw, 3.8rem); letter-spacing: -.04em; line-height: 1; margin: 12px 0 20px; }
+.join-review-note { background: #173f3a; border-radius: 18px; color: #fff; display: grid; gap: 10px; margin-top: 28px; padding: 24px; }
+.join-review-note strong { color: #72e4d6; font-size: .8rem; letter-spacing: .08em; text-transform: uppercase; }
+.join-review-note span::before { color: #72e4d6; content: "✓"; margin-right: 9px; }
+.join-form { background: #fff; border: 1px solid rgba(21,73,65,.12); border-radius: 22px; box-shadow: 0 28px 70px rgba(20,62,56,.12); }
+.join-form .admin-form-grid { margin-top: 22px; }
+.join-form textarea { min-height: 135px; }
+.join-form button { grid-column: 1 / -1; }
+
+/* Specialist formats and Pakistan payment options */
+.support-formats { background: #eef8f6; border-radius: 28px; }
+.support-format-grid { display: grid; gap: 14px; grid-template-columns: repeat(4, minmax(0,1fr)); margin-top: 30px; }
+.support-format-grid article { background: #fff; border: 1px solid rgba(23,63,58,.1); border-radius: 18px; display: flex; flex-direction: column; min-height: 245px; overflow: hidden; padding: 24px; transition: transform .3s ease, box-shadow .3s ease; }
+.support-format-grid article:hover { box-shadow: 0 20px 42px rgba(23,63,58,.12); transform: translateY(-6px) rotateX(1deg); }
+.support-format-grid article > span { color: var(--teal-dark); font-size: .74rem; font-weight: 950; }
+.support-format-grid h3 { color: var(--ink); font-size: 1.15rem; margin: 26px 0 10px; }
+.support-format-grid p { color: var(--muted); flex: 1; line-height: 1.55; margin: 0 0 22px; }
+.support-format-grid a { color: var(--teal-dark); font-weight: 900; }
+.payment-options { align-items: center; background: linear-gradient(125deg, #173f3a, #1c5650); border-radius: 28px; color: #fff; display: grid; gap: 38px; grid-template-columns: 1fr 1fr; }
+.payment-options h2 { color: #fff; font-size: clamp(2rem, 4vw, 3.6rem); letter-spacing: -.04em; line-height: 1; margin: 12px 0 18px; }
+.payment-options p { color: rgba(255,255,255,.72); line-height: 1.65; max-width: 620px; }
+.payment-methods { display: grid; gap: 12px; }
+.payment-methods span { align-items: center; background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.16); border-radius: 14px; display: flex; font-weight: 900; gap: 14px; padding: 14px 16px; }
+.payment-methods b { align-items: center; background: #fff; border-radius: 10px; color: #164a44; display: flex; height: 38px; justify-content: center; width: 48px; }
+.dir-card-meta .dir-country { color: var(--ink); font-weight: 750; width: 100%; justify-content: center; }
+
+@media (max-width: 960px) {
+  .join-hero, .join-application, .payment-options { grid-template-columns: 1fr; }
+  .join-application-copy { position: static; }
+  .support-format-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
+}
+@media (max-width: 620px) {
+  .join-nav > div a:first-child { display: none; }
+  .join-hero, .join-application { padding-left: 16px; padding-right: 16px; }
+  .support-format-grid { grid-template-columns: 1fr; }
+  .support-format-grid article { min-height: 215px; }
+}
+
 .admin-shell {
   display: grid;
   grid-template-columns: 258px minmax(0, 1fr);

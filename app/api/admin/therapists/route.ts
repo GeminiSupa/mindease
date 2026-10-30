@@ -118,6 +118,10 @@ export async function POST(request: Request) {
       profile_image_url: profileImageUrl,
       years_experience: Number(body.yearsExperience) || 0,
       session_fee: Number(body.sessionFee) || 0,
+      country_of_origin: trimmedText(body.countryOfOrigin, 100) || "Pakistan",
+      country_code: /^[A-Za-z]{2}$/.test(trimmedText(body.countryCode, 2))
+        ? trimmedText(body.countryCode, 2).toUpperCase()
+        : "PK",
       languages:
         typeof body.languages === "string"
           ? body.languages
@@ -223,6 +227,10 @@ export async function PATCH(request: Request) {
       profile_image_url: profileImageUrl,
       bio: trimmedText(body.bio, 2000),
       availability_status: trimmedText(body.availabilityStatus, 120) || "Available",
+      country_of_origin: trimmedText(body.countryOfOrigin, 100) || "Pakistan",
+      country_code: /^[A-Za-z]{2}$/.test(trimmedText(body.countryCode, 2))
+        ? trimmedText(body.countryCode, 2).toUpperCase()
+        : "PK",
     };
   } else {
     update =

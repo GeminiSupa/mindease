@@ -21,16 +21,39 @@ function trimLimit(value: FormDataEntryValue | null, limit: number) {
 export async function POST(request: Request) {
   const formData = await request.formData();
   const name = trimLimit(formData.get("name"), 120);
-  const contact = trimLimit(formData.get("contact"), 160);
-  const message = trimLimit(formData.get("message"), 4000);
+  const email = trimLimit(formData.get("email"), 160);
+  const phone = trimLimit(formData.get("phone"), 80);
+  const professionalTitle = trimLimit(formData.get("professionalTitle"), 120);
+  const countryCode = trimLimit(formData.get("countryCode"), 2).toUpperCase();
+  const countryOfOrigin = trimLimit(formData.get("countryOfOrigin"), 100);
+  const qualifications = trimLimit(formData.get("qualifications"), 400);
+  const licenseNumber = trimLimit(formData.get("licenseNumber"), 200);
+  const yearsExperience = trimLimit(formData.get("yearsExperience"), 3);
+  const sessionFee = trimLimit(formData.get("sessionFee"), 20);
+  const currency = trimLimit(formData.get("currency"), 5);
+  const languages = trimLimit(formData.get("languages"), 300);
+  const specialization = trimLimit(formData.get("specialization"), 500);
+  const profileUrl = trimLimit(formData.get("profileUrl"), 1000);
+  const bio = trimLimit(formData.get("bio"), 2500);
   const consentAccepted = formData.get("consent") === "on";
   const key = SUPABASE_SERVICE_ROLE_KEY ?? SUPABASE_ANON_KEY;
 
-  if (!name || !contact || !message || !consentAccepted || !key) {
+  if (!name || !email || !phone || !professionalTitle || !qualifications || !licenseNumber || !languages || !specialization || !bio || !consentAccepted || !key) {
     return redirectApplication(request, "error");
   }
 
-  const isEmail = contact.includes("@");
+  const message = [
+    `Professional title: ${professionalTitle}`,
+    `Country: ${countryOfOrigin || countryCode || "Pakistan"} (${countryCode || "PK"})`,
+    `Qualifications: ${qualifications}`,
+    `Licence / registration: ${licenseNumber}`,
+    `Experience: ${yearsExperience || "Not provided"} years`,
+    `Expected fee: ${sessionFee ? `${currency || "PKR"} ${sessionFee}` : "Not provided"}`,
+    `Languages: ${languages}`,
+    `Focus areas: ${specialization}`,
+    `Professional profile: ${profileUrl || "Not provided"}`,
+    `Bio: ${bio}`,
+  ].join("\n");
   try {
     const response = await fetch(`${SUPABASE_URL}/rest/v1/contact_messages`, {
       method: "POST",
@@ -42,8 +65,8 @@ export async function POST(request: Request) {
       },
       body: JSON.stringify({
         name,
-        email: isEmail ? contact : null,
-        phone: isEmail ? null : contact,
+        email,
+        phone,
         topic: "Therapist network application",
         message,
         source: "therapist_application",

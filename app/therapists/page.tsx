@@ -19,6 +19,8 @@ const fallbackTherapists: TherapistProfile[] = [
       "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&q=80&w=400&h=400",
     rating: 4.8,
     review_count: 12,
+    country_of_origin: "Pakistan",
+    country_code: "PK",
   },
 ];
 
@@ -37,23 +39,14 @@ export const revalidate = 0;
 async function getApprovedTherapists(): Promise<TherapistProfile[]> {
   if (!PUBLIC_READ_KEY) return fallbackTherapists;
 
-  const query = new URLSearchParams({
-    select:
-      "id,full_name,title,qualifications,years_experience,bio,specialization,languages,session_fee,currency,availability_status,profile_image_url,rating,review_count",
-    is_active: "eq.true",
-    approval_status: "eq.approved",
-    order: "is_featured.desc,created_at.desc",
-    limit: "50",
-  });
-
   try {
-    const response = await fetch(`${SUPABASE_URL}/rest/v1/therapists?${query}`, {
-      headers: {
-        apikey: PUBLIC_READ_KEY,
-        authorization: `Bearer ${PUBLIC_READ_KEY}`,
-      },
-      cache: "no-store",
-    });
+    const fields = "id,full_name,title,qualifications,years_experience,bio,specialization,languages,session_fee,currency,availability_status,profile_image_url,rating,review_count";
+    const load = (select: string) => {
+      const query = new URLSearchParams({ select, is_active: "eq.true", approval_status: "eq.approved", order: "is_featured.desc,created_at.desc", limit: "50" });
+      return fetch(`${SUPABASE_URL}/rest/v1/therapists?${query}`, { headers: { apikey: PUBLIC_READ_KEY, authorization: `Bearer ${PUBLIC_READ_KEY}` }, cache: "no-store" });
+    };
+    let response = await load(`${fields},country_of_origin,country_code`);
+    if (!response.ok) response = await load(fields);
 
     if (!response.ok) return fallbackTherapists;
     const therapists = (await response.json()) as TherapistProfile[];

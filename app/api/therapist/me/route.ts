@@ -44,6 +44,12 @@ function normalizeProfileChanges(body: Record<string, unknown>) {
     session_fee: Number(body.sessionFee) || undefined,
     availability_status:
       typeof body.availabilityStatus === "string" ? body.availabilityStatus.trim() : undefined,
+    country_of_origin:
+      typeof body.countryOfOrigin === "string" ? body.countryOfOrigin.trim().slice(0, 100) : undefined,
+    country_code:
+      typeof body.countryCode === "string" && /^[A-Za-z]{2}$/.test(body.countryCode.trim())
+        ? body.countryCode.trim().toUpperCase()
+        : undefined,
   };
 }
 

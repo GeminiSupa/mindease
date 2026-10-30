@@ -57,6 +57,8 @@ type AdminOverview = {
     sessionFee: number;
     currency: string;
     bio: string;
+    countryOfOrigin: string;
+    countryCode: string;
   }>;
   pendingTherapists: Array<{
     id: string;
@@ -73,6 +75,8 @@ type AdminOverview = {
     sessionFee: number;
     currency: string;
     bio: string;
+    countryOfOrigin: string;
+    countryCode: string;
   }>;
   messages: Array<{
     id: string;
@@ -234,6 +238,8 @@ export async function GET(request: Request) {
     sessionFee: Number(row.session_fee) || 0,
     currency: value(row, ["currency"], "PKR"),
     bio: value(row, ["bio"], ""),
+    countryOfOrigin: value(row, ["country_of_origin"], "Pakistan"),
+    countryCode: value(row, ["country_code"], "PK"),
   }));
   const activeTherapists = therapists.filter((therapist) => therapist.isActive);
   const pendingTherapists = therapists.filter(
