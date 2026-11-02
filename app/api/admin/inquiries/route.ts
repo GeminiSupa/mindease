@@ -216,3 +216,38 @@ export async function PATCH(request: Request) {
     appointment,
   });
 }
+
+export async function DELETE(request: Request) {
+  if (!SUPABASE_SERVICE_ROLE_KEY) {
+    return json({ error: "SUPABASE_SERVICE_ROLE_KEY is required to delete inquiries." }, 500);
+  }
+
+  const admin = await requireAdmin(request);
+  if (!admin) return json({ error: "Admin access required." }, 403);
+
+  const body = await request.json();
+  const id = typeof body.id === "string" ? body.id : "";
+  const confirmed = body.confirm === true;
+  if (!id || !confirmed) return json({ error: "Inquiry id and deletion confirmation are required." }, 400);
+
+  const messages = await getRows("contact_messages", `id=eq.${encodeURIComponent(id)}&select=id,name,appointment_id&limit=1`);
+  const message = messages[0];
+  if (!message) return json({ error: "Inquiry not found." }, 404);
+
+  const response = await serviceFetch(`/rest/v1/contact_messages?id=eq.${encodeURIComponent(id)}`, {
+    method: "DELETE",
+    headers: { prefer: "return=representation" },
+  });
+  const result = await response.json();
+  if (!response.ok) return json({ error: result?.message ?? "Could not delete inquiry." }, response.status);
+
+  await writeAuditLog({
+    actorId: admin.id,
+    action: "inquiry_deleted",
+    subjectTable: "contact_messages",
+    subjectId: id,
+    details: { name: value(message, ["name"], ""), appointmentId: value(message, ["appointment_id"], "") },
+  });
+
+  return json({ deleted: true, id });
+}

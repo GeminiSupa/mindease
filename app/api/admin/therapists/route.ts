@@ -1,4 +1,5 @@
 import {
+  getRows,
   json,
   requireAdmin,
   serviceFetch,
@@ -274,4 +275,49 @@ export async function PATCH(request: Request) {
   });
 
   return json({ therapist: Array.isArray(result) ? result[0] : result });
+}
+
+export async function DELETE(request: Request) {
+  if (!SUPABASE_SERVICE_ROLE_KEY) {
+    return json({ error: "SUPABASE_SERVICE_ROLE_KEY is required to delete therapists." }, 500);
+  }
+
+  const admin = await requireAdmin(request);
+  if (!admin) return json({ error: "Admin access required." }, 403);
+
+  const body = await request.json();
+  const id = typeof body.id === "string" ? body.id : "";
+  const confirmed = body.confirm === true;
+  if (!id || !confirmed) return json({ error: "Therapist id and deletion confirmation are required." }, 400);
+
+  const therapists = await getRows("therapists", `id=eq.${encodeURIComponent(id)}&select=id,user_id,full_name&limit=1`);
+  const therapist = therapists[0];
+  if (!therapist) return json({ error: "Therapist not found." }, 404);
+
+  const response = await serviceFetch(`/rest/v1/therapists?id=eq.${encodeURIComponent(id)}`, {
+    method: "DELETE",
+    headers: { prefer: "return=representation" },
+  });
+  const result = await response.json();
+  if (!response.ok) return json({ error: result?.message ?? "Could not delete therapist profile." }, response.status);
+
+  const userId = typeof therapist.user_id === "string" ? therapist.user_id : "";
+  let accountDeleted = false;
+  if (userId) {
+    const authResponse = await fetch(`${SUPABASE_URL}/auth/v1/admin/users/${encodeURIComponent(userId)}`, {
+      method: "DELETE",
+      headers: serviceHeaders(),
+    });
+    accountDeleted = authResponse.ok;
+  }
+
+  await writeAuditLog({
+    actorId: admin.id,
+    action: "therapist_deleted",
+    subjectTable: "therapists",
+    subjectId: id,
+    details: { fullName: therapist.full_name, userId, accountDeleted },
+  });
+
+  return json({ deleted: true, id, accountDeleted });
 }

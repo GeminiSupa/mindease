@@ -2563,6 +2563,11 @@ footer {
 .inquiry-actions button { background: var(--navy); border-radius: 7px; color: #fff; font-size: 0.78rem; font-weight: 850; min-height: 36px; padding: 0 14px; }
 .inquiry-actions button:hover { background: var(--navy-dark); }
 .inquiry-actions button:disabled { cursor: not-allowed; opacity: .55; }
+.inquiry-actions .secondary-action { background: #e8f2ef; color: #31534e; }
+.inquiry-actions .destructive-action,
+.admin-actions .destructive-action { background: #fff0ee; color: #a13f32; }
+.inquiry-actions .destructive-action:hover,
+.admin-actions .destructive-action:hover { background: #f9dcd7; color: #842d23; }
 
 @media (max-width: 760px) {
   .inquiry-fields { grid-template-columns: 1fr; }

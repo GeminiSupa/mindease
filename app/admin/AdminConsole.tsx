@@ -430,6 +430,29 @@ export function AdminConsole() {
     }
   }
 
+  async function deleteTherapist(id: string) {
+    if (!session) return;
+    setSaving(true);
+    setError("");
+    setNotice("");
+    try {
+      const response = await fetch("/api/admin/therapists", {
+        method: "DELETE",
+        headers: apiHeaders(session.access_token, true),
+        body: JSON.stringify({ id, confirm: true }),
+      });
+      const body = await response.json();
+      if (!response.ok) throw new Error(body?.error ?? "Could not delete therapist.");
+      setNotice(body.accountDeleted === false ? "Therapist profile deleted. The sign-in account could not be removed automatically." : "Therapist profile and sign-in account deleted.");
+      if (editingTherapistId === id) cancelTherapistEdit();
+      await loadOverview();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not delete therapist.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
   function startTherapistEdit(therapist: AdminTherapist) {
     setEditingTherapistId(therapist.id);
     setTherapistEditForm({
@@ -716,7 +739,7 @@ export function AdminConsole() {
     );
   }
 
-  async function updateInquiry(id: string) {
+  async function updateInquiry(id: string, statusOverride?: "open" | "in_progress" | "closed" | "spam") {
     if (!session) return;
 
     const draft = messageDrafts[id] ?? { therapistId: "", note: "", status: "in_progress" };
@@ -730,7 +753,7 @@ export function AdminConsole() {
         headers: apiHeaders(session.access_token, true),
         body: JSON.stringify({
           id,
-          status: draft.status || "in_progress",
+          status: (statusOverride ?? draft.status) || "in_progress",
           suggestedTherapistId: draft.therapistId,
           coordinatorNote: draft.note,
           slotId: draft.slotId,
@@ -747,6 +770,33 @@ export function AdminConsole() {
       await loadOverview();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not update inquiry.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function deleteInquiry(id: string) {
+    if (!session) return;
+    setSaving(true);
+    setError("");
+    setNotice("");
+    try {
+      const response = await fetch("/api/admin/inquiries", {
+        method: "DELETE",
+        headers: apiHeaders(session.access_token, true),
+        body: JSON.stringify({ id, confirm: true }),
+      });
+      const body = await response.json();
+      if (!response.ok) throw new Error(body?.error ?? "Could not delete inquiry.");
+      setNotice("Inquiry permanently deleted. Any linked appointment was retained and detached.");
+      setMessageDrafts((current) => {
+        const next = { ...current };
+        delete next[id];
+        return next;
+      });
+      await loadOverview();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not delete inquiry.");
     } finally {
       setSaving(false);
     }
@@ -1370,6 +1420,9 @@ export function AdminConsole() {
                     >
                       Reject
                     </button>
+                    <button className="danger-link destructive-action" disabled={saving} onClick={() => confirmAction(`Permanently delete ${therapist.name} and their sign-in account? This cannot be undone.`, () => void deleteTherapist(therapist.id))} type="button">
+                      Delete
+                    </button>
                   </div>
                   {renderTherapistEditor(therapist)}
                 </div>
@@ -1543,6 +1596,9 @@ export function AdminConsole() {
                     >
                       Hide from site
                     </button>
+                    <button className="danger-link destructive-action" disabled={saving} onClick={() => confirmAction(`Permanently delete ${therapist.name} and their sign-in account? Existing appointments will remain for clinic records.`, () => void deleteTherapist(therapist.id))} type="button">
+                      Delete
+                    </button>
                   </div>
                   {renderTherapistEditor(therapist)}
                 </div>
@@ -1628,7 +1684,14 @@ export function AdminConsole() {
 
                   <div className="inquiry-actions">
                     <span>Changes stay private until saved.</span>
+                    {message.status.toLowerCase() === "closed" ? (
+                      <button className="secondary-action" disabled={saving} onClick={() => void updateInquiry(message.id, "open")} type="button">Reopen</button>
+                    ) : (
+                      <button className="secondary-action" disabled={saving} onClick={() => void updateInquiry(message.id, "closed")} type="button">Close</button>
+                    )}
+                    <button className="secondary-action" disabled={saving} onClick={() => confirmAction(`Mark the inquiry from ${message.name} as spam?`, () => void updateInquiry(message.id, "spam"))} type="button">Spam</button>
                     <button disabled={saving} onClick={() => void updateInquiry(message.id)} type="button">Save changes</button>
+                    <button className="destructive-action" disabled={saving} onClick={() => confirmAction(`Permanently delete the inquiry from ${message.name}? Linked appointments will be retained. This cannot be undone.`, () => void deleteInquiry(message.id))} type="button">Delete</button>
                   </div>
                 </article>
               ))}
