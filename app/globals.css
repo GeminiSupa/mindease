@@ -131,6 +131,30 @@ a {
   text-decoration: none;
 }
 
+/* Keep the accessibility shortcut available to keyboard users without
+   showing it as page chrome during normal browsing. */
+.skip-link {
+  background: var(--navy-dark);
+  border-radius: 0 0 8px 8px;
+  color: #fff;
+  font-size: 0.88rem;
+  font-weight: 800;
+  left: 16px;
+  padding: 10px 14px;
+  position: fixed;
+  top: 0;
+  transform: translateY(-120%);
+  transition: transform 160ms ease;
+  z-index: 10000;
+}
+
+.skip-link:focus,
+.skip-link:focus-visible {
+  outline: 3px solid #5eead4;
+  outline-offset: 2px;
+  transform: translateY(0);
+}
+
 button,
 input,
 select,
@@ -2434,6 +2458,122 @@ footer {
   gap: 12px;
   justify-content: space-between;
   margin-bottom: 16px;
+}
+
+.admin-panel-summary {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 750;
+  margin: 0;
+}
+
+.inquiry-list {
+  display: grid;
+  gap: 12px;
+}
+
+.inquiry-card {
+  background: #fff;
+  border: 1px solid #dce9e6;
+  border-radius: 12px;
+  box-shadow: 0 1px 2px rgba(16, 53, 48, 0.04);
+  overflow: hidden;
+}
+
+.inquiry-card-head {
+  align-items: center;
+  background: #fbfdfc;
+  border-bottom: 1px solid #e5efed;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  padding: 12px 14px;
+}
+
+.inquiry-person,
+.inquiry-card-meta,
+.inquiry-actions {
+  align-items: center;
+  display: flex;
+}
+
+.inquiry-person { gap: 10px; min-width: 0; }
+.inquiry-person > div { display: grid; gap: 2px; min-width: 0; }
+.inquiry-person strong { color: var(--ink); font-size: 0.94rem; }
+.inquiry-person a { color: var(--teal-dark); font-size: 0.78rem; overflow-wrap: anywhere; }
+
+.inquiry-avatar {
+  align-items: center;
+  background: #dff4ef;
+  border-radius: 9px;
+  color: #08756d;
+  display: flex;
+  flex: 0 0 36px;
+  font-size: 0.88rem;
+  font-weight: 900;
+  height: 36px;
+  justify-content: center;
+}
+
+.inquiry-card-meta { gap: 9px; }
+.inquiry-card-meta time { color: var(--muted); font-size: 0.75rem; white-space: nowrap; }
+.inquiry-status { border-radius: 999px; font-size: 0.68rem; font-weight: 900; padding: 5px 8px; text-transform: capitalize; }
+.status-open { background: #fff0dc; color: #92520a; }
+.status-in-progress { background: #e1f2ff; color: #17628f; }
+.status-closed { background: #e3f5ec; color: #176b4a; }
+.status-spam { background: #f1f1f1; color: #656565; }
+
+.inquiry-brief { display: grid; gap: 3px; padding: 11px 14px 3px; }
+.inquiry-brief > span { color: var(--muted); font-size: 0.66rem; font-weight: 900; letter-spacing: .06em; text-transform: uppercase; }
+.inquiry-brief p { color: var(--ink); font-size: 0.88rem; line-height: 1.45; margin: 0; }
+.inquiry-brief small { color: var(--muted); font-size: 0.74rem; }
+
+.inquiry-fields {
+  display: grid;
+  gap: 9px;
+  grid-template-columns: 1fr 1.25fr .72fr;
+  padding: 10px 14px 12px;
+}
+
+.inquiry-fields label,
+.inquiry-notes label {
+  color: #425e5a;
+  display: grid;
+  font-size: 0.7rem;
+  font-weight: 850;
+  gap: 5px;
+}
+
+.inquiry-fields select { min-height: 38px; padding: 7px 9px; }
+
+.inquiry-notes { border-top: 1px solid #e5efed; }
+.inquiry-notes summary { color: #47625e; cursor: pointer; font-size: 0.75rem; font-weight: 850; padding: 10px 14px; }
+.inquiry-notes[open] summary { background: #f7faf9; border-bottom: 1px solid #e5efed; }
+.inquiry-notes > div { display: grid; gap: 10px; grid-template-columns: 1fr 1fr; padding: 12px 14px; }
+.inquiry-notes textarea { min-height: 76px; padding: 9px 10px; resize: vertical; }
+
+.inquiry-actions {
+  background: #fbfdfc;
+  border-top: 1px solid #e5efed;
+  gap: 12px;
+  justify-content: flex-end;
+  padding: 9px 14px;
+}
+.inquiry-actions span { color: var(--muted); font-size: 0.7rem; margin-right: auto; }
+.inquiry-actions button { background: var(--navy); border-radius: 7px; color: #fff; font-size: 0.78rem; font-weight: 850; min-height: 36px; padding: 0 14px; }
+.inquiry-actions button:hover { background: var(--navy-dark); }
+.inquiry-actions button:disabled { cursor: not-allowed; opacity: .55; }
+
+@media (max-width: 760px) {
+  .inquiry-fields { grid-template-columns: 1fr; }
+  .inquiry-notes > div { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 520px) {
+  .inquiry-card-head { align-items: flex-start; flex-direction: column; }
+  .inquiry-card-meta { justify-content: space-between; width: 100%; }
+  .inquiry-actions { align-items: stretch; flex-direction: column; }
+  .inquiry-actions button { width: 100%; }
 }
 
 .admin-list,

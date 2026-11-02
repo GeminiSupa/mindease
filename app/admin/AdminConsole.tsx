@@ -1544,91 +1544,78 @@ export function AdminConsole() {
           <article className="admin-panel wide" id="messages">
             <div className="admin-panel-head">
               <div>
-                <span>Contact center</span>
-                <h2>Client queries</h2>
+                <span>Inquiry desk</span>
+                <h2>Client inquiries</h2>
               </div>
+              <p className="admin-panel-summary">
+                {messages.filter((message) => message.status.toLowerCase() === "open").length} open
+                <span aria-hidden="true"> · </span>{messages.length} total
+              </p>
             </div>
-            <div className="admin-list compact">
+            <div className="inquiry-list">
               {messages.map((message) => (
-                <div key={message.id}>
-                  <strong>{message.name}</strong>
-                  <p>{message.topic}</p>
-                  <small>{message.contact}</small>
-                  {message.suggestedTherapistName ? (
-                    <small>Suggested: {message.suggestedTherapistName}</small>
-                  ) : null}
-                  {message.coordinatorNote ? <small>{message.coordinatorNote}</small> : null}
-                  <em>{message.status}</em>
-                  <label>
-                    Suggest therapist
-                    <select
-                      value={messageDrafts[message.id]?.therapistId ?? message.suggestedTherapistId ?? ""}
-                      onChange={(event) => updateMessageDraft(message.id, "therapistId", event.target.value)}
-                    >
-                      <option value="">No therapist selected</option>
-                      {therapists.map((therapist) => (
-                        <option key={therapist.id} value={therapist.id}>
-                          {therapist.name} - {therapist.status}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label>
-                    Suggested slot
-                    <select
-                      value={messageDrafts[message.id]?.slotId ?? ""}
-                      onChange={(event) => updateMessageDraft(message.id, "slotId", event.target.value)}
-                    >
-                      <option value="">No slot selected</option>
-                      {availabilitySlots
-                        .filter((slot) =>
-                          slot.approvalStatus === "approved" &&
-                          slot.slotType === "available" &&
-                          !slot.isBooked &&
-                          (!messageDrafts[message.id]?.therapistId || slot.therapistId === messageDrafts[message.id]?.therapistId)
-                        )
-                        .slice(0, 20)
-                        .map((slot) => (
-                          <option key={slot.id} value={slot.id}>
-                            {slot.therapistName} - {slot.startsAt ? new Date(slot.startsAt).toLocaleString("en-GB") : "slot"}
-                          </option>
-                        ))}
-                    </select>
-                  </label>
-                  <label>
-                    Status
-                    <select
-                      value={messageDrafts[message.id]?.status ?? message.status ?? "in_progress"}
-                      onChange={(event) => updateMessageDraft(message.id, "status", event.target.value)}
-                    >
-                      <option value="open">Open</option>
-                      <option value="in_progress">In progress</option>
-                      <option value="closed">Closed</option>
-                      <option value="spam">Spam</option>
-                    </select>
-                  </label>
-                  <label>
-                    Coordinator note
-                    <textarea
-                      value={messageDrafts[message.id]?.note ?? message.coordinatorNote ?? ""}
-                      onChange={(event) => updateMessageDraft(message.id, "note", event.target.value)}
-                      placeholder="Preferred therapist unavailable; suggested another evening-slot option."
-                    />
-                  </label>
-                  <label>
-                    Payment instructions
-                    <textarea
-                      value={messageDrafts[message.id]?.paymentInstructions ?? ""}
-                      onChange={(event) => updateMessageDraft(message.id, "paymentInstructions", event.target.value)}
-                      placeholder="Add the payment steps the coordinator should send."
-                    />
-                  </label>
-                  <div className="admin-actions">
-                    <button disabled={saving} onClick={() => void updateInquiry(message.id)} type="button">
-                      Save inquiry update
-                    </button>
+                <article className="inquiry-card" key={message.id}>
+                  <header className="inquiry-card-head">
+                    <div className="inquiry-person">
+                      <span className="inquiry-avatar" aria-hidden="true">{message.name.trim().charAt(0).toUpperCase() || "?"}</span>
+                      <div>
+                        <strong>{message.name}</strong>
+                        <a href={message.contact.includes("@") ? `mailto:${message.contact}` : `tel:${message.contact.replace(/\s/g, "")}`}>
+                          {message.contact}
+                        </a>
+                      </div>
+                    </div>
+                    <div className="inquiry-card-meta">
+                      <span className={`inquiry-status status-${message.status.toLowerCase().replace("_", "-")}`}>{message.status.replace("_", " ")}</span>
+                      <time dateTime={message.createdAt}>{message.createdAt ? new Date(message.createdAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "Date unavailable"}</time>
+                    </div>
+                  </header>
+
+                  <div className="inquiry-brief">
+                    <span>Inquiry</span>
+                    <p>{message.topic || "General website inquiry"}</p>
+                    {message.suggestedTherapistName ? <small>Current match: {message.suggestedTherapistName}</small> : null}
+                    {message.coordinatorNote ? <small>Last note: {message.coordinatorNote}</small> : null}
                   </div>
-                </div>
+
+                  <div className="inquiry-fields">
+                    <label>
+                      Therapist
+                      <select value={messageDrafts[message.id]?.therapistId ?? message.suggestedTherapistId ?? ""} onChange={(event) => updateMessageDraft(message.id, "therapistId", event.target.value)}>
+                        <option value="">Not assigned</option>
+                        {therapists.map((therapist) => <option key={therapist.id} value={therapist.id}>{therapist.name} — {therapist.status}</option>)}
+                      </select>
+                    </label>
+                    <label>
+                      Available slot
+                      <select value={messageDrafts[message.id]?.slotId ?? ""} onChange={(event) => updateMessageDraft(message.id, "slotId", event.target.value)}>
+                        <option value="">Not selected</option>
+                        {availabilitySlots.filter((slot) => slot.approvalStatus === "approved" && slot.slotType === "available" && !slot.isBooked && (!messageDrafts[message.id]?.therapistId || slot.therapistId === messageDrafts[message.id]?.therapistId)).slice(0, 20).map((slot) => (
+                          <option key={slot.id} value={slot.id}>{slot.therapistName} — {slot.startsAt ? new Date(slot.startsAt).toLocaleString("en-GB") : "slot"}</option>
+                        ))}
+                      </select>
+                    </label>
+                    <label>
+                      Status
+                      <select value={messageDrafts[message.id]?.status ?? message.status ?? "in_progress"} onChange={(event) => updateMessageDraft(message.id, "status", event.target.value)}>
+                        <option value="open">Open</option><option value="in_progress">In progress</option><option value="closed">Closed</option><option value="spam">Spam</option>
+                      </select>
+                    </label>
+                  </div>
+
+                  <details className="inquiry-notes">
+                    <summary>Coordinator notes &amp; payment</summary>
+                    <div>
+                      <label>Coordinator note<textarea value={messageDrafts[message.id]?.note ?? message.coordinatorNote ?? ""} onChange={(event) => updateMessageDraft(message.id, "note", event.target.value)} placeholder="Add a concise internal note…" /></label>
+                      <label>Payment instructions<textarea value={messageDrafts[message.id]?.paymentInstructions ?? ""} onChange={(event) => updateMessageDraft(message.id, "paymentInstructions", event.target.value)} placeholder="Add payment steps to send…" /></label>
+                    </div>
+                  </details>
+
+                  <div className="inquiry-actions">
+                    <span>Changes stay private until saved.</span>
+                    <button disabled={saving} onClick={() => void updateInquiry(message.id)} type="button">Save changes</button>
+                  </div>
+                </article>
               ))}
               {messages.length === 0 ? (
                 <div className="empty-state compact">
