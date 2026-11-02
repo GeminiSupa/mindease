@@ -268,6 +268,22 @@ function confirmAction(message: string, action: () => void) {
   if (window.confirm(message)) action();
 }
 
+type AdminSection = "overview" | "leads" | "messages" | "create-therapist" | "approvals" | "profile-changes" | "therapists" | "appointments" | "availability" | "site-settings" | "blog";
+
+const adminSections: Array<{ id: AdminSection; label: string; shortLabel: string }> = [
+  { id: "overview", label: "Overview", shortLabel: "Overview" },
+  { id: "leads", label: "Captured leads", shortLabel: "Leads" },
+  { id: "messages", label: "Client inquiries", shortLabel: "Inquiries" },
+  { id: "appointments", label: "Appointments", shortLabel: "Appointments" },
+  { id: "therapists", label: "Live therapists", shortLabel: "Therapists" },
+  { id: "create-therapist", label: "Create therapist", shortLabel: "Create therapist" },
+  { id: "approvals", label: "Approval queue", shortLabel: "Approvals" },
+  { id: "profile-changes", label: "Profile edits", shortLabel: "Profile edits" },
+  { id: "availability", label: "Availability", shortLabel: "Availability" },
+  { id: "site-settings", label: "Contact settings", shortLabel: "Site contact" },
+  { id: "blog", label: "Wellbeing journal", shortLabel: "Blog" },
+];
+
 export function AdminConsole() {
   const [session, setSession] = useState<AdminSession | null>(null);
   const [checkingSession, setCheckingSession] = useState(true);
@@ -288,6 +304,7 @@ export function AdminConsole() {
   const [leadsFilter, setLeadsFilter] = useState<"all" | "email" | "whatsapp">("all");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [activeSection, setActiveSection] = useState<AdminSection>("overview");
 
   const firstName = useMemo(() => {
     return session?.user?.email?.split("@")[0] ?? "Admin";
@@ -1004,28 +1021,28 @@ export function AdminConsole() {
   const availabilitySlots = overview.availabilitySlots ?? [];
   const leads = overview.leads ?? [];
   const filteredLeads = leadsFilter === "all" ? leads : leads.filter((l) => l.contactMethod === leadsFilter);
+  const openMessageCount = messages.filter((message) => message.status.toLowerCase() === "open").length;
+  const activeSectionLabel = adminSections.find((section) => section.id === activeSection)?.label ?? "Overview";
 
   return (
-    <main className="admin-shell" id="main-content" aria-busy={saving}>
+    <main className="admin-shell" id="main-content" aria-busy={saving} data-active-section={activeSection}>
       <aside className="admin-sidebar">
         <Link className="admin-mini-brand" href="/">
           <Image src="/brand/mindease-app-icon.svg" alt="" width={44} height={44} />
           <span>MindEase</span>
         </Link>
         <nav aria-label="Admin sections">
-          <a href="#overview">Overview</a>
-          <a href="#leads">Leads <span style={{fontSize:'0.75rem',background:'var(--teal)',color:'#fff',borderRadius:'999px',padding:'1px 7px',marginLeft:'4px'}}>{leads.length || ''}</span></a>
-          <a href="#messages">Queries <span style={{fontSize:'0.75rem',background:'var(--coral,#ff6b6b)',color:'#fff',borderRadius:'999px',padding:'1px 7px',marginLeft:'4px'}}>{messages.filter(m=>m.status.toLowerCase()==='open').length || ''}</span></a>
-          <a href="#create-therapist">Create therapist</a>
-          <a href="#approvals">Approvals</a>
-          <a href="#profile-changes">Profile edits</a>
-          <a href="#therapists">Live therapists</a>
-          <a href="#appointments">Appointments</a>
-          <a href="#availability">Availability</a>
-          <a href="#site-settings">Site contact</a>
-          <a href="#blog">Blog</a>
+          {adminSections.map((section) => {
+            const count = section.id === "leads" ? leads.length : section.id === "messages" ? openMessageCount : section.id === "approvals" ? (stats?.pendingTherapists ?? 0) : 0;
+            return (
+              <button className="admin-nav-button" aria-pressed={activeSection === section.id} key={section.id} onClick={() => setActiveSection(section.id)} type="button">
+                <span>{section.shortLabel}</span>
+                {count > 0 ? <b>{count}</b> : null}
+              </button>
+            );
+          })}
         </nav>
-        <button onClick={signOut} type="button">
+        <button className="admin-signout" onClick={signOut} type="button">
           Sign out
         </button>
       </aside>
@@ -1033,9 +1050,10 @@ export function AdminConsole() {
       <section className="admin-content" id="overview">
         <header className="admin-topbar">
           <div>
-            <span>Welcome back</span>
-            <h1>{firstName}</h1>
+            <span>MindEase workspace</span>
+            <h1>{activeSectionLabel}</h1>
           </div>
+          <div className="admin-user-chip"><span>{firstName.slice(0, 1).toUpperCase()}</span><div><strong>{firstName}</strong><small>Administrator</small></div></div>
         </header>
 
         {error ? (
@@ -1046,7 +1064,7 @@ export function AdminConsole() {
         ) : null}
         {notice ? <p className="admin-notice inline" role="status">{notice}</p> : null}
 
-        <section className="admin-kpis" aria-label="Clinic metrics">
+        {activeSection === "overview" ? <section className="admin-kpis" aria-label="Clinic metrics">
           <article>
             <span>Today</span>
             <strong>{stats?.appointmentsToday ?? 0}</strong>
@@ -1067,12 +1085,21 @@ export function AdminConsole() {
             <strong>{stats?.openMessages ?? 0}</strong>
             <p>client inquiries</p>
           </article>
-          <article style={{borderColor:'rgba(0,201,190,0.4)',background:'rgba(0,201,190,0.06)'}}>
+          <article>
             <span>Captured leads</span>
             <strong style={{color:'var(--teal)'}}>{stats?.totalLeads ?? 0}</strong>
             <p>directory signups</p>
           </article>
-        </section>
+        </section> : null}
+
+        {activeSection === "overview" ? (
+          <section className="admin-command-grid" aria-label="Common admin tasks">
+            <button onClick={() => setActiveSection("messages")} type="button"><span>01</span><strong>Review inquiries</strong><small>{openMessageCount} currently open</small></button>
+            <button onClick={() => setActiveSection("appointments")} type="button"><span>02</span><strong>Manage appointments</strong><small>{appointments.length} requests in view</small></button>
+            <button onClick={() => setActiveSection("approvals")} type="button"><span>03</span><strong>Clear approval queue</strong><small>{stats?.pendingTherapists ?? 0} profiles or edits</small></button>
+            <button onClick={() => setActiveSection("create-therapist")} type="button"><span>04</span><strong>Add a therapist</strong><small>Create secure portal access</small></button>
+          </section>
+        ) : null}
 
         <section className="admin-grid">
 
@@ -1420,36 +1447,24 @@ export function AdminConsole() {
                 <h2>Appointment requests</h2>
               </div>
             </div>
-            <div className="admin-table">
+            <div className="appointment-list">
               {appointments.map((appointment) => (
-                <div className="admin-row" key={appointment.id}>
-                  <span>{appointment.id}</span>
-                  <strong>{appointment.client}</strong>
-                  <p>{appointment.therapist}</p>
-                  <p>
-                    {appointment.time}
-                    <br />
-                    {friendlyLabel(appointment.lifecycleStage)} · {friendlyLabel(appointment.confirmationStatus)}
-                  </p>
-                  <em>{appointment.status}</em>
-                  <b>{appointment.amount}</b>
-                  <label>
-                    Payment reference
-                    <input
-                      value={appointmentDrafts[appointment.id]?.paymentReference ?? appointment.paymentReference ?? ""}
-                      onChange={(event) => updateAppointmentDraft(appointment.id, "paymentReference", event.target.value)}
-                      placeholder="Manual receipt/reference"
-                    />
-                  </label>
-                  <label>
-                    Admin notes
-                    <input
-                      value={appointmentDrafts[appointment.id]?.adminNotes ?? ""}
-                      onChange={(event) => updateAppointmentDraft(appointment.id, "adminNotes", event.target.value)}
-                      placeholder="Internal note"
-                    />
-                  </label>
-                  <div className="admin-actions">
+                <article className="appointment-card" key={appointment.id}>
+                  <header>
+                    <div><span>{appointment.client.slice(0, 1).toUpperCase()}</span><div><strong>{appointment.client}</strong><small>{appointment.id.slice(0, 8)}</small></div></div>
+                    <em>{friendlyLabel(appointment.status)}</em>
+                  </header>
+                  <div className="appointment-summary">
+                    <div><span>Therapist</span><strong>{appointment.therapist || "Not assigned"}</strong></div>
+                    <div><span>Schedule</span><strong>{appointment.time || "Not scheduled"}</strong></div>
+                    <div><span>Progress</span><strong>{friendlyLabel(appointment.lifecycleStage)} · {friendlyLabel(appointment.confirmationStatus)}</strong></div>
+                    <div><span>Amount</span><strong>{appointment.amount}</strong></div>
+                  </div>
+                  <div className="appointment-fields">
+                    <label>Payment reference<input value={appointmentDrafts[appointment.id]?.paymentReference ?? appointment.paymentReference ?? ""} onChange={(event) => updateAppointmentDraft(appointment.id, "paymentReference", event.target.value)} placeholder="Receipt or transaction ID" /></label>
+                    <label>Admin note<input value={appointmentDrafts[appointment.id]?.adminNotes ?? ""} onChange={(event) => updateAppointmentDraft(appointment.id, "adminNotes", event.target.value)} placeholder="Private internal note" /></label>
+                  </div>
+                  <div className="appointment-actions">
                     <button disabled={saving} onClick={() => void updateAppointment(appointment.id, "mark_payment_pending")} type="button">
                       Payment pending
                     </button>
@@ -1488,7 +1503,7 @@ export function AdminConsole() {
                       Cancel
                     </button>
                   </div>
-                </div>
+                </article>
               ))}
               {appointments.length === 0 ? (
                 <div className="empty-state compact">
