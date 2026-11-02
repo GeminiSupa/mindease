@@ -24,6 +24,9 @@ export const metadata: Metadata = {
   title: "MindEase Online Clinic",
   description:
     "Private online therapy sessions with qualified clinical psychologists and experienced therapists.",
+  verification: {
+    google: "bKFKY0iWJq1rU7Yf6BRQ4_2WIh9L62O6fLYZtE5pXkg",
+  },
   icons: {
     icon: "/brand/mindease-app-icon.svg",
     shortcut: "/brand/mindease-app-icon.svg",
