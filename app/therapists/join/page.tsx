@@ -1,5 +1,12 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { THERAPIST_COUNTRIES } from "../../countries";
+
+export const metadata: Metadata = {
+  title: "Join the MindEase Therapist Network",
+  description: "Apply to join MindEase as a qualified psychiatrist, psychologist, counsellor, or therapist supporting clients online.",
+  alternates: { canonical: "/therapists/join" },
+};
 
 const steps = [
   ["01", "Apply online", "Share your professional details, licence information, country, languages, and focus areas."],

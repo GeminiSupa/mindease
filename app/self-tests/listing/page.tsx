@@ -1,7 +1,14 @@
 import Link from 'next/link';
 import Image from 'next/image';
+import type { Metadata } from 'next';
 import { cookies } from 'next/headers';
 import LeadCaptureModal from '../../components/LeadCaptureModal';
+
+export const metadata: Metadata = {
+  title: 'Mental Health Self-Check Directory',
+  description: 'Browse private self-checks for anxiety, low mood, stress, relationships, sleep, and general wellbeing.',
+  alternates: { canonical: '/self-tests/listing' },
+};
 
 const selfTests = [
   {

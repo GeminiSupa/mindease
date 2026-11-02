@@ -1,6 +1,19 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import TherapistDirectory, { TherapistProfile } from "./TherapistDirectory";
 import { getPublicContactSettings } from "../site-settings";
+
+export const metadata: Metadata = {
+  title: "Find an Online Therapist",
+  description: "Browse credential-reviewed psychologists and therapists by specialty, language, country, fee, and availability for confidential online sessions.",
+  alternates: { canonical: "/therapists" },
+  openGraph: {
+    title: "Find an Online Therapist | MindEase",
+    description: "Compare credential-reviewed online therapists by specialty, language, fee, and availability.",
+    url: "/therapists",
+    images: [{ url: "/therapists-og.png", alt: "Find a therapist with MindEase" }],
+  },
+};
 
 const fallbackTherapists: TherapistProfile[] = [
   {

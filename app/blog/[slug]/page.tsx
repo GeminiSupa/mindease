@@ -60,12 +60,15 @@ export async function generateMetadata({
   }
 
   return {
-    title: `${post.title} | MindEase`,
+    title: post.title,
     description: post.excerpt,
+    alternates: { canonical: `/blog/${post.slug}` },
     openGraph: {
       title: post.title,
       description: post.excerpt,
       type: "article",
+      url: `/blog/${post.slug}`,
+      publishedTime: post.published_at,
       images: post.image_url ? [{ url: post.image_url }] : undefined,
     },
   };
