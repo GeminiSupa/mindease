@@ -4017,6 +4017,17 @@ footer {
   color: var(--lilac);
 }
 
+.landing-page .blog-card h3 {
+  color: var(--ink);
+  display: -webkit-box;
+  font-size: 1.08rem;
+  line-height: 1.35;
+  min-height: 2.7em;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
 .landing-page .blog-card p {
   display: -webkit-box;
   overflow: hidden;
@@ -4477,7 +4488,7 @@ footer {
 .dir-grid {
   display: grid;
   gap: 20px;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   margin-top: 20px;
 }
 
@@ -4503,7 +4514,31 @@ footer {
 
 /* Photo */
 .dir-card-photo-wrap {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
   padding: 24px 16px 12px;
+}
+
+.dir-availability {
+  align-items: center;
+  background: #edf8f4;
+  border: 1px solid #cce7df;
+  border-radius: 999px;
+  color: #315e57;
+  display: inline-flex;
+  font-size: 0.7rem;
+  font-weight: 750;
+  gap: 6px;
+  padding: 4px 9px;
+}
+
+.dir-availability i {
+  background: #1d8f74;
+  border-radius: 50%;
+  height: 6px;
+  width: 6px;
 }
 .dir-photo, .dir-avatar {
   border-radius: 50%;
@@ -4543,14 +4578,14 @@ footer {
   margin: 0 0 3px;
 }
 .dir-card-title {
-  color: var(--muted);
-  font-size: 0.84rem;
-  font-weight: 500;
+  color: #4d686c;
+  font-size: 0.86rem;
+  font-weight: 650;
   margin: 0 0 2px;
 }
 .dir-card-quals {
-  color: var(--muted);
-  font-size: 0.75rem;
+  color: #617b7f;
+  font-size: 0.78rem;
   margin: 0 0 6px;
   opacity: 0.85;
 }
@@ -4606,7 +4641,7 @@ footer {
 }
 .dir-card-meta span {
   align-items: center;
-  color: var(--muted);
+  color: #536f73;
   display: flex;
   font-size: 0.74rem;
   font-weight: 500;
@@ -4623,12 +4658,13 @@ footer {
 }
 .dir-book-btn {
   align-items: center;
-  background: #25d366;
-  border-radius: 8px;
-  color: #fff;
+  background: transparent;
+  border: 1px solid #9bcac4;
+  border-radius: 9px;
+  color: #075f59;
   display: flex;
   font-size: 0.86rem;
-  font-weight: 700;
+  font-weight: 750;
   gap: 6px;
   justify-content: center;
   min-height: 40px;
@@ -4636,12 +4672,12 @@ footer {
   transition: all var(--transition);
   width: 100%;
 }
-.dir-book-btn:hover { background: #1ebe5d; transform: translateY(-1px); }
+.dir-book-btn:hover { background: var(--teal-light); border-color: #0f766e; transform: translateY(-1px); }
 .dir-profile-btn {
-  background: transparent;
-  border: 1.5px solid var(--teal);
-  border-radius: 8px;
-  color: var(--teal-dark);
+  background: #0f766e;
+  border: 1.5px solid #0f766e;
+  border-radius: 9px;
+  color: #fff;
   cursor: pointer;
   font-size: 0.84rem;
   font-weight: 700;
@@ -4650,8 +4686,8 @@ footer {
   width: 100%;
 }
 .dir-profile-btn:hover {
-  background: var(--teal-light);
-  border-color: var(--teal-dark);
+  background: #075f59;
+  border-color: #075f59;
 }
 
 /* Verified badge in modal */
@@ -4719,7 +4755,244 @@ footer {
   .dir-grid { grid-template-columns: minmax(0,1fr); }
 }
 
-/* ─── Keep old .directory-* & .profile-modal classes intact ─── */
+/* ── Therapist profile dialog ─────────────────────────────── */
+.profile-modal-backdrop {
+  align-items: center;
+  background: rgba(10, 30, 37, 0.72);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: 24px;
+  position: fixed;
+  z-index: 1200;
+}
+
+.profile-modal {
+  background: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 22px;
+  box-shadow: 0 30px 90px rgba(8, 35, 43, 0.36);
+  max-height: min(88vh, 780px);
+  max-width: 880px;
+  overflow-y: auto;
+  position: relative;
+  width: 100%;
+}
+
+.profile-modal:focus {
+  outline: none;
+}
+
+.profile-modal-close {
+  align-items: center;
+  background: #edf4f2;
+  border: 1px solid #d4e4e1;
+  border-radius: 50%;
+  color: var(--ink);
+  display: flex;
+  font-size: 1.35rem;
+  height: 42px;
+  justify-content: center;
+  position: absolute;
+  right: 18px;
+  top: 18px;
+  width: 42px;
+  z-index: 2;
+}
+
+.profile-modal-close:hover,
+.profile-modal-close:focus-visible {
+  background: #dcecea;
+  outline: 3px solid rgba(15, 118, 110, 0.22);
+}
+
+.profile-modal-header {
+  align-items: center;
+  background: linear-gradient(135deg, #eff9f6, #f8fbfa);
+  border-bottom: 1px solid var(--line);
+  display: grid;
+  gap: 24px;
+  grid-template-columns: 120px minmax(0, 1fr);
+  padding: 34px 76px 30px 34px;
+}
+
+.profile-modal-header h2 {
+  color: var(--ink);
+  font-size: clamp(1.65rem, 4vw, 2.25rem);
+  letter-spacing: -0.035em;
+  margin: 0 0 6px;
+}
+
+.profile-modal-header p {
+  color: #3f6064;
+  font-size: 1rem;
+  font-weight: 700;
+  margin: 0 0 7px;
+}
+
+.profile-modal-header small {
+  color: #617b7f;
+  display: block;
+  line-height: 1.5;
+  max-width: 650px;
+}
+
+.profile-modal-header .dir-stars {
+  justify-content: flex-start;
+}
+
+.profile-modal-content {
+  display: grid;
+  gap: 32px;
+  grid-template-columns: minmax(0, 1.35fr) minmax(250px, 0.65fr);
+  padding: 30px 34px;
+}
+
+.profile-modal-about > span {
+  color: #075f59;
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 850;
+  letter-spacing: 0.08em;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+}
+
+.profile-modal-about > p {
+  color: #4d686c;
+  line-height: 1.72;
+  margin-bottom: 20px;
+}
+
+.profile-modal-about .directory-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.profile-modal-about .directory-pills span {
+  background: var(--teal-light);
+  border: 1px solid #c7e7e3;
+  border-radius: 999px;
+  color: #075f59;
+  font-size: 0.76rem;
+  font-weight: 700;
+  padding: 6px 10px;
+}
+
+.profile-modal-facts {
+  background: #f6f9f8;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  margin: 0;
+  padding: 8px 18px;
+}
+
+.profile-modal-facts > div {
+  border-bottom: 1px solid var(--line);
+  display: grid;
+  gap: 4px;
+  padding: 12px 0;
+}
+
+.profile-modal-facts > div:last-child {
+  border-bottom: 0;
+}
+
+.profile-modal-facts dt {
+  color: #6a8387;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.profile-modal-facts dd {
+  color: var(--ink);
+  font-size: 0.9rem;
+  font-weight: 750;
+  margin: 0;
+}
+
+.profile-modal-footer {
+  align-items: center;
+  background: #f8faf9;
+  border-top: 1px solid var(--line);
+  display: flex;
+  gap: 24px;
+  justify-content: space-between;
+  padding: 20px 34px;
+}
+
+.profile-modal-footer div {
+  display: grid;
+  gap: 3px;
+}
+
+.profile-modal-footer strong {
+  color: var(--ink);
+}
+
+.profile-modal-footer span {
+  color: #607a7e;
+  font-size: 0.82rem;
+}
+
+.profile-modal-footer > a {
+  align-items: center;
+  background: #0f766e;
+  border-radius: 10px;
+  color: #fff;
+  display: inline-flex;
+  font-size: 0.88rem;
+  font-weight: 800;
+  justify-content: center;
+  min-height: 46px;
+  padding: 0 20px;
+  white-space: nowrap;
+}
+
+.profile-modal-footer > a:hover {
+  background: #075f59;
+}
+
+@media (max-width: 720px) {
+  .profile-modal-backdrop {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .profile-modal {
+    border-radius: 22px 22px 0 0;
+    max-height: 94vh;
+  }
+
+  .profile-modal-header {
+    align-items: start;
+    gap: 16px;
+    grid-template-columns: 84px minmax(0, 1fr);
+    padding: 28px 54px 22px 20px;
+  }
+
+  .profile-modal-header .dir-photo.is-large,
+  .profile-modal-header .dir-avatar.is-large {
+    height: 84px;
+    width: 84px;
+  }
+
+  .profile-modal-content {
+    gap: 22px;
+    grid-template-columns: minmax(0, 1fr);
+    padding: 24px 20px;
+  }
+
+  .profile-modal-footer {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 14px;
+    padding: 16px 20px calc(16px + env(safe-area-inset-bottom));
+  }
+}
 
 
 .simple-footer {

@@ -102,11 +102,11 @@ export default async function TherapistsDirectoryPage() {
           <span className="eyebrow">Online Mental Health Platform</span>
           <h1>Find Your Specialist</h1>
           <p>
-            Browse verified psychiatrists, psychologists, and therapists.
-            Book a confidential online session in minutes.
+            Compare credential-reviewed psychiatrists, psychologists, and therapists by
+            focus, language, fee, and availability.
           </p>
           <div className="dir-hero-pills">
-            <span>✓ Verified profiles</span>
+            <span>✓ Credential-reviewed</span>
             <span>✓ Online sessions</span>
             <span>✓ No commitment</span>
           </div>
@@ -115,10 +115,10 @@ export default async function TherapistsDirectoryPage() {
 
       {/* ── Stats band ──────────────────────────────────────────── */}
       <div className="dir-stats-band">
-        <div data-animate="fade-up"><strong>{therapists.length}+</strong><span>Verified Specialists</span></div>
-        <div data-animate="fade-up" data-delay="100"><strong>4</strong><span>Matching Factors</span></div>
-        <div data-animate="fade-up" data-delay="200"><strong>100%</strong><span>Online Sessions</span></div>
-        <div data-animate="fade-up" data-delay="300"><strong>1:1</strong><span>Coordinator Support</span></div>
+        <div data-animate="fade-up"><strong>{therapists.length}</strong><span>Specialist profiles</span></div>
+        <div data-animate="fade-up" data-delay="100"><strong>Upfront</strong><span>Fees shown clearly</span></div>
+        <div data-animate="fade-up" data-delay="200"><strong>Online</strong><span>Private sessions</span></div>
+        <div data-animate="fade-up" data-delay="300"><strong>Human</strong><span>Coordinator support</span></div>
       </div>
 
       {/* ── Directory ───────────────────────────────────────────── */}

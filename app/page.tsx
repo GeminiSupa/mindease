@@ -234,8 +234,7 @@ export default async function Home({
           </div>
 
           <div className="nav-actions">
-            <a className="nav-admin-btn" href="/admin" aria-label="Admin login">Admin</a>
-            <a className="nav-cta" href={whatsappHref}>{hasWhatsApp ? "WhatsApp" : "Contact"}</a>
+            <a className="nav-cta" href="#booking">Get matched</a>
           </div>
         </nav>
 
@@ -249,7 +248,7 @@ export default async function Home({
             </p>
             <div className="hero-actions">
               <a className="primary-btn" href={whatsappHref}>
-                {hasWhatsApp ? "Message on WhatsApp" : "Contact MindEase"}
+                {hasWhatsApp ? "Get matched" : "Contact MindEase"}
               </a>
               {featuredTherapists.length ? (
                 <a className="ghost-btn" href="/therapists">View therapist directory</a>
@@ -488,7 +487,7 @@ export default async function Home({
                         : "Ask admin"}
                     </strong>
                   </div>
-                  <a href={whatsappHref}>Inquire</a>
+                  <a href={whatsappHref}>Ask availability</a>
                 </div>
               </article>
             );
