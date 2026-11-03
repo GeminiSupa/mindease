@@ -3,6 +3,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getBlogPostBySlug } from "../posts";
+import { SITE_NAME, SITE_URL } from "../../seo";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -62,6 +63,13 @@ export async function generateMetadata({
   return {
     title: post.title,
     description: post.excerpt,
+    keywords: [
+      "divorce rate in Pakistan",
+      "family counselling Pakistan",
+      "marriage counselling Pakistan",
+      "family counselor Pakistan",
+      "couples therapy Pakistan",
+    ],
     alternates: { canonical: `/blog/${post.slug}` },
     openGraph: {
       title: post.title,
@@ -70,6 +78,12 @@ export async function generateMetadata({
       url: `/blog/${post.slug}`,
       publishedTime: post.published_at,
       images: post.image_url ? [{ url: post.image_url }] : undefined,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: post.title,
+      description: post.excerpt,
+      images: post.image_url ? [post.image_url] : undefined,
     },
   };
 }
@@ -86,8 +100,30 @@ export default async function BlogPostPage({
     notFound();
   }
 
+  const articleUrl = `${SITE_URL}/blog/${post.slug}`;
+  const articleSchema = {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    headline: post.title,
+    description: post.excerpt,
+    image: post.image_url ? new URL(post.image_url, SITE_URL).toString() : undefined,
+    datePublished: post.published_at,
+    dateModified: post.published_at,
+    mainEntityOfPage: articleUrl,
+    author: { "@type": "Organization", name: SITE_NAME },
+    publisher: {
+      "@type": "Organization",
+      name: SITE_NAME,
+      logo: { "@type": "ImageObject", url: `${SITE_URL}/brand/mindease-app-icon.png` },
+    },
+  };
+
   return (
     <main className="blog-page" id="main-content">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(articleSchema) }}
+      />
       <section className="blog-hero">
         <nav className="site-nav" aria-label="Blog navigation">
           <Link className="brand" href="/">
@@ -136,7 +172,7 @@ export default async function BlogPostPage({
               post.image_url ||
               "https://images.unsplash.com/photo-1493836512294-502baa1986e2?auto=format&fit=crop&q=80&w=1200&h=720"
             }
-            alt=""
+            alt="A Pakistani couple speaking with a family counsellor in a private session"
             width={1200}
             height={720}
             className="blog-article-image"
@@ -144,6 +180,22 @@ export default async function BlogPostPage({
             unoptimized
           />
           <BlogBody body={post.body ?? ""} />
+          {post.slug === "family-counselling-divorce-rate-pakistan" ? (
+            <aside className="blog-source-note" aria-label="Article source">
+              <strong>Source</strong>
+              <p>
+                Pakistan Bureau of Statistics, 2023 Population and Housing Census, Table 6.
+                Figures were calculated from the national marital-status totals for people aged 15 and above.
+              </p>
+              <a
+                href="https://www.pbs.gov.pk/sites/default/files/population/2023/tables/table_6_national.pdf"
+                target="_blank"
+                rel="noreferrer"
+              >
+                View the official census table
+              </a>
+            </aside>
+          ) : null}
           <div className="blog-article-actions">
             <Link className="primary-btn" href="/#contact">
               Talk to the care coordinator
