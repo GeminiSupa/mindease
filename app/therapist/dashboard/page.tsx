@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { THERAPIST_COUNTRIES, countryFlag } from "../../countries";
+import ClinicalWorkspace from "./ClinicalWorkspace";
 
 type TherapistSession = {
   access_token?: string;
@@ -392,6 +393,7 @@ export default function TherapistDashboard() {
           <a href="#availability">Availability</a>
           <a href="#appointments">Appointments</a>
           <a href="#reviews">Review queue</a>
+          <a href="#clinical-records">Clinical records</a>
           <a href="#security">Security</a>
         </nav>
         <button onClick={signOut} type="button">Sign out</button>
@@ -437,6 +439,7 @@ export default function TherapistDashboard() {
         </section>
 
         <section className="admin-grid">
+          <ClinicalWorkspace appointments={appointments} />
           <article className="admin-panel wide" id="profile">
             <div className="admin-panel-head">
               <div>
