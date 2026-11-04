@@ -24,6 +24,9 @@ export type SupabaseUser = {
 
 export type RecordLike = Record<string, unknown>;
 
+const THERAPIST_SELECT =
+  "id,user_id,full_name,title,qualifications,years_experience,bio,specialization,languages,therapy_methods,profile_image_url,session_fee,currency,availability_status,approval_status,is_active,country_of_origin,country_code";
+
 function cookieValue(request: Request, name: string) {
   const cookieHeader = request.headers.get("cookie") ?? "";
   const match = cookieHeader
@@ -157,6 +160,63 @@ export async function requireAdmin(request: Request) {
   return adminUsers.length > 0 ? user : null;
 }
 
+/**
+ * Find the therapist row linked to an authenticated user. Older therapist
+ * accounts can have a profile row that predates their Auth account, leaving
+ * therapists.user_id null. Repair that legacy state only when the user has a
+ * therapist role and exactly one unlinked profile has the same verified name.
+ */
+export async function getTherapistForUser(user: SupabaseUser) {
+  const linkedTherapists = await getRows(
+    "therapists",
+    `user_id=eq.${encodeURIComponent(user.id)}&select=${THERAPIST_SELECT}&limit=1`,
+  );
+  if (linkedTherapists[0]) return linkedTherapists[0];
+
+  const profiles = await getRows(
+    "profiles",
+    `id=eq.${encodeURIComponent(user.id)}&select=full_name,role&limit=1`,
+  );
+  const accountProfile = profiles[0];
+  const appRole = user.app_metadata?.role ?? user.app_metadata?.user_role;
+  const profileRole = accountProfile?.role;
+  if (appRole !== "therapist" && profileRole !== "therapist") return null;
+
+  const profileName = value(accountProfile ?? {}, ["full_name"]);
+  const metadataName = value(user.user_metadata ?? {}, ["full_name", "name"]);
+  const fullName = profileName || metadataName;
+  if (!fullName) return null;
+
+  const unlinkedTherapists = await getRows(
+    "therapists",
+    `user_id=is.null&full_name=eq.${encodeURIComponent(fullName)}&select=${THERAPIST_SELECT}&limit=2`,
+  );
+  if (unlinkedTherapists.length !== 1) return null;
+
+  const therapistId = value(unlinkedTherapists[0], ["id"]);
+  const response = await serviceFetch(
+    `/rest/v1/therapists?id=eq.${encodeURIComponent(therapistId)}&user_id=is.null`,
+    {
+      method: "PATCH",
+      headers: { prefer: "return=representation" },
+      body: JSON.stringify({ user_id: user.id }),
+    },
+  );
+  if (!response.ok) return null;
+
+  const repaired = (await response.json()) as RecordLike[];
+  if (!repaired[0]) return null;
+
+  await writeAuditLog({
+    actorId: user.id,
+    action: "therapist_profile_link_repaired",
+    subjectTable: "therapists",
+    subjectId: therapistId,
+    details: { fullName },
+  });
+  return repaired[0];
+}
+
 export async function requireTherapist(request: Request) {
   const token = requestToken(request, "mindease-therapist-access");
   if (!token) return null;
@@ -164,12 +224,8 @@ export async function requireTherapist(request: Request) {
   const user = await getUser(token);
   if (!user || !SUPABASE_SERVICE_ROLE_KEY) return null;
 
-  const therapists = await getRows(
-    "therapists",
-    `user_id=eq.${encodeURIComponent(user.id)}&select=id,user_id,full_name,title,qualifications,years_experience,bio,specialization,languages,therapy_methods,profile_image_url,session_fee,currency,availability_status,approval_status,is_active,country_of_origin,country_code&limit=1`,
-  );
-
-  return therapists[0] ? { user, therapist: therapists[0] } : null;
+  const therapist = await getTherapistForUser(user);
+  return therapist ? { user, therapist } : null;
 }
 
 export async function writeAuditLog(input: {

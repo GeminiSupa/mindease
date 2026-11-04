@@ -4,7 +4,7 @@ import {
   THERAPIST_REFRESH_COOKIE,
 } from "../../admin/auth";
 import {
-  getRows,
+  getTherapistForUser,
   getUser,
   json,
   SUPABASE_ANON_KEY,
@@ -75,12 +75,9 @@ export async function GET() {
     });
   }
 
-  const therapistRows = await getRows(
-    "therapists",
-    `user_id=eq.${encodeURIComponent(user.id)}&select=id&limit=1`,
-  );
+  const therapist = await getTherapistForUser(user);
 
-  if (!therapistRows[0]) {
+  if (!therapist) {
     // Do NOT delete cookies here — the user is authenticated in Supabase Auth,
     // they just don't have a therapist record yet. Deleting cookies causes the login loop.
     return json({
