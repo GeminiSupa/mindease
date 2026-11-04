@@ -25,8 +25,9 @@ Run the SQL files in the Supabase SQL Editor for the project configured by
 2. `supabase/mindease-production-upgrade.sql`
 3. `supabase/migrations/clinical_records_and_assessments.sql`
 4. `supabase/migrations/enhance_lead_capture_attribution.sql`
-5. `supabase/mindease-site-settings.sql`
-6. `supabase/grant-saeed-admin.sql`
+5. `supabase/migrations/controlled_referral_workflow.sql`
+6. `supabase/mindease-site-settings.sql`
+7. `supabase/grant-saeed-admin.sql`
 
 The site settings migration creates and seeds `public.site_settings`, then
 reloads the PostgREST schema cache so the admin settings screen can use it
@@ -38,6 +39,10 @@ assignments, and a private document bucket. Clinical files are never placed in
 the public media bucket. Apply local retention, breach-response, consent, and
 record-release policies appropriate to every jurisdiction in which the clinic
 operates before using these features with real clients.
+
+The controlled referral migration adds limited-data therapist review, explicit
+client consent, secure coordinator messages, reassignment, and access history.
+Apply it before opening the new Referral pipeline or therapist Referral inbox.
 
 This starter does not use `wrangler.jsonc`.
 

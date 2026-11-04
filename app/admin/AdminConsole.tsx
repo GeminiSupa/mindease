@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import ReferralConsole from "./ReferralConsole";
 import { THERAPIST_COUNTRIES, countryFlag } from "../countries";
 
 type AdminSession = {
@@ -272,11 +273,12 @@ function confirmAction(message: string, action: () => void) {
   if (window.confirm(message)) action();
 }
 
-type AdminSection = "overview" | "leads" | "messages" | "create-therapist" | "approvals" | "profile-changes" | "therapists" | "appointments" | "availability" | "site-settings" | "blog";
+type AdminSection = "overview" | "leads" | "referrals" | "messages" | "create-therapist" | "approvals" | "profile-changes" | "therapists" | "appointments" | "availability" | "site-settings" | "blog";
 
 const adminSections: Array<{ id: AdminSection; label: string; shortLabel: string }> = [
   { id: "overview", label: "Overview", shortLabel: "Overview" },
   { id: "leads", label: "Captured leads", shortLabel: "Leads" },
+  { id: "referrals", label: "Referral pipeline", shortLabel: "Referrals" },
   { id: "messages", label: "Client inquiries", shortLabel: "Inquiries" },
   { id: "appointments", label: "Appointments", shortLabel: "Appointments" },
   { id: "therapists", label: "Live therapists", shortLabel: "Therapists" },
@@ -1176,6 +1178,8 @@ export function AdminConsole() {
         ) : null}
 
         <section className="admin-grid">
+
+          <ReferralConsole token={session?.access_token} />
 
           {/* ── LEADS PANEL ── */}
           <article className="admin-panel wide" id="leads">

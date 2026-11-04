@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { THERAPIST_COUNTRIES, countryFlag } from "../../countries";
 import ClinicalWorkspace from "./ClinicalWorkspace";
+import ReferralInbox from "./ReferralInbox";
 
 type TherapistSession = {
   access_token?: string;
@@ -78,6 +79,7 @@ type TherapistSection =
   | "profile"
   | "availability"
   | "appointments"
+  | "referrals"
   | "reviews"
   | "clinical-records"
   | "security";
@@ -87,6 +89,7 @@ const therapistSections: Array<{ id: TherapistSection; label: string }> = [
   { id: "profile", label: "Profile" },
   { id: "availability", label: "Availability" },
   { id: "appointments", label: "Appointments" },
+  { id: "referrals", label: "Referral inbox" },
   { id: "reviews", label: "Review queue" },
   { id: "clinical-records", label: "Clinical records" },
   { id: "security", label: "Security" },
@@ -516,6 +519,7 @@ export default function TherapistDashboard() {
         </section> : null}
 
         <section className="admin-grid">
+          <ReferralInbox token={session?.access_token} />
           <article className="admin-panel wide therapist-overview-panel" id="overview">
             <div className="admin-panel-head">
               <div>
