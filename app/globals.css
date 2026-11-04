@@ -2395,12 +2395,17 @@ footer {
 .support-format-grid h3 { color: var(--ink); font-size: 1.15rem; margin: 26px 0 10px; }
 .support-format-grid p { color: var(--muted); flex: 1; line-height: 1.55; margin: 0 0 22px; }
 .support-format-grid a { color: var(--teal-dark); font-weight: 900; }
-.payment-options { align-items: center; background: linear-gradient(125deg, #173f3a, #1c5650); border-radius: 28px; color: #fff; display: grid; gap: 38px; grid-template-columns: 1fr 1fr; }
-.payment-options h2 { color: #fff; font-size: clamp(2rem, 4vw, 3.6rem); letter-spacing: -.04em; line-height: 1; margin: 12px 0 18px; }
-.payment-options p { color: rgba(255,255,255,.72); line-height: 1.65; max-width: 620px; }
-.payment-methods { display: grid; gap: 12px; }
-.payment-methods span { align-items: center; background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.16); border-radius: 14px; display: flex; font-weight: 900; gap: 14px; padding: 14px 16px; }
-.payment-methods b { align-items: center; background: #fff; border-radius: 10px; color: #164a44; display: flex; height: 38px; justify-content: center; width: 48px; }
+.payment-options { align-items: center; background: #f4faf8; border: 1px solid rgba(23,63,58,.11); border-radius: 22px; box-shadow: 0 18px 48px rgba(23,63,58,.08); display: grid; gap: 28px; grid-template-columns: minmax(0,1fr) auto; margin-bottom: 72px; margin-top: 72px; max-width: 1080px; padding: 28px 32px; }
+.payment-options-copy { max-width: 610px; }
+.payment-options .eyebrow { color: #257068; }
+.payment-options h2 { color: #173f3a; font-size: clamp(1.55rem, 2.5vw, 2.15rem); letter-spacing: -.035em; line-height: 1.05; margin: 7px 0 9px; }
+.payment-options p { color: #496561; font-size: .95rem; line-height: 1.55; margin: 0; max-width: 590px; }
+.payment-options small { color: #7a5346; display: block; font-size: .78rem; font-weight: 750; margin-top: 9px; }
+.payment-methods { align-items: stretch; display: flex; flex-wrap: wrap; gap: 9px; justify-content: flex-end; max-width: 330px; }
+.payment-methods span { align-items: center; background: #fff; border: 1px solid rgba(23,63,58,.12); border-radius: 12px; box-shadow: 0 5px 14px rgba(23,63,58,.06); display: flex; height: 62px; justify-content: center; overflow: hidden; padding: 8px 13px; width: 100px; }
+.payment-methods span > img { height: 42px; max-width: 78px; object-fit: contain; width: auto; }
+.payment-methods .payment-card-networks { gap: 9px; width: 116px; }
+.payment-methods .payment-card-networks > img { height: 25px; max-width: 51px; }
 .dir-card-meta .dir-country { color: var(--ink); font-weight: 750; width: 100%; justify-content: center; }
 
 @media (max-width: 960px) {
@@ -2413,6 +2418,10 @@ footer {
   .join-hero, .join-application { padding-left: 16px; padding-right: 16px; }
   .support-format-grid { grid-template-columns: 1fr; }
   .support-format-grid article { min-height: 215px; }
+  .payment-options { gap: 22px; margin: 48px 16px; padding: 24px 20px; }
+  .payment-methods { justify-content: flex-start; max-width: none; }
+  .payment-methods span { flex: 1 1 88px; max-width: 110px; }
+  .payment-methods .payment-card-networks { flex-basis: 108px; }
 }
 
 .admin-shell {

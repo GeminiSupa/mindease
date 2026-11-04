@@ -516,8 +516,12 @@ export default async function Home({
       </section>
 
       <section className="section payment-options" aria-labelledby="payment-options-title" data-animate="fade-up">
-        <div><span className="eyebrow">Payment options</span><h2 id="payment-options-title">Familiar ways to pay in Pakistan.</h2><p>Once your therapist and time are confirmed, the coordinator shares the approved payment instructions. Never send payment before confirmation.</p></div>
-        <div className="payment-methods" aria-label="Supported payment methods"><span><b>JC</b>JazzCash</span><span><b>EP</b>Easypaisa</span><span><b>V</b>Visa / Mastercard</span></div>
+        <div className="payment-options-copy"><span className="eyebrow">Payment options</span><h2 id="payment-options-title">Pay your way.</h2><p>After your therapist and time are confirmed, your coordinator will share the approved payment details.</p><small>For your safety, never send payment before confirmation.</small></div>
+        <div className="payment-methods" aria-label="Supported payment methods">
+          <span><Image src="https://images.seeklogo.com/logo-png/61/1/jazz-cash-new-logo-png_seeklogo-613046.png" alt="JazzCash" width={82} height={54} unoptimized /></span>
+          <span><Image src="https://images.seeklogo.com/logo-png/51/1/easypaisa-logo-png_seeklogo-512220.png" alt="Easypaisa" width={82} height={54} unoptimized /></span>
+          <span className="payment-card-networks"><Image src="https://cdn.simpleicons.org/visa/1434CB" alt="Visa" width={54} height={28} unoptimized /><Image src="https://cdn.simpleicons.org/mastercard/EB001B" alt="Mastercard" width={42} height={28} unoptimized /></span>
+        </div>
       </section>
 
       <section className="section soft-section" id="services">
