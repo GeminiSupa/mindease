@@ -5270,7 +5270,7 @@ footer {
 .admin-command-grid small { color: var(--muted); font-size: .72rem; }
 
 .admin-grid { display: block; }
-.admin-grid > .admin-panel { display: none; }
+.admin-content > .admin-grid > .admin-panel { display: none; }
 .admin-shell[data-active-section="leads"] #leads,
 .admin-shell[data-active-section="messages"] #messages,
 .admin-shell[data-active-section="create-therapist"] #create-therapist,
@@ -5281,6 +5281,25 @@ footer {
 .admin-shell[data-active-section="availability"] #availability,
 .admin-shell[data-active-section="site-settings"] #site-settings,
 .admin-shell[data-active-section="blog"] #blog { display: block; }
+
+.therapist-shell[data-active-section="overview"] #overview,
+.therapist-shell[data-active-section="profile"] #profile,
+.therapist-shell[data-active-section="availability"] #availability,
+.therapist-shell[data-active-section="appointments"] #appointments,
+.therapist-shell[data-active-section="reviews"] #reviews,
+.therapist-shell[data-active-section="clinical-records"] #clinical-records,
+.therapist-shell[data-active-section="security"] #security { display: block; }
+
+.therapist-kpis { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.therapist-status-chip > span { color: #16845e; font-size: .9rem; }
+.therapist-quick-actions { display: grid; gap: 10px; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.therapist-quick-actions button { background: #f8fbfa; border: 1px solid #dfeae7; border-radius: 13px; display: grid; gap: 6px; min-height: 122px; padding: 16px; text-align: left; }
+.therapist-quick-actions button:hover { border-color: rgba(10,127,119,.4); box-shadow: 0 10px 24px rgba(20,50,47,.08); transform: translateY(-2px); }
+.therapist-quick-actions span { color: var(--admin-accent); font-size: .66rem; font-weight: 900; }
+.therapist-quick-actions strong { color: var(--ink); font-size: .9rem; }
+.therapist-quick-actions small { color: var(--muted); font-size: .72rem; line-height: 1.4; }
+.clinical-case-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 16px; }
+.clinical-case-grid > .admin-panel { display: block; }
 
 .admin-panel { background: var(--admin-surface); border: 1px solid rgba(20,60,55,.09); border-radius: 16px; box-shadow: 0 7px 24px rgba(20,50,47,.055); padding: 18px; }
 .admin-panel-head { border-bottom: 1px solid rgba(20,60,55,.08); margin: -2px -2px 14px; padding: 0 2px 13px; }
@@ -5328,6 +5347,7 @@ footer {
 @media (max-width: 1040px) {
   .admin-kpis { grid-template-columns: repeat(3,minmax(0,1fr)); }
   .admin-command-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .therapist-quick-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (max-width: 820px) {
@@ -5345,6 +5365,7 @@ footer {
   .admin-command-grid { grid-template-columns: 1fr; }
   .admin-command-grid button { min-height: 92px; }
   .admin-user-chip { display: none; }
+  .therapist-quick-actions, .clinical-case-grid { grid-template-columns: 1fr; }
   .appointment-summary, .appointment-fields { grid-template-columns: 1fr; }
   .appointment-actions { align-items: stretch; flex-direction: column; }
   .appointment-actions button { width: 100%; }

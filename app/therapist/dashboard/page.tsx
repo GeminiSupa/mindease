@@ -74,6 +74,29 @@ type ProfileForm = {
   countryCode: string;
 };
 
+type TherapistSection =
+  | "overview"
+  | "profile"
+  | "availability"
+  | "appointments"
+  | "reviews"
+  | "clinical-records"
+  | "security";
+
+const therapistSections: Array<{ id: TherapistSection; label: string }> = [
+  { id: "overview", label: "Overview" },
+  { id: "profile", label: "Profile" },
+  { id: "availability", label: "Availability" },
+  { id: "appointments", label: "Appointments" },
+  { id: "reviews", label: "Review queue" },
+  { id: "clinical-records", label: "Clinical records" },
+  { id: "security", label: "Security" },
+];
+
+function isTherapistSection(value: string): value is TherapistSection {
+  return therapistSections.some((section) => section.id === value);
+}
+
 const blankForm: ProfileForm = {
   title: "",
   qualifications: "",
@@ -128,6 +151,7 @@ export default function TherapistDashboard() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [activeSection, setActiveSection] = useState<TherapistSection>("overview");
 
   const loadDashboard = useCallback(async (accessToken?: string) => {
     const response = await fetch("/api/therapist/me", {
@@ -199,6 +223,22 @@ export default function TherapistDashboard() {
       setTimeZone(Intl.DateTimeFormat().resolvedOptions().timeZone || "your local timezone");
     });
   }, []);
+
+  useEffect(() => {
+    const selectHashSection = () => {
+      const nextSection = window.location.hash.slice(1);
+      setActiveSection(isTherapistSection(nextSection) ? nextSection : "overview");
+    };
+    selectHashSection();
+    window.addEventListener("hashchange", selectHashSection);
+    return () => window.removeEventListener("hashchange", selectHashSection);
+  }, []);
+
+  function showSection(section: TherapistSection) {
+    setActiveSection(section);
+    window.history.pushState(null, "", `#${section}`);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
 
   function updateField(field: keyof ProfileForm, value: string) {
     setForm((current) => ({ ...current, [field]: value }));
@@ -379,43 +419,57 @@ export default function TherapistDashboard() {
   const appointments = dashboard.appointments ?? [];
   const slots = dashboard.slots ?? [];
   const changeRequests = dashboard.changeRequests ?? [];
+  const activeSectionLabel =
+    therapistSections.find((section) => section.id === activeSection)?.label ?? "Overview";
+  const pendingReviewCount = changeRequests.filter((request) => request.status === "pending").length;
+  const openSlotCount = slots.filter((slot) => !slot.isBooked && slot.slotType !== "blocked").length;
 
   return (
-    <main className="admin-shell therapist-shell" id="main-content" aria-busy={saving}>
+    <main className="admin-shell therapist-shell" id="main-content" aria-busy={saving} data-active-section={activeSection}>
       <aside className="admin-sidebar">
         <Link className="admin-mini-brand" href="/">
           <Image src="/brand/mindease-app-icon.svg" alt="" width={44} height={44} />
           <span>MindEase</span>
         </Link>
         <nav aria-label="Therapist dashboard sections">
-          <a href="#overview">Overview</a>
-          <a href="#profile">Profile</a>
-          <a href="#availability">Availability</a>
-          <a href="#appointments">Appointments</a>
-          <a href="#reviews">Review queue</a>
-          <a href="#clinical-records">Clinical records</a>
-          <a href="#security">Security</a>
+          {therapistSections.map((section) => {
+            const count = section.id === "reviews" ? pendingReviewCount : section.id === "appointments" ? appointments.length : 0;
+            return (
+              <button
+                aria-pressed={activeSection === section.id}
+                className="admin-nav-button"
+                key={section.id}
+                onClick={() => showSection(section.id)}
+                type="button"
+              >
+                <span>{section.label}</span>
+                {count > 0 ? <b>{count}</b> : null}
+              </button>
+            );
+          })}
         </nav>
-        <button onClick={signOut} type="button">Sign out</button>
+        <button className="admin-signout" onClick={signOut} type="button">Sign out</button>
       </aside>
 
-      <section className="admin-content" id="overview">
+      <section className="admin-content">
         <header className="admin-topbar">
           <div>
             <span>Therapist dashboard</span>
-            <h1>{therapist?.full_name ?? session?.user?.email ?? "Therapist"}</h1>
+            <h1>{activeSection === "overview" ? therapist?.full_name ?? session?.user?.email ?? "Therapist" : activeSectionLabel}</h1>
           </div>
-          <div className="admin-status-card">
-            <span>Public profile</span>
-            <strong>{therapist?.is_active ? "Live" : "Hidden"}</strong>
-            <small>{friendlyLabel(therapist?.approval_status ?? "pending")}</small>
+          <div className="admin-user-chip therapist-status-chip">
+            <span>{therapist?.is_active ? "●" : "○"}</span>
+            <div>
+              <strong>{therapist?.is_active ? "Profile live" : "Profile hidden"}</strong>
+              <small>{friendlyLabel(therapist?.approval_status ?? "pending")}</small>
+            </div>
           </div>
         </header>
 
         {error ? <p className="admin-error" role="alert">{error}</p> : null}
         {notice ? <p className="admin-notice inline" role="status">{notice}</p> : null}
 
-        <section className="admin-kpis" aria-label="Therapist metrics">
+        {activeSection === "overview" ? <section className="admin-kpis therapist-kpis" aria-label="Therapist metrics">
           <article>
             <span>Upcoming</span>
             <strong>{appointments.length}</strong>
@@ -423,12 +477,12 @@ export default function TherapistDashboard() {
           </article>
           <article>
             <span>Open slots</span>
-            <strong>{slots.filter((slot) => !slot.isBooked).length}</strong>
+            <strong>{openSlotCount}</strong>
             <p>available times</p>
           </article>
           <article>
             <span>Pending edits</span>
-            <strong>{changeRequests.filter((request) => request.status === "pending").length}</strong>
+            <strong>{pendingReviewCount}</strong>
             <p>waiting for review</p>
           </article>
           <article>
@@ -436,9 +490,24 @@ export default function TherapistDashboard() {
             <strong>{therapist?.is_active ? "Live" : "Hidden"}</strong>
             <p>directory status</p>
           </article>
-        </section>
+        </section> : null}
 
         <section className="admin-grid">
+          <article className="admin-panel wide therapist-overview-panel" id="overview">
+            <div className="admin-panel-head">
+              <div>
+                <span>Workspace</span>
+                <h2>What would you like to do?</h2>
+              </div>
+            </div>
+            <div className="therapist-quick-actions">
+              <button onClick={() => showSection("availability")} type="button"><span>01</span><strong>Add availability</strong><small>Publish times clients can request</small></button>
+              <button onClick={() => showSection("appointments")} type="button"><span>02</span><strong>View appointments</strong><small>{appointments.length} currently assigned</small></button>
+              <button onClick={() => showSection("profile")} type="button"><span>03</span><strong>Update profile</strong><small>Submit public details for review</small></button>
+              <button onClick={() => showSection("clinical-records")} type="button"><span>04</span><strong>Open clinical records</strong><small>Manage consented client cases</small></button>
+            </div>
+          </article>
+
           <ClinicalWorkspace appointments={appointments} />
           <article className="admin-panel wide" id="profile">
             <div className="admin-panel-head">

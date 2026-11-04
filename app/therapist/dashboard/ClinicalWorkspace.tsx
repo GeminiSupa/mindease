@@ -73,7 +73,7 @@ export default function ClinicalWorkspace({ appointments }: { appointments: Appo
       <label><span>Open case from appointment</span><span><input checked={consentConfirmed} onChange={(event) => setConsentConfirmed(event.target.checked)} type="checkbox" /> Client consent for clinical records, assessments and documents has been confirmed.</span><select disabled={busy || !consentConfirmed} defaultValue="" onChange={(event) => void createCase(event.target.value)}><option value="">Choose appointment…</option>{unlinked.map((appointment) => <option key={appointment.id} value={appointment.id}>{appointment.client} — {appointment.time}</option>)}</select></label>
       <label>Current case<select value={caseId} onChange={(event) => void loadCase(event.target.value)}><option value="">Choose case…</option>{cases.map((item) => <option key={item.id} value={item.id}>{item.client_name} — {item.status}</option>)}</select></label>
     </div>
-    {detail ? <div className="admin-grid">
+    {detail ? <div className="admin-grid clinical-case-grid">
       <section className="admin-panel"><h3>Initial history</h3><form className="admin-form-grid single" onSubmit={(event) => { event.preventDefault(); void save("save_intake", intake); }}>
         {Object.entries(intake).map(([key, value]) => <label key={key}>{key.replace(/[A-Z]/g, (letter) => ` ${letter}`).replace(/^./, (letter) => letter.toUpperCase())}<textarea value={value} onChange={(event) => setIntake((current) => ({ ...current, [key]: event.target.value }))} /></label>)}
         <button disabled={busy} type="submit">Save intake history</button></form></section>
