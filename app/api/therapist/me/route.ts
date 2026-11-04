@@ -42,8 +42,6 @@ function normalizeProfileChanges(body: Record<string, unknown>) {
     languages,
     profile_image_url: profileImageUrl,
     session_fee: Number(body.sessionFee) || undefined,
-    availability_status:
-      typeof body.availabilityStatus === "string" ? body.availabilityStatus.trim() : undefined,
     country_of_origin:
       typeof body.countryOfOrigin === "string" ? body.countryOfOrigin.trim().slice(0, 100) : undefined,
     country_code:
@@ -176,6 +174,32 @@ export async function PATCH(request: Request) {
 
   const body = (await request.json()) as Record<string, unknown>;
   const therapistId = value(session.therapist, ["id"]);
+
+  if (body.action === "set_availability_status") {
+    const availabilityStatus = typeof body.availabilityStatus === "string" ? body.availabilityStatus : "";
+    const allowedStatuses = ["Available", "Limited availability", "Unavailable"];
+    if (!allowedStatuses.includes(availabilityStatus)) {
+      return json({ error: "Choose a valid availability status." }, 400);
+    }
+
+    const response = await serviceFetch(`/rest/v1/therapists?id=eq.${encodeURIComponent(therapistId)}`, {
+      method: "PATCH",
+      headers: { prefer: "return=representation" },
+      body: JSON.stringify({ availability_status: availabilityStatus, updated_at: new Date().toISOString() }),
+    });
+    const result = await response.json();
+    if (!response.ok) return json({ error: result?.message ?? "Could not update availability status." }, response.status);
+
+    await writeAuditLog({
+      actorId: session.user.id,
+      action: "therapist_availability_status_updated",
+      subjectTable: "therapists",
+      subjectId: therapistId,
+      details: { availabilityStatus },
+    });
+    return json({ therapist: Array.isArray(result) ? result[0] : result });
+  }
+
   const profileChanges = Object.fromEntries(
     Object.entries(normalizeProfileChanges(body)).filter(([, next]) => next !== undefined),
   );

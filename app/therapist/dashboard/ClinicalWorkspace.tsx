@@ -66,12 +66,12 @@ export default function ClinicalWorkspace({ appointments }: { appointments: Appo
   }
 
   const unlinked = appointments.filter((appointment) => !cases.some((item) => item.appointment_id === appointment.id));
-  return <article className="admin-panel wide" id="clinical-records"><div className="admin-panel-head"><div><span>Clinical workspace</span><h2>Case history, measures and notes</h2></div></div>
-    <p>Only assigned cases appear here. Progress records and private psychotherapy notes are kept separately and every change is audited.</p>
+  return <article className="admin-panel wide clinical-workspace" id="clinical-records"><div className="admin-panel-head"><div><span>Clinical workspace</span><h2>Case history, measures and notes</h2></div></div>
+    <p className="therapist-panel-intro">Only assigned cases appear here. Progress records and private psychotherapy notes are kept separately, and every change is audited.</p>
     {error ? <p className="admin-error" role="alert">{error}</p> : null}{notice ? <p className="admin-notice inline" role="status">{notice}</p> : null}
-    <div className="admin-form-grid">
-      <label><span>Open case from appointment</span><span><input checked={consentConfirmed} onChange={(event) => setConsentConfirmed(event.target.checked)} type="checkbox" /> Client consent for clinical records, assessments and documents has been confirmed.</span><select disabled={busy || !consentConfirmed} defaultValue="" onChange={(event) => void createCase(event.target.value)}><option value="">Choose appointment…</option>{unlinked.map((appointment) => <option key={appointment.id} value={appointment.id}>{appointment.client} — {appointment.time}</option>)}</select></label>
-      <label>Current case<select value={caseId} onChange={(event) => void loadCase(event.target.value)}><option value="">Choose case…</option>{cases.map((item) => <option key={item.id} value={item.id}>{item.client_name} — {item.status}</option>)}</select></label>
+    <div className="clinical-case-picker">
+      <section><span className="clinical-step">Open a new case</span><label className="clinical-consent"><input checked={consentConfirmed} onChange={(event) => setConsentConfirmed(event.target.checked)} type="checkbox" /><span><strong>Client consent confirmed</strong><small>Required for clinical records, assessments and documents.</small></span></label><label>Appointment<select disabled={busy || !consentConfirmed} defaultValue="" onChange={(event) => void createCase(event.target.value)}><option value="">Choose an assigned appointment…</option>{unlinked.map((appointment) => <option key={appointment.id} value={appointment.id}>{appointment.client} — {appointment.time}</option>)}</select></label></section>
+      <section><span className="clinical-step">Continue working</span><label>Current case<select value={caseId} onChange={(event) => void loadCase(event.target.value)}><option value="">Choose an existing case…</option>{cases.map((item) => <option key={item.id} value={item.id}>{item.client_name} — {item.status}</option>)}</select></label><small>{cases.length ? `${cases.length} clinical ${cases.length === 1 ? "case" : "cases"} available` : "No clinical cases have been opened yet."}</small></section>
     </div>
     {detail ? <div className="admin-grid clinical-case-grid">
       <section className="admin-panel"><h3>Initial history</h3><form className="admin-form-grid single" onSubmit={(event) => { event.preventDefault(); void save("save_intake", intake); }}>

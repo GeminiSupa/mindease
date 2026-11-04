@@ -196,6 +196,7 @@ export default function TherapistDirectory({
           {filtered.map((t) => {
             const specs = focusAreas(t.specialization);
             const langs = cleanLanguages(t.languages);
+            const isUnavailable = t.availability_status?.toLowerCase() === "unavailable";
             return (
               <article
                 className="dir-card"
@@ -259,9 +260,11 @@ export default function TherapistDirectory({
                   >
                     View Profile
                   </button>
-                  <a href={waHref(t)} target="_blank" rel="noreferrer" className="dir-book-btn">
-                    Ask availability
-                  </a>
+                  {isUnavailable ? (
+                    <span className="dir-book-btn unavailable" aria-label={`${t.full_name} is not accepting new appointments`}>Currently unavailable</span>
+                  ) : (
+                    <a href={waHref(t)} target="_blank" rel="noreferrer" className="dir-book-btn">Ask availability</a>
+                  )}
                 </div>
               </article>
             );
@@ -330,9 +333,11 @@ export default function TherapistDirectory({
                 <strong>Think this could be a fit?</strong>
                 <span>The coordinator will confirm timing before you book.</span>
               </div>
-              <a href={waHref(activeTherapist)} target="_blank" rel="noreferrer">
-                Ask availability
-              </a>
+              {activeTherapist.availability_status?.toLowerCase() === "unavailable" ? (
+                <span className="profile-unavailable">Not accepting new appointments</span>
+              ) : (
+                <a href={waHref(activeTherapist)} target="_blank" rel="noreferrer">Ask availability</a>
+              )}
             </footer>
           </section>
         </div>

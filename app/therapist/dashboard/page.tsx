@@ -69,7 +69,6 @@ type ProfileForm = {
   languages: string;
   profileImageUrl: string;
   sessionFee: string;
-  availabilityStatus: string;
   countryOfOrigin: string;
   countryCode: string;
 };
@@ -105,7 +104,6 @@ const blankForm: ProfileForm = {
   languages: "Urdu, English",
   profileImageUrl: "",
   sessionFee: "",
-  availabilityStatus: "Available",
   countryOfOrigin: "Pakistan",
   countryCode: "PK",
 };
@@ -118,7 +116,6 @@ const profileFieldNames: Record<string, string> = {
   languages: "Languages",
   profile_image_url: "Profile photo",
   session_fee: "Session fee",
-  availability_status: "Availability",
   country_of_origin: "Country of origin",
   country_code: "Country code",
 };
@@ -177,7 +174,6 @@ export default function TherapistDashboard() {
         languages: therapist.languages?.join(", ") ?? "Urdu, English",
         profileImageUrl: therapist.profile_image_url ?? "",
         sessionFee: therapist.session_fee ? String(therapist.session_fee) : "",
-        availabilityStatus: therapist.availability_status ?? "Available",
         countryOfOrigin: therapist.country_of_origin ?? "Pakistan",
         countryCode: therapist.country_code ?? "PK",
       });
@@ -236,6 +232,8 @@ export default function TherapistDashboard() {
 
   function showSection(section: TherapistSection) {
     setActiveSection(section);
+    setError("");
+    setNotice("");
     window.history.pushState(null, "", `#${section}`);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -283,6 +281,10 @@ export default function TherapistDashboard() {
       setError("Enter a valid start and end time.");
       return;
     }
+    if (starts.getTime() <= Date.now()) {
+      setError("Choose a start time in the future.");
+      return;
+    }
 
     setSaving(true);
     setError("");
@@ -316,6 +318,27 @@ export default function TherapistDashboard() {
       await loadDashboard(session.access_token);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not add slot.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function setAvailabilityStatus(availabilityStatus: string) {
+    setSaving(true);
+    setError("");
+    setNotice("");
+    try {
+      const response = await fetch("/api/therapist/me", {
+        method: "PATCH",
+        headers: apiHeaders(session?.access_token, true),
+        body: JSON.stringify({ action: "set_availability_status", availabilityStatus }),
+      });
+      const body = (await response.json()) as { error?: string };
+      if (!response.ok) throw new Error(body.error ?? "Could not update your availability status.");
+      await loadDashboard(session?.access_token);
+      setNotice(availabilityStatus === "Unavailable" ? "You are now unavailable for new appointment requests." : `Your status is now ${availabilityStatus.toLowerCase()}.`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not update availability status.");
     } finally {
       setSaving(false);
     }
@@ -460,8 +483,8 @@ export default function TherapistDashboard() {
           <div className="admin-user-chip therapist-status-chip">
             <span>{therapist?.is_active ? "●" : "○"}</span>
             <div>
-              <strong>{therapist?.is_active ? "Profile live" : "Profile hidden"}</strong>
-              <small>{friendlyLabel(therapist?.approval_status ?? "pending")}</small>
+              <strong>{therapist?.availability_status ?? (therapist?.is_active ? "Available" : "Profile hidden")}</strong>
+              <small>{therapist?.is_active ? "Public profile live" : friendlyLabel(therapist?.approval_status ?? "pending")}</small>
             </div>
           </div>
         </header>
@@ -545,10 +568,6 @@ export default function TherapistDashboard() {
                 Session fee
                 <input inputMode="numeric" value={form.sessionFee} onChange={(event) => updateField("sessionFee", event.target.value)} />
               </label>
-              <label>
-                Availability note
-                <input value={form.availabilityStatus} onChange={(event) => updateField("availabilityStatus", event.target.value)} />
-              </label>
               <label className="wide-field image-upload-field">
                 <span>Profile photo from device</span>
                 {form.profileImageUrl ? (
@@ -582,17 +601,47 @@ export default function TherapistDashboard() {
             </form>
           </article>
 
-          <article className="admin-panel" id="availability">
+          <article className="admin-panel wide" id="availability">
             <div className="admin-panel-head">
               <div>
                 <span>Scheduling</span>
-                <h2>Add appointment slot</h2>
+                <h2>Availability and working hours</h2>
               </div>
             </div>
-            <form className="admin-form-grid single" onSubmit={addSlot}>
+            <section className="availability-presence" aria-labelledby="availability-status-title">
+              <div>
+                <span>Current status</span>
+                <h3 id="availability-status-title">Are you accepting new appointments?</h3>
+                <p>This changes immediately. It does not hide your approved profile or require admin review.</p>
+              </div>
+              <div className="availability-status-options" role="group" aria-label="Availability status">
+                {["Available", "Limited availability", "Unavailable"].map((status) => (
+                  <button
+                    aria-pressed={(therapist?.availability_status ?? "Available") === status}
+                    disabled={saving}
+                    key={status}
+                    onClick={() => void setAvailabilityStatus(status)}
+                    type="button"
+                  >{status}</button>
+                ))}
+              </div>
+            </section>
+            <div className="therapist-section-heading">
+              <span>Working hours</span>
+              <h3>Add a time slot</h3>
+              <p>Slots are reviewed before they appear publicly. Blocked time keeps your calendar clear.</p>
+            </div>
+            <form className="admin-form-grid availability-slot-form" onSubmit={addSlot}>
               <label>
                 Starts
-                <input type="datetime-local" value={slotStartsAt} onChange={(event) => setSlotStartsAt(event.target.value)} required />
+                <input type="datetime-local" value={slotStartsAt} onChange={(event) => {
+                  setSlotStartsAt(event.target.value);
+                  if (!slotEndsAt && event.target.value) {
+                    const suggestedEnd = new Date(new Date(event.target.value).getTime() + 50 * 60 * 1000);
+                    const localEnd = new Date(suggestedEnd.getTime() - suggestedEnd.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+                    setSlotEndsAt(localEnd);
+                  }
+                }} required />
                 <small>Shown in your device timezone: {timeZone}</small>
               </label>
               <label>
@@ -619,8 +668,9 @@ export default function TherapistDashboard() {
                 Notes
                 <input value={slotNotes} onChange={(event) => setSlotNotes(event.target.value)} placeholder="Optional context for admin approval" />
               </label>
-              <button disabled={saving} type="submit">{saving ? "Submitting..." : "Submit availability"}</button>
+              <button disabled={saving} type="submit">{saving ? "Submitting..." : "Submit slot for approval"}</button>
             </form>
+            <div className="therapist-section-heading slot-list-heading"><span>Submitted schedule</span><h3>Upcoming slots</h3></div>
             <div className="admin-list compact">
               {slots.slice(0, 5).map((slot) => (
                 <div key={slot.id}>
@@ -633,6 +683,7 @@ export default function TherapistDashboard() {
                   ) : null}
                 </div>
               ))}
+              {slots.length === 0 ? <div className="empty-state compact"><strong>No availability submitted.</strong><p>Add a future time above, or set yourself unavailable until you are ready.</p></div> : null}
             </div>
           </article>
 

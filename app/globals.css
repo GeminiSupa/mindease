@@ -5300,6 +5300,29 @@ footer {
 .therapist-quick-actions small { color: var(--muted); font-size: .72rem; line-height: 1.4; }
 .clinical-case-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 16px; }
 .clinical-case-grid > .admin-panel { display: block; }
+.therapist-panel-intro { color: var(--muted); line-height: 1.55; margin: 0 0 18px; max-width: 850px; }
+.clinical-case-picker { display: grid; gap: 14px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.clinical-case-picker > section { background: #f8fbfa; border: 1px solid #dfeae7; border-radius: 13px; display: grid; gap: 12px; padding: 16px; }
+.clinical-case-picker label { color: var(--ink); display: grid; font-size: .72rem; font-weight: 850; gap: 6px; }
+.clinical-case-picker select { background: #fff; border: 1px solid #cfe0dc; border-radius: 9px; color: var(--ink); min-height: 44px; padding: 9px 11px; width: 100%; }
+.clinical-step { color: var(--admin-accent); font-size: .66rem; font-weight: 900; letter-spacing: .06em; text-transform: uppercase; }
+.clinical-consent { align-items: flex-start; background: #fff; border: 1px solid #dfeae7; border-radius: 9px; cursor: pointer; display: flex !important; gap: 10px !important; padding: 11px; }
+.clinical-consent input[type="checkbox"] { accent-color: var(--admin-accent); flex: 0 0 auto; height: 18px; margin: 1px 0 0; min-height: 0; padding: 0; width: 18px; }
+.clinical-consent span { display: grid; gap: 3px; }
+.clinical-consent small, .clinical-case-picker > section > small { color: var(--muted); font-size: .68rem; font-weight: 650; line-height: 1.4; }
+.availability-presence { align-items: center; background: #f8fbfa; border: 1px solid #dfeae7; border-radius: 14px; display: flex; gap: 20px; justify-content: space-between; margin-bottom: 22px; padding: 17px; }
+.availability-presence > div:first-child { max-width: 550px; }
+.availability-presence span, .therapist-section-heading span { color: var(--admin-accent); font-size: .65rem; font-weight: 900; letter-spacing: .06em; text-transform: uppercase; }
+.availability-presence h3, .therapist-section-heading h3 { color: var(--ink); font-size: .95rem; margin: 4px 0; }
+.availability-presence p, .therapist-section-heading p { color: var(--muted); font-size: .74rem; line-height: 1.45; margin: 0; }
+.availability-status-options { display: flex; flex-wrap: wrap; gap: 7px; justify-content: flex-end; }
+.availability-status-options button { background: #fff; border: 1px solid #cfe0dc; border-radius: 999px; color: #49635f; font-size: .7rem; font-weight: 850; min-height: 36px; padding: 0 12px; }
+.availability-status-options button[aria-pressed="true"] { background: #0a7f77; border-color: #0a7f77; color: #fff; box-shadow: 0 4px 12px rgba(10,127,119,.18); }
+.therapist-section-heading { margin: 0 0 12px; }
+.availability-slot-form { margin-bottom: 22px; }
+.availability-slot-form button { grid-column: 1 / -1; }
+.slot-list-heading { border-top: 1px solid #e4ecea; margin-top: 4px; padding-top: 18px; }
+.dir-book-btn.unavailable, .profile-unavailable { align-items: center; background: #eef2f1; border-radius: 9px; color: #657672; cursor: default; display: inline-flex; font-size: .76rem; font-weight: 850; justify-content: center; padding: 10px 13px; text-align: center; }
 
 .admin-panel { background: var(--admin-surface); border: 1px solid rgba(20,60,55,.09); border-radius: 16px; box-shadow: 0 7px 24px rgba(20,50,47,.055); padding: 18px; }
 .admin-panel-head { border-bottom: 1px solid rgba(20,60,55,.08); margin: -2px -2px 14px; padding: 0 2px 13px; }
@@ -5365,7 +5388,9 @@ footer {
   .admin-command-grid { grid-template-columns: 1fr; }
   .admin-command-grid button { min-height: 92px; }
   .admin-user-chip { display: none; }
-  .therapist-quick-actions, .clinical-case-grid { grid-template-columns: 1fr; }
+  .therapist-quick-actions, .clinical-case-grid, .clinical-case-picker { grid-template-columns: 1fr; }
+  .availability-presence { align-items: stretch; flex-direction: column; }
+  .availability-status-options { justify-content: flex-start; }
   .appointment-summary, .appointment-fields { grid-template-columns: 1fr; }
   .appointment-actions { align-items: stretch; flex-direction: column; }
   .appointment-actions button { width: 100%; }
