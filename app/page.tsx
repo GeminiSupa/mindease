@@ -690,21 +690,14 @@ export default async function Home({
         </form>
       </section>
 
-      <footer>
-        <a className="footer-brand" href="#top">
-          <Image src="/brand/mindease-app-icon.svg" alt="" width={36} height={36} />
-          <span>
-            <strong>MindEase Online Clinic</strong>
-            <small>Confidential online therapy coordination.</small>
-          </span>
-        </a>
-        <div className="footer-links">
-          <a href={whatsappHref}>{hasWhatsApp ? "WhatsApp" : "Contact"}</a>
-          <a href="/therapists">Therapists</a>
-          <a href="/self-tests">Self-checks</a>
-          <a href="/therapist/login">Therapist portal</a>
-          <a href="/admin">Admin login</a>
+      <footer className="compliance-footer">
+        <div className="footer-identity">
+          <a className="footer-brand" href="#top"><Image src="/brand/mindease-app-icon.svg" alt="" width={36} height={36} /><span><strong>MindEase Online Clinic</strong><small>Confidential online therapy coordination.</small></span></a>
+          <p>Privacy-conscious care coordination designed around informed consent, limited data collection, controlled access, and secure clinical records.</p>
         </div>
+        <nav className="footer-link-group" aria-label="Clinic links"><strong>Clinic</strong><a href={whatsappHref}>{hasWhatsApp ? "WhatsApp" : "Contact"}</a><a href="/therapists">Therapists</a><a href="/self-tests">Self-checks</a><a href="/therapist/login">Therapist portal</a></nav>
+        <nav className="footer-link-group" aria-label="Privacy and standards links"><strong>Privacy & standards</strong><a href="/privacy">Privacy notice</a><a href="/terms">Terms & clinical safety</a><a href="https://www.moitt.gov.pk/Legislations" target="_blank" rel="noreferrer">Pakistan MoITT legislation ↗</a><a href="https://www.hhs.gov/hipaa/for-professionals/privacy/guidance/hipaa-online-tracking/index.html" target="_blank" rel="noreferrer">HHS health-data guidance ↗</a><a href="https://www.apa.org/practice/guidelines/record-keeping.html" target="_blank" rel="noreferrer">APA record-keeping guidance ↗</a><a href="https://www.who.int/publications/i/item/9789240025707" target="_blank" rel="noreferrer">WHO rights-based care ↗</a></nav>
+        <div className="footer-legal"><span>© {new Date().getFullYear()} MindEase Online Clinic</span><span>External guidance informs our privacy and care design; links do not imply certification, endorsement, or that every referenced law applies in every jurisdiction.</span><a href="/admin">Admin login</a></div>
       </footer>
     </main>
   );

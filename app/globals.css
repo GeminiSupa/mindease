@@ -988,6 +988,34 @@ footer {
   padding: 60px clamp(18px, 4vw, 40px);
 }
 
+.landing-page footer.compliance-footer { align-items: start; display: grid; gap: 30px 44px; grid-template-columns: minmax(260px, 1.25fr) minmax(150px, .55fr) minmax(250px, 1fr); padding-bottom: 34px; padding-top: 40px; }
+.footer-identity { display: grid; gap: 15px; }
+.footer-identity p { color: var(--muted); font-size: .84rem; line-height: 1.6; margin: 0; max-width: 430px; }
+.footer-link-group { align-items: start; display: flex; flex-direction: column; gap: 2px; }
+.footer-link-group > strong { color: var(--ink); font-size: .76rem; letter-spacing: .08em; margin-bottom: 8px; text-transform: uppercase; }
+.footer-link-group a { color: var(--muted); font-size: .8rem; font-weight: 750; line-height: 1.35; min-height: 31px; padding: 5px 0; }
+.footer-link-group a:hover { color: var(--teal-dark); }
+.footer-legal { align-items: center; border-top: 1px solid var(--line); color: var(--muted); display: grid; font-size: .7rem; gap: 8px 20px; grid-column: 1 / -1; grid-template-columns: auto minmax(0, 1fr) auto; line-height: 1.5; padding-top: 18px; }
+.footer-legal a { color: var(--muted); font-weight: 750; }
+.policy-page { background: #f3f7f5; min-height: 100vh; }
+.policy-page > article { background: #fff; border: 1px solid var(--line); border-radius: 22px; box-shadow: 0 20px 60px rgba(23,63,58,.08); margin: 56px auto 80px; max-width: 840px; padding: clamp(26px, 5vw, 58px); }
+.policy-page h1 { color: var(--ink); font-size: clamp(2.3rem, 6vw, 4.2rem); letter-spacing: -.05em; margin: 12px 0 24px; }
+.policy-page h2 { color: var(--ink); font-size: 1.15rem; margin: 30px 0 8px; }
+.policy-page p { color: var(--muted); line-height: 1.75; }
+.policy-callout { background: var(--aqua); border: 1px solid #bee5e2; border-radius: 12px; margin-top: 32px; padding: 16px; }
+
+@media (max-width: 820px) {
+  .landing-page footer.compliance-footer { grid-template-columns: 1fr 1fr; }
+  .footer-identity, .footer-legal { grid-column: 1 / -1; }
+  .footer-legal { align-items: start; grid-template-columns: 1fr; }
+}
+
+@media (max-width: 560px) {
+  .landing-page footer.compliance-footer { grid-template-columns: 1fr; }
+  .footer-link-group { grid-column: 1; }
+  .policy-page > article { border-radius: 0; margin: 24px 0 0; }
+}
+
 .section-heading {
   max-width: 700px;
 }
