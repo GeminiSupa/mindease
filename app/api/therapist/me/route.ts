@@ -265,3 +265,44 @@ export async function PATCH(request: Request) {
 
   return json(results);
 }
+
+export async function DELETE(request: Request) {
+  if (!SUPABASE_SERVICE_ROLE_KEY) {
+    return json({ error: "SUPABASE_SERVICE_ROLE_KEY is required to update availability." }, 500);
+  }
+
+  const session = await requireTherapist(request);
+  if (!session) return json({ error: "Therapist access required." }, 403);
+
+  const body = (await request.json()) as Record<string, unknown>;
+  const slotId = typeof body.slotId === "string" ? body.slotId : "";
+  if (!slotId) return json({ error: "Availability slot id is required." }, 400);
+
+  const therapistId = value(session.therapist, ["id"]);
+  const rows = await getRows(
+    "availability_slots",
+    `id=eq.${encodeURIComponent(slotId)}&therapist_id=eq.${encodeURIComponent(therapistId)}&select=id,is_booked,approval_status&limit=1`,
+  );
+  const slot = rows[0];
+  if (!slot) return json({ error: "Availability slot not found." }, 404);
+  if (slot.is_booked === true) return json({ error: "Booked availability cannot be removed." }, 409);
+  if (slot.approval_status !== "pending") {
+    return json({ error: "Only availability awaiting approval can be removed. Contact admin for approved slots." }, 409);
+  }
+
+  const response = await serviceFetch(
+    `/rest/v1/availability_slots?id=eq.${encodeURIComponent(slotId)}&therapist_id=eq.${encodeURIComponent(therapistId)}`,
+    { method: "DELETE", headers: { prefer: "return=representation" } },
+  );
+  const result = await response.json();
+  if (!response.ok) return json({ error: result?.message ?? "Could not remove availability." }, response.status);
+
+  await writeAuditLog({
+    actorId: session.user.id,
+    action: "therapist_availability_removed",
+    subjectTable: "availability_slots",
+    subjectId: slotId,
+    details: { therapistId },
+  });
+  return json({ deleted: true });
+}

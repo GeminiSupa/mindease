@@ -18,6 +18,8 @@ function sanitizeChanges(input: unknown) {
     "profile_image_url",
     "session_fee",
     "availability_status",
+    "country_of_origin",
+    "country_code",
   ];
 
   return Object.fromEntries(

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -19,6 +19,21 @@ export default function TherapistLogin() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+  const [recoveryToken, setRecoveryToken] = useState("");
+  const [recoveryPassword, setRecoveryPassword] = useState("");
+  const [recoveryConfirmation, setRecoveryConfirmation] = useState("");
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.hash.slice(1));
+    if (params.get("type") === "recovery" && params.get("access_token")) {
+      const token = params.get("access_token") ?? "";
+      queueMicrotask(() => {
+        setRecoveryToken(token);
+        window.history.replaceState(null, "", window.location.pathname);
+      });
+    }
+  }, []);
   async function handleLogin(event: React.FormEvent) {
     event.preventDefault();
     setLoading(true);
@@ -46,6 +61,55 @@ export default function TherapistLogin() {
     }
   }
 
+  async function resetPassword() {
+    if (!email) {
+      setError("Enter your email address first.");
+      return;
+    }
+    setLoading(true);
+    setError("");
+    setNotice("");
+    try {
+      const response = await fetch("/api/therapist/password", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      const body = (await response.json()) as { error?: string };
+      if (!response.ok) throw new Error(body.error ?? "Could not send reset email.");
+      setNotice("Password reset email sent. Check your inbox and spam folder.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not send reset email.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function finishRecovery(event: React.FormEvent) {
+    event.preventDefault();
+    if (recoveryPassword.length < 8) return setError("Password must be at least 8 characters.");
+    if (recoveryPassword !== recoveryConfirmation) return setError("Passwords do not match.");
+    setLoading(true);
+    setError("");
+    try {
+      const response = await fetch("/api/therapist/password", {
+        method: "PATCH",
+        headers: { authorization: `Bearer ${recoveryToken}`, "content-type": "application/json" },
+        body: JSON.stringify({ password: recoveryPassword }),
+      });
+      const body = (await response.json()) as { error?: string };
+      if (!response.ok) throw new Error(body.error ?? "Could not change password.");
+      setRecoveryToken("");
+      setRecoveryPassword("");
+      setRecoveryConfirmation("");
+      setNotice("Password changed. You can now sign in with your new password.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not change password.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
     <main className="admin-page" id="main-content">
       <section className="admin-login therapist-login">
@@ -67,6 +131,19 @@ export default function TherapistLogin() {
           </div>
         </div>
 
+        {recoveryToken ? (
+        <form className="admin-login-card" onSubmit={finishRecovery}>
+          <div>
+            <span>Account recovery</span>
+            <h2>Choose a new password</h2>
+            <p>Use at least eight characters.</p>
+          </div>
+          <label>New password<input autoComplete="new-password" minLength={8} onChange={(event) => setRecoveryPassword(event.target.value)} required type="password" value={recoveryPassword} /></label>
+          <label>Confirm password<input autoComplete="new-password" minLength={8} onChange={(event) => setRecoveryConfirmation(event.target.value)} required type="password" value={recoveryConfirmation} /></label>
+          {error ? <p className="admin-error" role="alert">{error}</p> : null}
+          <button disabled={loading} type="submit">{loading ? "Saving..." : "Set new password"}</button>
+        </form>
+        ) : (
         <form className="admin-login-card" onSubmit={handleLogin}>
           <div>
             <span>Secure login</span>
@@ -96,10 +173,15 @@ export default function TherapistLogin() {
             />
           </label>
           {error ? <p className="admin-error" role="alert">{error}</p> : null}
+          {notice ? <p className="admin-notice inline" role="status">{notice}</p> : null}
           <button disabled={loading || !email || !password} type="submit">
             {loading ? "Signing in..." : "Sign in"}
           </button>
+          <button className="admin-secondary-button" disabled={loading || !email} onClick={resetPassword} type="button">
+            Forgot password?
+          </button>
         </form>
+        )}
       </section>
     </main>
   );

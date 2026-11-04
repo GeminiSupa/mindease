@@ -121,6 +121,8 @@ export default function TherapistDashboard() {
   const [recurrenceRule, setRecurrenceRule] = useState("none");
   const [slotNotes, setSlotNotes] = useState("");
   const [timeZone, setTimeZone] = useState("your local timezone");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -278,6 +280,53 @@ export default function TherapistDashboard() {
     }
   }
 
+  async function removeSlot(slotId: string) {
+    if (!window.confirm("Remove this pending availability submission?")) return;
+    setSaving(true);
+    setError("");
+    setNotice("");
+    try {
+      const response = await fetch("/api/therapist/me", {
+        method: "DELETE",
+        headers: apiHeaders(session?.access_token, true),
+        body: JSON.stringify({ slotId }),
+      });
+      const body = (await response.json()) as { error?: string };
+      if (!response.ok) throw new Error(body.error ?? "Could not remove availability.");
+      setNotice("Pending availability removed.");
+      await loadDashboard(session?.access_token);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not remove availability.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function changePassword(event: React.FormEvent) {
+    event.preventDefault();
+    if (newPassword.length < 8) return setError("Password must be at least 8 characters.");
+    if (newPassword !== confirmPassword) return setError("Passwords do not match.");
+    setSaving(true);
+    setError("");
+    setNotice("");
+    try {
+      const response = await fetch("/api/therapist/password", {
+        method: "PATCH",
+        headers: apiHeaders(session?.access_token, true),
+        body: JSON.stringify({ password: newPassword }),
+      });
+      const body = (await response.json()) as { error?: string };
+      if (!response.ok) throw new Error(body.error ?? "Could not change password.");
+      setNewPassword("");
+      setConfirmPassword("");
+      setNotice("Password changed successfully.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not change password.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
   function signOut() {
     void fetch("/api/admin/logout", { method: "POST" }).finally(() => {
       window.location.href = "/therapist/login";
@@ -343,6 +392,7 @@ export default function TherapistDashboard() {
           <a href="#availability">Availability</a>
           <a href="#appointments">Appointments</a>
           <a href="#reviews">Review queue</a>
+          <a href="#security">Security</a>
         </nav>
         <button onClick={signOut} type="button">Sign out</button>
       </aside>
@@ -506,6 +556,9 @@ export default function TherapistDashboard() {
                   <p>{slot.endsAt ? `Ends ${new Date(slot.endsAt).toLocaleString("en-GB")}` : "No end time"}</p>
                   <small>{friendlyLabel(slot.slotType)}{slot.recurrenceRule && slot.recurrenceRule !== "none" ? ` · ${friendlyLabel(slot.recurrenceRule)}` : ""}</small>
                   <em>{friendlyLabel(slot.approvalStatus)} · {slot.isBooked ? "Booked" : "Open"}</em>
+                  {slot.approvalStatus === "pending" && !slot.isBooked ? (
+                    <button disabled={saving} onClick={() => void removeSlot(slot.id)} type="button">Remove pending slot</button>
+                  ) : null}
                 </div>
               ))}
             </div>
@@ -563,6 +616,26 @@ export default function TherapistDashboard() {
                 </div>
               ) : null}
             </div>
+          </article>
+
+          <article className="admin-panel" id="security">
+            <div className="admin-panel-head">
+              <div>
+                <span>Account security</span>
+                <h2>Change password</h2>
+              </div>
+            </div>
+            <form className="admin-form-grid single" onSubmit={changePassword}>
+              <label>
+                New password
+                <input autoComplete="new-password" minLength={8} onChange={(event) => setNewPassword(event.target.value)} required type="password" value={newPassword} />
+              </label>
+              <label>
+                Confirm password
+                <input autoComplete="new-password" minLength={8} onChange={(event) => setConfirmPassword(event.target.value)} required type="password" value={confirmPassword} />
+              </label>
+              <button disabled={saving} type="submit">{saving ? "Saving..." : "Change password"}</button>
+            </form>
           </article>
         </section>
       </section>

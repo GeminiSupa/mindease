@@ -166,7 +166,7 @@ export async function requireTherapist(request: Request) {
 
   const therapists = await getRows(
     "therapists",
-    `user_id=eq.${encodeURIComponent(user.id)}&select=id,user_id,full_name,title,qualifications,years_experience,bio,specialization,languages,therapy_methods,profile_image_url,session_fee,currency,availability_status,approval_status,is_active&limit=1`,
+    `user_id=eq.${encodeURIComponent(user.id)}&select=id,user_id,full_name,title,qualifications,years_experience,bio,specialization,languages,therapy_methods,profile_image_url,session_fee,currency,availability_status,approval_status,is_active,country_of_origin,country_code&limit=1`,
   );
 
   return therapists[0] ? { user, therapist: therapists[0] } : null;
