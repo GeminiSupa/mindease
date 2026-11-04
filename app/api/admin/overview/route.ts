@@ -199,7 +199,7 @@ export async function GET(request: Request) {
       getRows("availability_slots", "select=*&order=starts_at.asc&limit=50"),
       getRows("admin_audit_logs", "select=*&order=created_at.desc&limit=30"),
       getRowsResult("site_settings", "id=eq.clinic&select=*&limit=1"),
-      getRows("leads", "select=id,contact_method,contact_value,source,created_at&order=created_at.desc&limit=100"),
+      getRows("leads", "select=*&order=created_at.desc&limit=500"),
     ]);
 
   const settingsRows = settingsResult.rows;
@@ -338,6 +338,12 @@ export async function GET(request: Request) {
     contactValue: value(row, ["contact_value"], ""),
     source: value(row, ["source"], "directory_gate"),
     createdAt: value(row, ["created_at"], ""),
+    name: value(row, ["name"], ""), city: value(row, ["city"], ""), inferredCity: value(row, ["inferred_city"], ""), region: value(row, ["region"], ""), countryCode: value(row, ["country_code"], ""),
+    ipPrefix: value(row, ["ip_prefix"], ""), ipHash: value(row, ["ip_hash"], ""), referrer: value(row, ["referrer"], ""), landingPage: value(row, ["landing_page", "page_url"], ""),
+    utmSource: value(row, ["utm_source"], ""), utmMedium: value(row, ["utm_medium"], ""), utmCampaign: value(row, ["utm_campaign"], ""),
+    browserLanguage: value(row, ["browser_language"], ""), timezone: value(row, ["timezone"], ""), deviceType: value(row, ["device_type"], ""),
+    consentAccepted: row.consent_accepted === true, leadStatus: value(row, ["lead_status"], "new"), leadScore: Number(row.lead_score) || 0,
+    notes: value(row, ["notes"], ""), converted: row.converted === true,
   }));
 
   return json({

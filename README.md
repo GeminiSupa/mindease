@@ -24,8 +24,9 @@ Run the SQL files in the Supabase SQL Editor for the project configured by
 1. `supabase/mindease-admin-schema.sql`
 2. `supabase/mindease-production-upgrade.sql`
 3. `supabase/migrations/clinical_records_and_assessments.sql`
-4. `supabase/mindease-site-settings.sql`
-5. `supabase/grant-saeed-admin.sql`
+4. `supabase/migrations/enhance_lead_capture_attribution.sql`
+5. `supabase/mindease-site-settings.sql`
+6. `supabase/grant-saeed-admin.sql`
 
 The site settings migration creates and seeds `public.site_settings`, then
 reloads the PostgREST schema cache so the admin settings screen can use it

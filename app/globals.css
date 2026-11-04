@@ -2406,6 +2406,8 @@ footer {
 .payment-methods span > img { height: 42px; max-width: 78px; object-fit: contain; width: auto; }
 .payment-methods .payment-card-networks { gap: 9px; width: 116px; }
 .payment-methods .payment-card-networks > img { height: 25px; max-width: 51px; }
+.lead-capture-form { display: grid; gap: 12px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.lead-capture-form .lead-consent, .lead-capture-form .lead-form-wide { grid-column: 1 / -1; }
 .dir-card-meta .dir-country { color: var(--ink); font-weight: 750; width: 100%; justify-content: center; }
 
 @media (max-width: 960px) {
@@ -2422,6 +2424,8 @@ footer {
   .payment-methods { justify-content: flex-start; max-width: none; }
   .payment-methods span { flex: 1 1 88px; max-width: 110px; }
   .payment-methods .payment-card-networks { flex-basis: 108px; }
+  .lead-capture-form { grid-template-columns: 1fr; }
+  .lead-capture-form .lead-consent, .lead-capture-form .lead-form-wide { grid-column: auto; }
 }
 
 .admin-shell {

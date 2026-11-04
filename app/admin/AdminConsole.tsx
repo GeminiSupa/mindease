@@ -128,6 +128,10 @@ type Overview = {
     contactValue: string;
     source: string;
     createdAt: string;
+    name: string; city: string; inferredCity: string; region: string; countryCode: string; ipPrefix: string; ipHash: string;
+    referrer: string; landingPage: string; utmSource: string; utmMedium: string; utmCampaign: string;
+    browserLanguage: string; timezone: string; deviceType: string;
+    consentAccepted: boolean; leadStatus: string; leadScore: number; notes: string; converted: boolean;
   }>;
   contactSettings?: ContactSettingsForm;
   contactSettingsError?: string;
@@ -302,6 +306,9 @@ export function AdminConsole() {
   const [messageDrafts, setMessageDrafts] = useState<Record<string, { therapistId: string; note: string; status: string; slotId: string; paymentInstructions: string }>>({});
   const [appointmentDrafts, setAppointmentDrafts] = useState<Record<string, { paymentReference: string; adminNotes: string }>>({});
   const [leadsFilter, setLeadsFilter] = useState<"all" | "email" | "whatsapp">("all");
+  const [leadStatusFilter, setLeadStatusFilter] = useState("all");
+  const [leadSearch, setLeadSearch] = useState("");
+  const [leadDrafts, setLeadDrafts] = useState<Record<string, { leadStatus: string; notes: string }>>({});
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [activeSection, setActiveSection] = useState<AdminSection>("overview");
@@ -527,6 +534,18 @@ export function AdminConsole() {
     setOverview(emptyOverview);
     setError("");
     setNotice("");
+  }
+
+  async function updateLead(id: string, currentStatus: string, currentNotes: string) {
+    const draft = leadDrafts[id] ?? { leadStatus: currentStatus, notes: currentNotes };
+    setSaving(true); setError(""); setNotice("");
+    try {
+      const response = await fetch("/api/admin/leads", { method: "PATCH", headers: apiHeaders(session?.access_token, true), body: JSON.stringify({ id, ...draft }) });
+      const body = await response.json();
+      if (!response.ok) throw new Error(body?.error ?? "Could not update lead.");
+      setNotice("Lead follow-up updated."); await loadOverview();
+    } catch (err) { setError(err instanceof Error ? err.message : "Could not update lead."); }
+    finally { setSaving(false); }
   }
 
   function updateTherapistField(field: keyof TherapistForm, value: string) {
@@ -1070,7 +1089,12 @@ export function AdminConsole() {
   const blogPosts = overview.blogPosts ?? [];
   const availabilitySlots = overview.availabilitySlots ?? [];
   const leads = overview.leads ?? [];
-  const filteredLeads = leadsFilter === "all" ? leads : leads.filter((l) => l.contactMethod === leadsFilter);
+  const filteredLeads = leads.filter((lead) => {
+    if (leadsFilter !== "all" && lead.contactMethod !== leadsFilter) return false;
+    if (leadStatusFilter !== "all" && lead.leadStatus !== leadStatusFilter) return false;
+    const query = leadSearch.trim().toLowerCase();
+    return !query || [lead.name, lead.contactValue, lead.city, lead.inferredCity, lead.utmCampaign].some((value) => value?.toLowerCase().includes(query));
+  });
   const openMessageCount = messages.filter((message) => message.status.toLowerCase() === "open").length;
   const activeSectionLabel = adminSections.find((section) => section.id === activeSection)?.label ?? "Overview";
 
@@ -1178,30 +1202,35 @@ export function AdminConsole() {
                 >WhatsApp</button>
               </div>
             </div>
+            <section className="admin-kpis" aria-label="Lead funnel summary">
+              <article><span>New</span><strong>{leads.filter((lead) => lead.leadStatus === "new").length}</strong><p>awaiting follow-up</p></article>
+              <article><span>Qualified</span><strong>{leads.filter((lead) => lead.leadStatus === "qualified").length}</strong><p>ready for matching</p></article>
+              <article><span>Booked</span><strong>{leads.filter((lead) => lead.converted || lead.leadStatus === "booked").length}</strong><p>converted leads</p></article>
+              <article><span>Conversion</span><strong>{leads.length ? `${Math.round((leads.filter((lead) => lead.converted || lead.leadStatus === "booked").length / leads.length) * 100)}%` : "0%"}</strong><p>lead to booking</p></article>
+            </section>
+            <div className="admin-form-grid" style={{marginBottom:'18px'}}>
+              <label>Search leads<input value={leadSearch} onChange={(event) => setLeadSearch(event.target.value)} placeholder="Name, contact, city, campaign or test" /></label>
+              <label>Funnel stage<select value={leadStatusFilter} onChange={(event) => setLeadStatusFilter(event.target.value)}><option value="all">All stages</option><option value="new">New</option><option value="contacted">Contacted</option><option value="qualified">Qualified</option><option value="booked">Booked</option><option value="not_interested">Not interested</option></select></label>
+            </div>
             {filteredLeads.length > 0 ? (
               <div style={{overflowX:'auto'}}>
                 <table className="admin-table">
                   <thead>
                     <tr>
-                      <th>#</th>
-                      <th>Contact method</th>
-                      <th>Contact value</th>
-                      <th>Source</th>
-                      <th>Date</th>
+                      <th>Lead</th><th>Contact</th><th>Location</th><th>Intent & attribution</th><th>Score</th><th>Follow-up</th>
                     </tr>
                   </thead>
                   <tbody>
                     {filteredLeads.map((lead, i) => (
                       <tr key={lead.id}>
-                        <td>{filteredLeads.length - i}</td>
                         <td>
-                          <span className={`admin-badge ${lead.contactMethod === 'email' ? 'badge-teal' : 'badge-coral'}`}>
-                            {lead.contactMethod === 'email' ? '✉ Email' : '💬 WhatsApp'}
-                          </span>
+                          <strong>{lead.name || `Lead ${filteredLeads.length - i}`}</strong><small>{lead.createdAt ? new Date(lead.createdAt).toLocaleString('en-GB', {day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—'}</small>
                         </td>
-                        <td><strong>{lead.contactValue}</strong></td>
-                        <td>{lead.source === 'directory_gate' ? 'Directory gate' : lead.source}</td>
-                        <td>{lead.createdAt ? new Date(lead.createdAt).toLocaleDateString('en-GB', {day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—'}</td>
+                        <td><span className={`admin-badge ${lead.contactMethod === 'email' ? 'badge-teal' : 'badge-coral'}`}>{lead.contactMethod === 'email' ? '✉ Email' : '💬 WhatsApp'}</span><strong>{lead.contactValue}</strong><small>{lead.consentAccepted ? 'Consent recorded' : 'Legacy lead'}</small></td>
+                        <td><strong>{[lead.city, lead.region, lead.countryCode].filter(Boolean).join(', ') || 'Unknown'}</strong><small>{lead.inferredCity && lead.inferredCity !== lead.city ? `Network suggests ${lead.inferredCity}` : lead.timezone || 'Timezone unknown'} · {lead.deviceType || 'Device unknown'}</small><small title={lead.ipHash}>{lead.ipPrefix ? `Network ${lead.ipPrefix}` : 'Network unavailable'}</small></td>
+                        <td><strong>{friendlyLabel(lead.source)}</strong><small>{lead.utmCampaign ? `Campaign: ${lead.utmCampaign}` : lead.utmSource ? `Source: ${lead.utmSource}` : 'Direct / untagged'}</small><details><summary>Attribution</summary><small>{lead.landingPage || 'No landing page'}</small><small>{lead.referrer || 'No referrer'}</small></details></td>
+                        <td><strong>{lead.leadScore}/100</strong><small>{lead.leadScore >= 70 ? 'High intent' : lead.leadScore >= 50 ? 'Warm' : 'Early stage'}</small></td>
+                        <td><select value={leadDrafts[lead.id]?.leadStatus ?? lead.leadStatus} onChange={(event) => setLeadDrafts((current) => ({ ...current, [lead.id]: { leadStatus: event.target.value, notes: current[lead.id]?.notes ?? lead.notes } }))}><option value="new">New</option><option value="contacted">Contacted</option><option value="qualified">Qualified</option><option value="booked">Booked</option><option value="not_interested">Not interested</option></select><textarea value={leadDrafts[lead.id]?.notes ?? lead.notes} onChange={(event) => setLeadDrafts((current) => ({ ...current, [lead.id]: { leadStatus: current[lead.id]?.leadStatus ?? lead.leadStatus, notes: event.target.value } }))} placeholder="Follow-up notes" /><button disabled={saving} onClick={() => void updateLead(lead.id, lead.leadStatus, lead.notes)} type="button">Save</button></td>
                       </tr>
                     ))}
                   </tbody>

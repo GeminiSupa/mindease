@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import LeadCaptureModal from "../components/LeadCaptureModal";
 
 type Assessment = {
   id: string;
@@ -227,6 +228,7 @@ export default function SelfTestsPage() {
 
   return (
     <main className="test-page" id="main-content">
+      <LeadCaptureModal source="self_test_gate" />
       <section className="test-hero">
         <nav className="site-nav" aria-label="Self-check navigation">
           <Link className="brand" href="/">
